@@ -8,6 +8,12 @@ setup(
     keywords='lib',
     packages=[
         'GomokuLib',
+        'GomokuLib.Game',
+        'GomokuLib.Game.Action',
+        'GomokuLib.Game.GameEngine',
+        'GomokuLib.Game.State',
+        'GomokuLib.Player',
+        # 'GomokuLib.Algo',
     ],
     # long_description=open('README.md').read(),
     install_requires=[
