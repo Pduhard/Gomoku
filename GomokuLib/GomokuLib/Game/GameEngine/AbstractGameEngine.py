@@ -1,15 +1,17 @@
 
+from __future__ import annotations
 from abc import ABCMeta, abstractmethod
-from typing import Union
-import GomokuLib
-from GomokuLib import AbstractAction
-from GomokuLib import AbstractState
-from GomokuLib import AbstractPlayer
+from typing import Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...Player.AbstractPlayer import AbstractPlayer
+    from ..Action.AbstractAction import AbstractAction
+    from ..State.AbstractState import AbstractState
+
 
 class AbstractGameEngine(metaclass=ABCMeta):
 
-    def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]],
-                 board_size: Union[int, tuple[int]] = 19, **kwargs) -> None:
+    def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]], **kwargs) -> None:
         for p in players:
             p.init_engine(self)
 

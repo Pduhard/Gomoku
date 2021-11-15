@@ -1,22 +1,12 @@
+from __future__ import annotations
 from abc import ABCMeta, abstractmethod
-from typing import Any
 
-import GomokuLib
-from GomokuLib import AbstractGameEngine
-# from GomokuLib.Game.Action.AbstractAction import AbstractAction
-# from GomokuLib.Game.State.AbstractState import AbstractState
+from typing import TYPE_CHECKING
 
-# import GomokuLib.Game.GameEngine.AbstractGameEngine as AbstractGameEngine
-
-# try:
-#     from GomokuLib.Game.GameEngine.AbstractGameEngine import AbstractGameEngine
-# except:
-#     AbstractGameEngine = Any
-#     print('Hatt')
-
-# a = AbstractGameEngine()
-# print(a)
-
+if TYPE_CHECKING:
+    from ..Game.GameEngine.AbstractGameEngine import AbstractGameEngine
+    from ..Game.State.AbstractState import AbstractState
+    from ..Game.Action.AbstractAction import AbstractAction
 
 class AbstractPlayer(metaclass=ABCMeta):
 
@@ -27,9 +17,9 @@ class AbstractPlayer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def play_turn(self, state: GomokuLib.AbstractState,
-                  actions: list[GomokuLib.AbstractAction]) -> GomokuLib.AbstractAction:
+    def play_turn(self, state: AbstractState,
+                  actions: list[AbstractAction]) -> AbstractAction:
         pass
 
-    def init_engine(self, engine: GomokuLib.AbstractGameEngine) -> None:
+    def init_engine(self, engine: AbstractGameEngine) -> None:
         self.engine = engine

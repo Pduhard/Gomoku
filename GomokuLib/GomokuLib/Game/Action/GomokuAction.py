@@ -1,4 +1,7 @@
-from GomokuLib.Game.Action.AbstractAction import AbstractAction
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+from .AbstractAction import AbstractAction
 
 class   GomokuAction(AbstractAction):
 

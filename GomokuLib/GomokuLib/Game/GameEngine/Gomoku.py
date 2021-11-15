@@ -1,10 +1,13 @@
 
-from typing import Union
-from GomokuLib.Game.GameEngine.AbstractGameEngine import AbstractGameEngine
-from GomokuLib.Game.Action.GomokuAction import GomokuAction
-from GomokuLib.Game.State.GomokuState import GomokuState
-from GomokuLib.Player.AbstractPlayer import AbstractPlayer
+from __future__ import annotations
+from typing import Union, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from ..Action.GomokuAction import GomokuAction
+    from ..State.GomokuState import GomokuState
+    from ...Player.AbstractPlayer import AbstractPlayer
+
+from .AbstractGameEngine import AbstractGameEngine
 
 class Gomoku(AbstractGameEngine):
 
@@ -14,6 +17,8 @@ class Gomoku(AbstractGameEngine):
         print('init gomoku: ')
         for p in players:
             print(p.engine)
+        self.players = players
+        self.board_size = board_size
         # init board
 
     def get_state(self) -> GomokuState:
@@ -26,6 +31,15 @@ class Gomoku(AbstractGameEngine):
         pass
 
     def run(self) -> AbstractPlayer:
+        # init vars
+        self.player_idx = 0
+        self.current_player = self.players[0]
+        # game loop
+        while self.isover is False:
+            actions, state = self.get_actions(), self.get_state()
+            player_action = self.current_player.play_turn(actions, state)
+            self.apply_action(player_action)
+            self.next_turn()
         pass
 
     # def is_endgame(self) -> AbstractPlayer:
