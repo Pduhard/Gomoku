@@ -1,23 +1,48 @@
-import tkinter as tk
+from tkinter import *
 
-def create_grid(event=None):
-    w = c.winfo_width() # Get current width of canvas
-    h = c.winfo_height() # Get current height of canvas
-    c.delete('grid_line') # Will only remove the grid_line
+class GUIBoard(Frame):
 
-    # Creates all vertical lines at intevals of 100
-    for i in range(0, w, 100):
-        c.create_line([(i, 0), (i, h)], tag='grid_line')
+    def __init__(self, size=19, win_size=(1000, 1000)):
+        super().__init__()
+        self.size = size
+        self.win_size = win_size
+        self.initUI()
 
-    # Creates all horizontal lines at intevals of 100
-    for i in range(0, h, 100):
-        c.create_line([(0, i), (w, i)], tag='grid_line')
 
-root = tk.Tk()
+    def initUI(self):
+        wx, wy = self.win_size
+        cxs, cys = wx / self.size, wy / self.size
+        self.cell_size = (cxs, cys)
+        # self.win_pad = (wpx, wpy)
 
-c = tk.Canvas(root, height=1000, width=1000, bg='white')
-c.pack(fill=tk.BOTH, expand=True)
+        self.master.title("Go board %d x %d " % (self.size, self.size))
+        self.pack(fill=BOTH, expand=1)
+        canvas = Canvas(self)
+        self.canvas = canvas
 
-c.bind('<Configure>', create_grid)
+        for i in range(self.size):
+            wpx, wpy = cxs / 2, cys / 2
+            xi, yi = int(wpx + i * cxs), int(wpy + i * cys) 
+            canvas.create_line(wpx, yi, wx - wpx, yi)
+            canvas.create_line(xi, wpy,  xi, wy - wpy)
+        canvas.bind('<Button-1>', self.click_callback)
+        canvas.pack(fill=BOTH, expand=1)
+    
+    # @staticmethod
+    def click_callback(self, event):
+        cxs, cys = self.cell_size
+        x0, y0 = event.x - (event.x % cxs), event.y - (event.y % cys)
+        x1, y1 = x0 + cxs, y0 + cys
+        self.canvas.create_oval(x0, y0, x1, y1)
 
-root.mainloop()
+
+def main():
+
+    root = Tk()
+    ex = GUIBoard()
+    root.geometry("1000x1000+300+300")
+    root.mainloop()
+
+
+if __name__ == '__main__':
+    main()

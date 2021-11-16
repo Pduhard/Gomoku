@@ -19,6 +19,7 @@ class Gomoku(AbstractGameEngine):
             print(p.engine)
         self.players = players
         self.board_size = board_size
+        self.isover = False
         # init board
 
     def get_state(self) -> GomokuState:
@@ -28,6 +29,9 @@ class Gomoku(AbstractGameEngine):
         pass
 
     def apply_action(self, action: GomokuAction) -> None:
+        pass
+
+    def next_turn(self) -> None:
         pass
 
     def run(self) -> AbstractPlayer:
