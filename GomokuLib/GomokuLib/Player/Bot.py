@@ -17,5 +17,5 @@ class Bot(AbstractPlayer):
 
     def play_turn(self, state: AbstractState,
                   actions: list[AbstractAction]) -> AbstractAction:
-        res = self.algo(state, actions)
-        return res[0]
+        policy = self.algo(state, actions)
+        return max(policy, key=lambda x: x.value).key

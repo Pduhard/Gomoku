@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, Dict
 
 if TYPE_CHECKING:
     from GomokuLib.Game.Action.AbstractAction import AbstractAction
@@ -15,13 +15,14 @@ class AbstractAlgorithm(metaclass=ABCMeta):
     def __init__(self) -> None:
         pass
 
-    def __call__(self, state: AbstractState, actions: list[AbstractAction]) -> list[AbstractAction]:
+    def __call__(self, state: AbstractState, actions: list[AbstractAction]) -> Dict[AbstractAction, float]:
         res = self.run(state, actions)
-        if isinstance(res, list):
-            return sorted(res, key=lambda x: x.score)
-        else:
-            return [res]
+        assert len(res) == len(actions)
+        return {a: r for a, r in zip(actions, res)}
 
     @abstractmethod
-    def run(self, state: AbstractState, actions: list[AbstractAction]) -> Union[list[AbstractAction], AbstractAction]:
+    def run(self, state: AbstractState, actions: list[AbstractAction]) -> list[AbstractAction]:
+    """
+        Run() have to score respectively each actions 
+    """
         pass

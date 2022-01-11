@@ -39,8 +39,11 @@ class GUIBoard(Frame):
 def main():
 
     root = Tk()
+    print("tk")
     ex = GUIBoard()
+    print("gui")
     root.geometry("1000x1000+300+300")
+    print("zgergeg")
     root.mainloop()
 
 
