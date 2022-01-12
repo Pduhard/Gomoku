@@ -16,10 +16,10 @@ class AbstractPlayer(metaclass=ABCMeta):
     def __init__(self) -> None:
         pass
 
+    def init_engine(self, engine: AbstractGameEngine) -> None:
+        self.engine = engine
+
     @abstractmethod
     def play_turn(self, state: AbstractState,
                   actions: list[AbstractAction]) -> AbstractAction:
         pass
-
-    def init_engine(self, engine: AbstractGameEngine) -> None:
-        self.engine = engine

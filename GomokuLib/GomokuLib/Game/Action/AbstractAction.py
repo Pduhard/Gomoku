@@ -10,3 +10,7 @@ class AbstractAction(metaclass=ABCMeta):
     @abstractproperty
     def action(self):
         pass
+
+    # @abstractmethod
+    # def __eq__(self, __o: object) -> bool:
+    #     pass

@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import Union, TYPE_CHECKING
@@ -33,3 +32,17 @@ class AbstractGameEngine(metaclass=ABCMeta):
 
     # def is_endgame(self) -> AbstractPlayer:
     #     pass
+
+
+
+class CtrlPanel(metaclass=ABCMeta):
+    """
+        Bot: Logs sur les algorithm du CtrlPanel
+        Human: Hints apportes par les algo du CtrlPanel
+
+    """
+    def __init__(self, player: AbstractPlayer) -> None:
+        pass
+
+    def handle_click(self, event):
+        pass
