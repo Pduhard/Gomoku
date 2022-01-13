@@ -4,10 +4,16 @@ from typing import Union, TYPE_CHECKING
 import numpy as np
 
 from GomokuLib.Game.Action.AbstractAction import AbstractAction
+from pygame import key
+
+from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule
+
+from ..Rules.Capture import Capture
 
 if TYPE_CHECKING:
     from ..Action.GomokuAction import GomokuAction
     from ..State.GomokuState import GomokuState
+    from ..Rules.AbstractRule import AbstractRule
     from ...Player.AbstractPlayer import AbstractPlayer
 
 from .AbstractGameEngine import AbstractGameEngine
@@ -15,6 +21,7 @@ from .AbstractGameEngine import AbstractGameEngine
 class Gomoku(AbstractGameEngine):
 
     def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]],
+                 rules: list[Union[str, AbstractRule]] = ['Capture', 'Game-Ending Capture', 'no double-threes'],
                  board_size: Union[int, tuple[int]] = 19, **kwargs) -> None:
         super().__init__(players)
         print('init gomoku: ')
@@ -23,6 +30,22 @@ class Gomoku(AbstractGameEngine):
         self.players = players
         self.board_size = (board_size, board_size) if type(board_size) == int else board_size
         self.init_game()
+        self.rules_fn = self.init_rules_fn(rules)
+
+    def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
+
+        tab = {
+            'capture': Capture,
+            'game-ending capture': GameEndingCapture,
+            'no double-threes': NoDoubleThrees
+        }
+        rules.append(BasicRule)
+        rules = [tab[r.lower()](self) if isinstance(r, str) else r for r in rules]
+        rules_fn = {
+            k: [getattr(r, k) for r in rules if hasattr(r, k)]
+            for k in ['opening', 'restricting', 'endturn', 'winning']
+        }
+        return rules_fn
 
     def init_board(self):
         """
@@ -48,6 +71,7 @@ class Gomoku(AbstractGameEngine):
         pass
 
     def get_actions(self) -> list[GomokuAction]:
+
         pass
 
     def is_valid_action(self, action: GomokuAction) -> bool:

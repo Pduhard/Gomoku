@@ -11,6 +11,7 @@ setup(
         'GomokuLib.Game',
         'GomokuLib.Game.Action',
         'GomokuLib.Game.GameEngine',
+        'GomokuLib.Game.Rules',
         'GomokuLib.Game.State',
         'GomokuLib.Player',
         # 'GomokuLib.Algo',

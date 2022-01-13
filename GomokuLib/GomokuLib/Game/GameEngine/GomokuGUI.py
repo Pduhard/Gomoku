@@ -119,3 +119,5 @@ class GomokuGUI(Gomoku):
                     else:
                         # Ctrl Panel
                         pass
+                elif event.type == pygame.WINDOWCLOSE:
+                    exit(0)
