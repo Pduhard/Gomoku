@@ -38,11 +38,14 @@ class NoDoubleThrees(AbstractRule):
 
 
 	def get_valid(self):
+		"""
+			Need to find an optimized way to compute that
+		"""
 		return np.ones_like(self.engine.state.full_board)
 	
 	def is_valid(self, action: GomokuAction):
 		
-		tic = perf_counter()
+		# tic = perf_counter()
 		ar, ac = action.action
 
 		board = self.engine.state.board.copy()
@@ -58,7 +61,7 @@ class NoDoubleThrees(AbstractRule):
 		# elif free_threes ==0:
 		# 	return True
 		free_threes += self.count_free_threes(board, ar, ac + 1, 0, -1)
-		print('bousin:', (perf_counter() - tic) * 1000)
+		# print('bousin:', (perf_counter() - tic) * 1000)
 		return free_threes < 2
 	
 	def count_free_threes(self, board, x, y, dx, dy):

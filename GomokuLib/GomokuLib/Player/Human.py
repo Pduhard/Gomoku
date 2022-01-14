@@ -16,28 +16,10 @@ class Human(AbstractPlayer):
         self.verbose = verbose or {}
         # self.panel = HumanCtrlPanel()
 
-    # def handle_click(self):
-    #     """
-
-    #     """
-    #     pass
-
-    # def handle_event(self):
-    #     while True:
-    #         for event in pygame.event.get():
-    #             if event == CLICK:
-    #                 pass
-                    
-
-
     def play_turn(self, state: AbstractState,
                   actions: list[AbstractAction]) -> AbstractAction:
 
         return self.engine.wait_player_action()
-            
-            # if event["type"] == 'hint':
-            #     self.game_engine.display_hint()
-
 
 
 # class CtrlPanel(metaclass=ABCMeta):

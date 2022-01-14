@@ -40,12 +40,12 @@ class GomokuState(AbstractState):
 
     @property
     def board(self):
-        print("getter")
+        # print("getter")
         return self._board
 
     @board.setter
     def board(self, value):
-        print("setter")
+        # print("setter")
         self._board = value
         self._full_board_uptodate = False
 

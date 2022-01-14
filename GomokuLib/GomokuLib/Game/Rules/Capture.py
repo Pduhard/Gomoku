@@ -88,7 +88,7 @@ class Capture(AbstractRule):
 			sm = np.add.reduce(self.CAPTURE_MASK[capture_flag, 1, ...], axis=0)
 			state.board[..., 1, row_start : row_end, col_start : col_end] ^= sm[..., relrow_start : relrow_end, relcol_start : relcol_end]
 			self.player_count_capture[self.engine.player_idx] += capture_count
-		
+
 		# print((self.CAPTURE_MASK & sub_board).shape)
 		# print(sub_board.shape, self.CAPTURE_MASK.shape)
 		# print(sub_board[0], sub_board[1], sep ='\n\n')
@@ -105,7 +105,7 @@ class Capture(AbstractRule):
 		# 	)
 		# self.player_count_capture[self.engine.player_idx] += capture_count
 
-		print((perf_counter() - tic) * 1000, self.player_count_capture)
+		# print((perf_counter() - tic) * 1000, self.player_count_capture)
 
 	# def capture(self, board, x, y, dx, dy):
 	# 	board[1, x + dx, y + dy] = 0
@@ -117,4 +117,4 @@ class Capture(AbstractRule):
 	# 	   and board[0, x + dx * 3, y + dy * 3]
 
 	def winning(self, action: GomokuAction):
-		return self.player_count_capture[self.engine.player_idx] == 5
+		return self.player_count_capture[self.engine.player_idx] >= 5

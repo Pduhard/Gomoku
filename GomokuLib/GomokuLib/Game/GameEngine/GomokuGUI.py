@@ -8,6 +8,8 @@ import pygame
 from GomokuLib.Game.GameEngine.AbstractGameEngine import CtrlPanel
 from GomokuLib.Game.Action.GomokuAction import GomokuAction
 
+from GomokuLib.Game.Rules import ForceWinPlayer
+
 from .Gomoku import Gomoku
 if TYPE_CHECKING:
     from ...Player.AbstractPlayer import AbstractPlayer
@@ -96,7 +98,7 @@ class GomokuGUI(Gomoku):
         pygame.display.flip()
 
 
-    def run(self) -> AbstractPlayer:
+    def _run(self) -> AbstractPlayer:
         # game loop
         while self.isover is False:
             print(f"New turn - Player {self.player_idx}")
@@ -108,7 +110,6 @@ class GomokuGUI(Gomoku):
             self.apply_action(player_action)
             self.next_turn()
             self.drawUI()
-        pass
 
 
     def wait_player_action(self):
@@ -118,7 +119,7 @@ class GomokuGUI(Gomoku):
 
                     if event.pos[0] < self.board_winsize[0]:
 
-                        print(event.pos)
+                        # print(event.pos)
                         x, y = (np.array(event.pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
                         # print(x, y)
                         action = GomokuAction(x, y)
