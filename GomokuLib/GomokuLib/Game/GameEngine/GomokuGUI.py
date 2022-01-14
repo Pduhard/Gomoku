@@ -24,7 +24,7 @@ class GomokuGUI(Gomoku):
         # self.init_boardUI()
         for i in range(10):
             print("UI", i)
-            self.board = self.init_board()
+            self.state = self.init_board()
             self.drawUI()
 
     def initUI(self, win_size: Union[list[int], tuple[int]]):
@@ -46,11 +46,11 @@ class GomokuGUI(Gomoku):
         self.bg = pygame.transform.scale(self.bg, self.board_winsize)
  
         self.whitestone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WhiteStone.png").convert_alpha()
-        self.whitestone = pygame.transform.scale(self.whitestone, (self.csx, self.csy))
+        self.whitestone = pygame.transform.scale(self.whitestone, (int(self.csx), int(self.csy)))
         # self.whitestone = pygame.transform.scale(self.whitestone, (self.csx * 19/20, self.csy * 19/20))
  
         self.blackstone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/BlackStone.png").convert_alpha()
-        self.blackstone = pygame.transform.scale(self.blackstone, (self.csx, self.csy))
+        self.blackstone = pygame.transform.scale(self.blackstone, (int(self.csx), int(self.csy)))
         # self.blackstone = pygame.transform.scale(self.blackstone, (self.csx * 19/20, self.csy * 19/20))
 
         i = self.csx / 2
@@ -74,15 +74,24 @@ class GomokuGUI(Gomoku):
     def drawUI(self):
 
         self.win.blit(self.bg, (0, 0))
-
-        stone_x, stone_y = self.cells_coord * self.board[np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
+        # print(self.cells_coord.shape,  self.state.board[np.newaxis, ...].shape)
+        stone_x, stone_y = self.cells_coord * self.state.board[self.player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
         empty_cells = stone_x != 0                                          # Boolean array to remove empty cells
         stone_x = stone_x[empty_cells]
         stone_y = stone_y[empty_cells]
         stones = np.stack([stone_x, stone_y], axis=-1)
 
         for x, y in stones:
-            self.win.blit(self.whitestone if x < 0 else self.blackstone, (abs(x) - self.csx, abs(y) - self.csy))
+            self.win.blit(self.whitestone, (x - self.csx, y - self.csy))
+
+        stone_x, stone_y = self.cells_coord * self.state.board[self.player_idx ^ 1][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
+        empty_cells = stone_x != 0                                          # Boolean array to remove empty cells
+        stone_x = stone_x[empty_cells]
+        stone_y = stone_y[empty_cells]
+        stones = np.stack([stone_x, stone_y], axis=-1)
+
+        for x, y in stones:
+            self.win.blit(self.blackstone, (x - self.csx, y - self.csy))
 
         pygame.display.flip()
 
@@ -111,7 +120,7 @@ class GomokuGUI(Gomoku):
 
                         print(event.pos)
                         x, y = (np.array(event.pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
-                        print(x, y)
+                        # print(x, y)
                         action = GomokuAction(x, y)
                         if self.is_valid_action(action):
                             return action
@@ -120,4 +129,5 @@ class GomokuGUI(Gomoku):
                         # Ctrl Panel
                         pass
                 elif event.type == pygame.WINDOWCLOSE:
+                    #  or event.type == pygame.K_ESCAPE:
                     exit(0)

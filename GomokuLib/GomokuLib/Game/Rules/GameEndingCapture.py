@@ -1,13 +1,8 @@
+from GomokuLib.Game.Action import GomokuAction
 from .AbstractRule import AbstractRule
 
 
 class GameEndingCapture(AbstractRule):
 
-	# def get_valid_actions(self) -> np.ndarray:
-	# 	pass
-
-	# def is_valid_action(self, action: GomokuAction) -> bool:
-	# 	pass
-
-	def winning(self):
+	def winning(self, action: GomokuAction):
 		pass

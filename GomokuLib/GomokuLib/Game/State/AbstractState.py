@@ -6,10 +6,8 @@ class AbstractState(metaclass=ABCMeta):
     @abstractmethod
     def __init__(self) -> None:
         pass
-        # raise NotImplementedError
 
     @abstractproperty
-    def state(self):
+    def board(self):
         pass
-        # raise NotImplementedError
     

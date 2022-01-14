@@ -1,6 +1,12 @@
+import bitarray
+
+
 def haswon(board):
+	print(board)
+	print(board >> 7)
 	y = board & (board >> 7)
-	print(y, board)
+	print(y)
+	print((y >> 2 * 7))
 	if (y & (y >> 2 * 7)):
 		return 1
 	y = board & (board >> 8)
@@ -14,8 +20,6 @@ def haswon(board):
 		return 1
 	return 0
 
-a = bytearray('11100000110000000101000010100000110000000001000001010000', 'ascii')
-
-print(a, type(a))
+a = bitarray.bitarray('11100000110000000101000010100000110000000001000001010000')
 
 print(haswon(a))

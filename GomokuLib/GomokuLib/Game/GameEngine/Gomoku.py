@@ -6,13 +6,13 @@ import numpy as np
 from GomokuLib.Game.Action.AbstractAction import AbstractAction
 from pygame import key
 
-from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule
+from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, RULES
 
 from ..Rules.Capture import Capture
+from ..State.GomokuState import GomokuState
 
 if TYPE_CHECKING:
     from ..Action.GomokuAction import GomokuAction
-    from ..State.GomokuState import GomokuState
     from ..Rules.AbstractRule import AbstractRule
     from ...Player.AbstractPlayer import AbstractPlayer
 
@@ -39,20 +39,22 @@ class Gomoku(AbstractGameEngine):
             'game-ending capture': GameEndingCapture,
             'no double-threes': NoDoubleThrees
         }
-        rules.append(BasicRule)
+
+        rules.append(BasicRule(self))
         rules = [tab[r.lower()](self) if isinstance(r, str) else r for r in rules]
         rules_fn = {
-            k: [getattr(r, k) for r in rules if hasattr(r, k)]
-            for k in ['opening', 'restricting', 'endturn', 'winning']
+            k: [r for r in rules if hasattr(r, k)]
+            for k in RULES
         }
+        print(rules_fn  )
         return rules_fn
 
     def init_board(self):
         """
             np array but we should go bitboards next
         """
-        return np.zeros(self.board_size, dtype=np.int32)
-        # return np.random.randint(-1, 2, self.board_size)
+        return GomokuState(self.board_size)
+    #     return np.random.randint(-1, 2, self.board_size)
 
     def init_game(self):
         # init vars
@@ -60,9 +62,8 @@ class Gomoku(AbstractGameEngine):
         self.player_idx = 0
         self.current_player = self.players[0]
         # init board
-        self.board = self.init_board()
+        self.state = self.init_board()
 
-        pass
 
     def set_state(self, GomokuState) -> None:
         pass
@@ -71,19 +72,29 @@ class Gomoku(AbstractGameEngine):
         pass
 
     def get_actions(self) -> list[GomokuAction]:
-
+        # for mask in [rule.get_valid(self.state) for rule in self.rules_fn['restricting']]:
+        #     print(mask)
+        
         pass
 
     def is_valid_action(self, action: GomokuAction) -> bool:
-        return True
+        return all(rule.is_valid(action) for rule in self.rules_fn['restricting'])
 
     def apply_action(self, action: GomokuAction) -> None:
-        self.board[action.action] = -1 if self.player_idx else 1
+        ar, ac = action.action
+
+        # self.state.board[self.player_idx, ar, ac] = 1   # No Reverse Version
+        self.state.board[0, ar, ac] = 1                   # Reverse Version
+        # print(self.state.board)
+        self.last_action = action
 
     def next_turn(self) -> None:
+        for rule in self.rules_fn['endturn']:
+            rule.endturn(self.last_action)
+        self.isover = any(rule.winning(self.last_action) for rule in self.rules_fn['winning'])
         self.player_idx ^= 1
         self.current_player = self.players[self.player_idx]
-        pass
+        self.state.board = self.state.board[::-1, ...]
 
     def run(self) -> AbstractPlayer:
         # game loop
@@ -95,7 +106,4 @@ class Gomoku(AbstractGameEngine):
                 exit(0)
             self.apply_action(player_action)
             self.next_turn()
-        pass
-
-    # def is_endgame(self) -> AbstractPlayer:
-    #     pass
+        return self.players[self.player_idx ^ 1]

@@ -2,9 +2,9 @@
 int haswon(long board)
 {
     long y = board & (board >> 7);
-	printf("")
     if (y & (y >> 2 * 7)) // check \ diagonal
         return 1;
+		
     y = board & (board >> 8);
     if (y & (y >> 2 * 8)) // check horizontal -
         return 1;

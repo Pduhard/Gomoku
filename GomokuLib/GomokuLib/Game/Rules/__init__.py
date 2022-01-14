@@ -11,3 +11,5 @@ __all__ = [
 	'GameEndingCapture',
 	'NoDoubleThrees'
 ]
+
+RULES=['opening', 'restricting', 'endturn', 'winning']

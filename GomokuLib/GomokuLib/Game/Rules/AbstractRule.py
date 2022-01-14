@@ -14,12 +14,23 @@ import numpy as np
 
 
 class AbstractRule(metaclass=ABCMeta):
+	"""
+		Caro rule: Must have an overline (length >= 6)  or  an unbroken row of 5 stones that is not blocked at either end
+	"""
 
 	def __init__(self, engine: Any) -> None:
 		self.engine = engine
 
-	def get_valid_actions(self) -> np.ndarray:
-		pass
+	# def opening(self):
+	# 	pass
 
-	def is_valid_action(self, action: Any) -> bool:
-		pass
+	# def restricting(self):
+	# 	pass
+
+	# def endturn(self):
+	# 	pass
+
+	# def winning(self):
+	# 	pass
+
+
