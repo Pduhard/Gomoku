@@ -98,18 +98,14 @@ class GomokuGUI(Gomoku):
         pygame.display.flip()
 
 
-    def _run(self) -> AbstractPlayer:
-        # game loop
-        while self.isover is False:
-            print(f"New turn - Player {self.player_idx}")
-            actions, state = self.get_actions(), self.get_state()
-            player_action = self.current_player.play_turn(actions, state)
-            # if not player_action or player_action not in actions:
-            #     print("player_action not in actions !")
-            #     exit(0)
-            self.apply_action(player_action)
-            self.next_turn()
+    def _run(self, players: AbstractPlayer) -> AbstractPlayer:
+
+        while self.isnotover():
+            self._run_turn(players)
             self.drawUI()
+
+        print(f"Player {self.player_idx} win.")
+        return self.player_idx ^ 1
 
 
     def wait_player_action(self):

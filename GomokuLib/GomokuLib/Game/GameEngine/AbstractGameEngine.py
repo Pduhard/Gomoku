@@ -11,12 +11,9 @@ if TYPE_CHECKING:
 class AbstractGameEngine(metaclass=ABCMeta):
 
     def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]], **kwargs) -> None:
-        for p in players:
-            p.init_engine(self)
-
-    @abstractmethod
-    def get_state(self) -> AbstractState:
-        pass
+        if players:
+            for p in players:
+                p.init_engine(self)
 
     @abstractmethod
     def get_actions(self) -> list[AbstractAction]:

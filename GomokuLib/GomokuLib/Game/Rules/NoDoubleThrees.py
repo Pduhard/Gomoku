@@ -4,6 +4,8 @@ from GomokuLib.Game.State import GomokuState
 import numpy as np
 
 from GomokuLib.Game.Action import GomokuAction
+
+from GomokuLib.Game.GameEngine import Gomoku
 from .AbstractRule import AbstractRule
 
 def init_ft_ident():
@@ -30,12 +32,11 @@ def init_ft_ident():
 
 class NoDoubleThrees(AbstractRule):
 
-	restricting = True
+	restricting = True # Imply existing methods get_valid() and is_valid()
 
 	def __init__(self, engine: Any) -> None:
 		super().__init__(engine)
 		self.FT_IDENT = init_ft_ident()
-
 
 	def get_valid(self):
 		"""
@@ -104,3 +105,6 @@ class NoDoubleThrees(AbstractRule):
 		# exit(0)
 
 		return 0
+
+	def copy(self, engine: Gomoku):
+		return NoDoubleThrees(engine)

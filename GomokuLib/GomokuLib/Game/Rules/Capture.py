@@ -3,6 +3,8 @@ from typing import Any
 from GomokuLib.Game.Action import GomokuAction
 import numpy as np
 from pygame import mask
+
+from GomokuLib.Game.GameEngine import Gomoku
 from .AbstractRule import AbstractRule
 
 def init_capture_mask():
@@ -49,7 +51,7 @@ class Capture(AbstractRule):
 	def __init__(self, engine: Any) -> None:
 		super().__init__(engine)
 		self.CAPTURE_MASK=init_capture_mask()
-		self.player_count_capture = [0 for p in self.engine.players]
+		self.player_count_capture = [0, 0]
 
 	def endturn(self, action: GomokuAction):
 		
@@ -118,3 +120,8 @@ class Capture(AbstractRule):
 
 	def winning(self, action: GomokuAction):
 		return self.player_count_capture[self.engine.player_idx] >= 5
+
+	def copy(self, engine: Gomoku):
+		rule = Capture(engine)
+		rule.player_count_capture = self.player_count_capture
+		return rule

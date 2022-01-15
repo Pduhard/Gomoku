@@ -3,6 +3,12 @@ from tkinter import *
 from GomokuLib.Game.GameEngine.GomokuGUI import GomokuGUI
 from GomokuLib.Player.Human import Human
 
+from GomokuLib.Player.Bot import Bot
+
+from GomokuLib.Algo.MCTS import MCTS
+
+from GomokuLib.Game.GameEngine import Gomoku
+
 """
 
     Notes:
@@ -21,12 +27,15 @@ def main():
     # print("zgergeg")
     # root.mainloop()
     print("\n\t[SANDBOX]\n")
-    p1 = Human()
-    p2 = Human()
-    engine = GomokuGUI((p1, p2), 19)
-    winner = engine.run()
-    print(f"Winner is {winner}")
+    # p1 = Bot(MCTS())
+    # p2 = Bot(MCTS())
+    engine = Gomoku(None, 19)
+    # winner = engine.run()
+    # print(f"Winner is {winner}")
 
+    mcts = MCTS()
+    action = mcts(engine, engine.state.board, engine.get_actions())
+    print(action)
 
 if __name__ == '__main__':
     main()

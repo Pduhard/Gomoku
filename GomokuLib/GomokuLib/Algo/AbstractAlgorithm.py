@@ -15,14 +15,17 @@ class AbstractAlgorithm(metaclass=ABCMeta):
     def __init__(self) -> None:
         pass
 
-    def __call__(self, state: AbstractState, actions: list[AbstractAction]) -> Dict[AbstractAction, float]:
-        res = self.run(state, actions)
-        assert len(res) == len(actions)
-        return {a: r for a, r in zip(actions, res)}
-
     @abstractmethod
-    def run(self, state: AbstractState, actions: list[AbstractAction]) -> list[AbstractAction]:
-    """
-        Run() have to score respectively each actions 
-    """
+    def __call__(self, state: AbstractState, actions: list[AbstractAction]) -> Dict[AbstractAction, float]:
         pass
+
+    # def __call__(self, state: AbstractState, actions: list[AbstractAction]) -> Dict[AbstractAction, float]:
+    #     res = self.run(state, actions)
+    #     assert len(res) == len(actions)
+    #     return {a: r for a, r in zip(actions, res)}
+
+    # def run(self, state: AbstractState, actions: list[AbstractAction]) -> list[AbstractAction]:
+    # """
+    #     Run() have to score respectively each actions 
+    # """
+    #     pass

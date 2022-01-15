@@ -22,7 +22,7 @@ class GameEndingCapture(AbstractRule):
 
 	def __init__(self, engine: Gomoku) -> None:
 		super().__init__(engine)
-		self.last_capture = [None for _ in self.engine.players]
+		self.last_capture = [None, None]
 		self.winning = None
 
 	def win_again(self, action):
@@ -73,3 +73,9 @@ class GameEndingCapture(AbstractRule):
 			if (x < 0 or x >= xmax or y < 0 or y >= ymax or board[0, x, y] == 0):
 				return i
 		return 4
+
+	def copy(self, engine: Gomoku):
+		rule = GameEndingCapture(engine)
+		rule.last_capture = self.last_capture
+		rule.winning = self.winning
+		return rule

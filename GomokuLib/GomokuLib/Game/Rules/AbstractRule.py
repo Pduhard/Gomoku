@@ -4,6 +4,8 @@ from abc import abstractmethod
 from typing import Any
 from typing import Union, TYPE_CHECKING
 
+from GomokuLib.Game.GameEngine import Gomoku
+
 if TYPE_CHECKING:
     from ...Player.AbstractPlayer import AbstractPlayer
     from ..Action.AbstractAction import AbstractAction
@@ -33,4 +35,6 @@ class AbstractRule(metaclass=ABCMeta):
 	# def winning(self):
 	# 	pass
 
-
+	@abstractmethod
+	def copy(self, engine: Gomoku) -> AbstractRule:
+		pass

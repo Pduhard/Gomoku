@@ -4,12 +4,14 @@ from GomokuLib.Game.State.GomokuState import GomokuState
 import numpy as np
 
 from GomokuLib.Game.Action import GomokuAction
+
+from GomokuLib.Game.GameEngine import Gomoku
 from .AbstractRule import AbstractRule
 
 
 class BasicRule(AbstractRule):
 
-	restricting = True
+	restricting = True  # Imply existing methods get_valid() and is_valid()
 
 	def get_valid(self):
 		return self.engine.state.full_board ^ 1
@@ -55,3 +57,6 @@ class BasicRule(AbstractRule):
 			if (x < 0 or x >= xmax or y < 0 or y >= ymax or board[0, x, y] == 0):
 				return i
 		return 4
+
+	def copy(self, engine: Gomoku):
+		return BasicRule(engine)

@@ -8,6 +8,7 @@ setup(
     keywords='lib',
     packages=[
         'GomokuLib',
+        'GomokuLib.Algo',
         'GomokuLib.Game',
         'GomokuLib.Game.Action',
         'GomokuLib.Game.GameEngine',
