@@ -51,7 +51,8 @@ class Gomoku(AbstractGameEngine):
         return rules_fn
 
     def init_game(self):
-        self.isover = False
+        self._isover = False
+        self.winner = None
         self.player_idx = 0
         self.state = self.init_board()
 
@@ -99,20 +100,42 @@ class Gomoku(AbstractGameEngine):
 
 
     def next_turn(self) -> None:
-        for rule in self.rules_fn['endturn']:
-            rule.endturn(self.last_action)
+        try:
+            if np.all(self.state.full_board != 0):
+                print("DRAW")
+                self._isover = True
+                self.winner = -1
+                return
 
-        print(self.rules_fn['winning'])
-        self.isover = (
-            any([rule.winning(self.last_action) for rule in self.rules_fn['winning']])
-            and not any([rule.nowinning(self.last_action) for rule in self.rules_fn['nowinning']])
-        )
+            for rule in self.rules_fn['endturn']:
+                rule.endturn(self.last_action)
 
-        self.player_idx ^= 1
-        self.state.board = self.state.board[::-1, ...]
+            # print(self.rules_fn['winning'])
+            self._isover = (
+                any([rule.winning(self.last_action) for rule in self.rules_fn['winning']])
+                and not any([rule.nowinning(self.last_action) for rule in self.rules_fn['nowinning']])
+            )
 
-    def isnotover(self):
-        return self.isover is False
+            self.player_idx ^= 1
+            self.state.board = self.state.board[::-1, ...]
+
+        except ForceWinPlayer as e:
+            print(f"Player {self.player_idx} win. Reason: {e.reason}")
+            self._isover = True
+            self.winner = self.player_idx
+
+        except ForceWinOpponent as e:
+            print(f"Player {self.player_idx ^ 1} win. Reason: {e.reason}")
+            self._isover = True
+            self.winner = self.player_idx ^ 1
+        
+        except Exception as e:
+            print(f"An exception occur: {e}")
+            exit(0)
+
+    def isover(self):
+        # print(f"Gomoku(): isover() return {self._isover}")
+        return self._isover
 
     def _run_turn(self, players: AbstractPlayer):
         player = players[self.player_idx]
@@ -125,42 +148,31 @@ class Gomoku(AbstractGameEngine):
 
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
-        while self.isnotover():
+        while self.isover():
             self._run_turn(players)
 
-        print(f"Player {self.player_idx} win.")
-        return self.player_idx ^ 1
+        print(f"Player {self.winner} win.")
 
     def run(self, players: list[AbstractPlayer]) -> AbstractPlayer:
         self.init_game()
-        winner_idx = self._run(players)
-        try:
-            pass
-        except ForceWinPlayer as e:
-            print(f"Player {self.player_idx} win. Reason: {e.reason}")
-            return players[self.player_idx]
+        for p in players:
+            p.init_engine(self)
 
-        except ForceWinOpponent as e:
-            print(f"Player {self.player_idx ^ 1} win. Reason: {e.reason}")
-            return players[self.player_idx ^ 1]
-        
-        except Exception as e:
-            print(f"An exception occur: {e}")
-            exit(0)
+        self._run(players)
 
-        return players[winner_idx]
+        return players[self.winner] if self.winner >= 0 else self.winner
 
 
     def update(self, engine: Gomoku):
 
-        print("Gomoku.copy()")
+        # print("Gomoku.copy()")
         self.state.board = engine.state.board.copy()
-        self.isover = engine.isover
+        self._isover = engine._isover
         self.player_idx = engine.player_idx
         self.rules_fn = {
             k : [rule.copy(self) for rule in rules]
             for k, rules in engine.rules_fn.items()
         }
-        print(engine.rules_fn)
-        print(self.rules_fn)
+        # print(engine.rules_fn)
+        # print(self.rules_fn)
 

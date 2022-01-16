@@ -100,12 +100,11 @@ class GomokuGUI(Gomoku):
 
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
-        while self.isnotover():
+        while self.isover():
             self._run_turn(players)
             self.drawUI()
 
-        print(f"Player {self.player_idx} win.")
-        return self.player_idx ^ 1
+        print(f"Player {self.winner} win.")
 
 
     def wait_player_action(self):

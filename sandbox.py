@@ -30,8 +30,11 @@ def main():
     # p1 = Bot(MCTS())
     # p2 = Bot(MCTS())
     engine = Gomoku(None, 19)
-    # winner = engine.run()
     # print(f"Winner is {winner}")
+
+
+    # engine = GomokuGUI(None, 19)
+    # winner = engine.run([Human(), Human()])
 
     mcts = MCTS()
     action = mcts(engine, engine.state.board, engine.get_actions())
