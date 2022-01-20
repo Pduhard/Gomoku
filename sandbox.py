@@ -29,13 +29,14 @@ def main():
     print("\n\t[SANDBOX]\n")
     # p1 = Bot(MCTS())
     # p2 = Bot(MCTS())
-    engine = Gomoku(None, 19)
+    # engine = GomokuGUI(None, 19)
     # print(f"Winner is {winner}")
 
 
     # engine = GomokuGUI(None, 19)
-    # winner = engine.run([Human(), Human()])
+    # winner = engine.run([Human(), Bot(MCTS())])
 
+    engine = Gomoku(None, 19)
     mcts = MCTS()
     action = mcts(engine, engine.state.board, engine.get_actions())
     print(action)

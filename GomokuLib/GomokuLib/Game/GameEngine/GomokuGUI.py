@@ -100,7 +100,7 @@ class GomokuGUI(Gomoku):
 
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
-        while self.isover():
+        while not self.isover():
             self._run_turn(players)
             self.drawUI()
 

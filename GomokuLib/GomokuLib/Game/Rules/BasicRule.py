@@ -46,6 +46,7 @@ class BasicRule(AbstractRule):
 			self.count_align_this_way(state.board, ar, ac, 0, 1) + 1 >= 5):
 			# print((perf_counter() - tic) * 1000)
 			return True
+		# print("No win")
 		# print((perf_counter() - tic) * 1000)
 		return False
 
@@ -58,5 +59,5 @@ class BasicRule(AbstractRule):
 				return i
 		return 4
 
-	def copy(self, engine: Gomoku):
+	def copy(self, engine: Gomoku, rule: AbstractRule):
 		return BasicRule(engine)

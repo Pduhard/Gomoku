@@ -5,6 +5,8 @@ import numpy as np
 from pygame import mask
 
 from GomokuLib.Game.GameEngine import Gomoku
+
+from GomokuLib.Game.Rules.GameEndingCapture import ForceWinPlayer
 from .AbstractRule import AbstractRule
 
 def init_capture_mask():
@@ -119,9 +121,13 @@ class Capture(AbstractRule):
 	# 	   and board[0, x + dx * 3, y + dy * 3]
 
 	def winning(self, action: GomokuAction):
-		return self.player_count_capture[self.engine.player_idx] >= 5
+		# print(self.player_count_capture)
+		if self.player_count_capture[self.engine.player_idx] >= 5:
+			raise ForceWinPlayer(reason="Five captures.")
+		return False
 
-	def copy(self, engine: Gomoku):
-		rule = Capture(engine)
-		rule.player_count_capture = self.player_count_capture
-		return rule
+	def copy(self, engine: Gomoku, rule: AbstractRule):
+		newrule = Capture(engine)
+		newrule.player_count_capture = rule.player_count_capture.copy()
+		# print("copy: ", newrule.player_count_capture, rule.player_count_capture, rule)
+		return newrule

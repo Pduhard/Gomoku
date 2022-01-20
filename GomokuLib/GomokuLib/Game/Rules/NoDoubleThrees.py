@@ -1,6 +1,7 @@
 from time import perf_counter
 from typing import Any
 from GomokuLib.Game.State import GomokuState
+from numba import njit
 import numpy as np
 
 from GomokuLib.Game.Action import GomokuAction
@@ -28,7 +29,70 @@ def init_ft_ident():
 	FT_IDENT[3, 4, 0] = 1
 
 	return FT_IDENT
-	
+
+@njit()
+def njit_count_free_threes(rxmax, rymax, x, dx, y, dy, board, FT_IDENT):
+	i = 0
+	while i < 4:
+		# align = []
+
+		# for rx, ry in zip(
+		# 	range(max(x, 0), min(x + dx * 6, self.engine.board_size[0]), dx),
+		# 	range(max(y, 0), min(y + dy * 6, self.engine.board_size[1]), dy)
+		# ):
+		rx = x
+		ry = y
+		if dx != 0:
+			rxend, rxstep = x + dx * 6, dx
+		else:
+			rxend, rxstep = x, 0
+
+		if dy != 0:
+			ryend, rystep = y + dy * 6, dy
+		else:
+			ryend, rystep = y, 0
+		start_in_bound = rx >= 0 and rx < rxmax and ry >=0 and ry < rymax
+		end_in_bound = rxend >= 0 and rxend < rxmax and ryend >=0 and ryend < rymax
+		if (start_in_bound and end_in_bound):
+			three = np.full(4, 1, dtype=np.int32)
+			l = 0
+			while l < 6:
+
+				boardv = board[:, rx, ry]
+				k = 0
+				while k < 4:
+					if np.any(boardv != FT_IDENT[k][l]):
+						three[k] = 0
+					k += 1
+				rx += rxstep
+				ry += rystep
+				l += 1
+			if np.any(three == 1):
+				return 1
+			# 	rx += dx
+			# 	rx += dx
+			# iter_x = range(x, x + dx * 6, dx) if dx != 0 else [x] * 6
+			# iter_y = range(y, y + dy * 6, dy) if dy != 0 else [y] * 6
+			# for rx, ry in zip(iter_x, iter_y):
+				# else:
+				# 	align.append([0, 0])
+			# align = np.array(align)
+			# if len(align) == 6:
+			# 	if np.all(align == FT_IDENT[0]):
+			# 		return 1
+			# 	elif np.all(align == FT_IDENT[1]):
+			# 		return 1
+			# 	elif np.all(align == FT_IDENT[2]):
+			# 		return 1
+			# 	elif np.all(align == FT_IDENT[3]):
+			# 		return 1
+
+		# # print(align)
+		x -= dx
+		y -= dy
+		i += 1
+	return 0
+
 
 class NoDoubleThrees(AbstractRule):
 
@@ -46,6 +110,7 @@ class NoDoubleThrees(AbstractRule):
 	
 	def is_valid(self, action: GomokuAction):
 		
+		# return True
 		# tic = perf_counter()
 		ar, ac = action.action
 
@@ -72,6 +137,7 @@ class NoDoubleThrees(AbstractRule):
 			(that’s to say an alignment of four stones with two unobstructed extremities)
 		"""
 		rxmax, rymax = self.engine.board_size
+		return njit_count_free_threes(rxmax, rymax, x, dx, y, dy, board, self.FT_IDENT)
 		for i in range(4):
 			align = []
 
@@ -106,5 +172,5 @@ class NoDoubleThrees(AbstractRule):
 
 		return 0
 
-	def copy(self, engine: Gomoku):
+	def copy(self, engine: Gomoku, rule: AbstractRule):
 		return NoDoubleThrees(engine)

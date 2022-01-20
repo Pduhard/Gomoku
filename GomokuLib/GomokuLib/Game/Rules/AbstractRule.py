@@ -36,5 +36,5 @@ class AbstractRule(metaclass=ABCMeta):
 	# 	pass
 
 	@abstractmethod
-	def copy(self, engine: Gomoku) -> AbstractRule:
+	def copy(self, engine: Gomoku, rule: AbstractRule) -> AbstractRule:
 		pass

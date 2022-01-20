@@ -29,6 +29,6 @@ class Bot(AbstractPlayer):
         print(policy)
         print(np.argmax(policy))
         return GomokuAction(
-            best_action_idx / self.engine.board_size[1],
+            best_action_idx // self.engine.board_size[1],
             best_action_idx % self.engine.board_size[1]
         )

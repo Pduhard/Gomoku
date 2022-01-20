@@ -27,7 +27,7 @@ class GameEndingCapture(AbstractRule):
 
 	def win_again(self, action):
 		
-		print("Win again ???")
+		# print("Win again ???")
 		board = self.engine.state.board[::-1]
 
 		ar, ac = self.last_capture[self.engine.player_idx ^ 1].action
@@ -54,7 +54,7 @@ class GameEndingCapture(AbstractRule):
 
 		self.engine.remove_rule(self, "winning")
 		self.winning = None
-		print(f"remove rule player {self.engine.player_idx ^ 1}")
+		# print(f"remove rule player {self.engine.player_idx ^ 1}")
 		return False
 
 	def nowinning(self, action: GomokuAction):
@@ -62,7 +62,7 @@ class GameEndingCapture(AbstractRule):
 		self.last_capture[self.engine.player_idx] = action
 		self.winning = self.win_again
 		self.engine.new_rule(self, "winning")
-		print(f"add rule player {self.engine.player_idx}")
+		# print(f"add rule player {self.engine.player_idx}")
 		return True
 
 	def count_align_this_way(self, board, x, y, dx, dy):
@@ -74,7 +74,7 @@ class GameEndingCapture(AbstractRule):
 				return i
 		return 4
 
-	def copy(self, engine: Gomoku):
+	def copy(self, engine: Gomoku, _: AbstractRule):
 		rule = GameEndingCapture(engine)
 		rule.last_capture = self.last_capture
 		rule.winning = self.winning

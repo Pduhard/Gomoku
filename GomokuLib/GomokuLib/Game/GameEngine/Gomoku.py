@@ -52,7 +52,7 @@ class Gomoku(AbstractGameEngine):
 
     def init_game(self):
         self._isover = False
-        self.winner = None
+        self.winner = -1
         self.player_idx = 0
         self.state = self.init_board()
 
@@ -65,7 +65,7 @@ class Gomoku(AbstractGameEngine):
 
 
 
-    def get_actions(self) -> list[GomokuAction]:
+    def get_actions(self) -> np.ndarray:
 
         # actions = self.rules_fn['restricting'][0].get_valid(self.state)
         masks = np.array([rule.get_valid() for rule in self.rules_fn['restricting']])
@@ -81,6 +81,7 @@ class Gomoku(AbstractGameEngine):
     def apply_action(self, action: GomokuAction) -> None:
         ar, ac = action.action
 
+        # print(ar, ac)
         self.state.board[0, ar, ac] = 1
         self.last_action = action
 
@@ -148,7 +149,7 @@ class Gomoku(AbstractGameEngine):
 
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
-        while self.isover():
+        while not self.isover():
             self._run_turn(players)
 
         print(f"Player {self.winner} win.")
@@ -169,8 +170,11 @@ class Gomoku(AbstractGameEngine):
         self.state.board = engine.state.board.copy()
         self._isover = engine._isover
         self.player_idx = engine.player_idx
+        # print(engine.rules_fn)
+        # print(self.rules_fn)
+        # print('----------------------')
         self.rules_fn = {
-            k : [rule.copy(self) for rule in rules]
+            k : [rule.copy(self, rule) for rule in rules]
             for k, rules in engine.rules_fn.items()
         }
         # print(engine.rules_fn)
