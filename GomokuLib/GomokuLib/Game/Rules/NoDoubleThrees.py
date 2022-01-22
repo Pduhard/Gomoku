@@ -30,7 +30,7 @@ def init_ft_ident():
 
 	return FT_IDENT
 
-@njit()
+@njit(fastmath=True)
 def njit_count_free_threes(rxmax, rymax, x, dx, y, dy, board, FT_IDENT):
 	i = 0
 	while i < 4:
@@ -124,8 +124,8 @@ class NoDoubleThrees(AbstractRule):
 		free_threes += self.count_free_threes(board, ar - 1, ac + 1, 1, -1)
 		if free_threes == 2:
 			return False
-		# elif free_threes ==0:
-		# 	return True
+		elif free_threes == 0:
+			return True
 		free_threes += self.count_free_threes(board, ar, ac + 1, 0, -1)
 		# print('bousin:', (perf_counter() - tic) * 1000)
 		return free_threes < 2

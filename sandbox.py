@@ -9,6 +9,9 @@ from GomokuLib.Algo.MCTS import MCTS
 
 from GomokuLib.Game.GameEngine import Gomoku
 
+import os
+os.environ["SDL_VIDEODRIVER"]="dummy"
+
 """
 
     Notes:
