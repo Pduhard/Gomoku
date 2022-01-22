@@ -202,7 +202,7 @@ class   MCTS(AbstractAlgorithm):
             self.engine.next_turn()
             i_roll += 1
             # print(i_roll)
-            if i_roll == 10:
+            if i_roll == 5:
                 # print("seeeeeeeeeeeeeeee")
                 return self.evaluate(self.engine.state.board)
             # print(self.engine.state.board)
