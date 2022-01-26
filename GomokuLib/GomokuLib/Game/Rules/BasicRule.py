@@ -1,12 +1,61 @@
+from pickle import FALSE
 import re
 from time import perf_counter
 from GomokuLib.Game.State.GomokuState import GomokuState
+from numba import njit
 import numpy as np
 
 from GomokuLib.Game.Action import GomokuAction
 
 from GomokuLib.Game.GameEngine import Gomoku
 from .AbstractRule import AbstractRule
+
+
+@njit()
+def njit_winning(board, ar, ac, rmax, cmax):
+
+	ways = [
+		(-1, -1),
+		(-1, 0),
+		(-1, 1),
+		(0, -1)
+	]
+
+	# 4 direction
+	for rway, cway in ways:
+
+		r1, c1 = ar, ac
+		r2, c2 = ar, ac
+
+		count1 = 0
+		count2 = 0
+
+		# Slide 4 times
+		i = 0
+		while (i < 4 and (count1 != 0 or count2 != 0)):
+
+			r1 += rway
+			c1 += cway
+			# if (count1 == 4 and (r1 < 0 or r1 >= rmax or c1 < 0 or c1 >= cmax or board[0, r1, c1] == 0)):
+				# count1 = i
+
+			r2 -= rway
+			c2 -= cway
+			# if (count2 == 4 and (r2 < 0 or r2 >= rmax or c2 < 0 or c2 >= cmax or board[0, r2, c2] == 0)):
+			# 	count2 = i
+
+			i += 1
+
+		# 4 stones if no opponent stone found
+		# if (count1 == -1):
+		# 	count1 = 4
+		# if (count2 == -1):
+		# 	count2 = 4
+
+		if (count1 + count2 + 1 >= 5):
+			return True
+	
+	return False
 
 
 class BasicRule(AbstractRule):
@@ -22,10 +71,11 @@ class BasicRule(AbstractRule):
 
 	def winning(self, action: GomokuAction):
 
+		ar, ac = action.action
+		rmax, cmax = self.engine.board_size
+		return njit_winning(self.engine.state.board, ar, ac, rmax, cmax)
 		# tic = perf_counter()
 
-		state = self.engine.state
-		ar, ac = action.action
 
 		if (self.count_align_this_way(state.board, ar, ac, -1, -1) +\
 			self.count_align_this_way(state.board, ar, ac, 1, 1) + 1 >= 5):
@@ -51,13 +101,15 @@ class BasicRule(AbstractRule):
 		return False
 
 	def count_align_this_way(self, board, x, y, dx, dy):
-		xmax, ymax = self.engine.board_size
+		rmax, cmax = self.engine.board_size
 		for i in range(4):
 			x += dx
 			y += dy
-			if (x < 0 or x >= xmax or y < 0 or y >= ymax or board[0, x, y] == 0):
+			if (x < 0 or x >= rmax or y < 0 or y >= cmax or board[0, x, y] == 0):
 				return i
 		return 4
+
+
 
 	def copy(self, engine: Gomoku, rule: AbstractRule):
 		return BasicRule(engine)
