@@ -61,7 +61,7 @@ class Gomoku(AbstractGameEngine):
             np array but we should go bitboards next
         """
         return GomokuState(self.board_size)
-    #     return np.random.randint(-1, 2, self.board_size)
+        # return np.random.randint(-1, 2, self.board_size)
 
 
 

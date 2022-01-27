@@ -4,14 +4,13 @@ from time import perf_counter
 from GomokuLib.Game.State.GomokuState import GomokuState
 from numba import njit
 import numpy as np
-
 from GomokuLib.Game.Action import GomokuAction
 
 from GomokuLib.Game.GameEngine import Gomoku
 from .AbstractRule import AbstractRule
 
 
-@njit()
+# @njit()
 def njit_winning(board, ar, ac, rmax, cmax):
 
 	ways = [
@@ -24,37 +23,33 @@ def njit_winning(board, ar, ac, rmax, cmax):
 	# 4 direction
 	for rway, cway in ways:
 
-		r1, c1 = ar, ac
-		r2, c2 = ar, ac
-
-		count1 = 0
-		count2 = 0
 
 		# Slide 4 times
+		r1, c1 = ar, ac
+		count1 = 4
 		i = 0
-		while (i < 4 and (count1 != 0 or count2 != 0)):
+		while (i < 4 and count1 == 4):
 
 			r1 += rway
 			c1 += cway
-			# if (count1 == 4 and (r1 < 0 or r1 >= rmax or c1 < 0 or c1 >= cmax or board[0, r1, c1] == 0)):
-				# count1 = i
-
-			r2 -= rway
-			c2 -= cway
-			# if (count2 == 4 and (r2 < 0 or r2 >= rmax or c2 < 0 or c2 >= cmax or board[0, r2, c2] == 0)):
-			# 	count2 = i
-
+			if (r1 < 0 or r1 >= rmax or c1 < 0 or c1 >= cmax or board[0, r1, c1] == 0):
+				count1 = i
 			i += 1
 
-		# 4 stones if no opponent stone found
-		# if (count1 == -1):
-		# 	count1 = 4
-		# if (count2 == -1):
-		# 	count2 = 4
+		r2, c2 = ar, ac
+		count2 = 4
+		i = 0
+		while (i < 4 and count2 == 4):
+			r2 -= rway
+			c2 -= cway
+			if (r2 < 0 or r2 >= rmax or c2 < 0 or c2 >= cmax or board[0, r2, c2] == 0):
+				count2 = i
+			i += 1
 
+		# print(f"dir {rway} {cway}: {count1} + {count2} + 1")
 		if (count1 + count2 + 1 >= 5):
 			return True
-	
+
 	return False
 
 

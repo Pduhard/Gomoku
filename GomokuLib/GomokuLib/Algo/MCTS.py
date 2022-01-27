@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Union
 
 
 import numpy as np
+from numba import njit
 
 from GomokuLib.Player import Human
 
@@ -18,6 +19,22 @@ from .AbstractAlgorithm import AbstractAlgorithm
 from ..Game.GameEngine import GomokuGUI
 from ..Game.GameEngine import Gomoku
 
+@njit(fastmath=True)
+def njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, c, mcts_iter, actions):
+
+    exp_rate = c * np.sqrt(np.log(s_n) / (sa_n + 1))
+    amaf = amaf_v / (amaf_n + 1)
+    sa = sa_v / (sa_n + 1)
+    beta = np.sqrt(1 / (1 + 3 * mcts_iter))
+    quality = beta * amaf + (1 - beta) * sa
+
+    ucbs = quality + exp_rate
+    ucbs *= actions
+    # return np.random.choice(np.argwhere(ucbs == np.amax(ucbs)))
+    bestactions = np.argwhere(ucbs == np.amax(ucbs))
+    # print(bestactions)
+    return bestactions[np.random.randint(len(bestactions))]
+
 class   MCTS(AbstractAlgorithm):
 
     engine: Gomoku = None
@@ -25,17 +42,17 @@ class   MCTS(AbstractAlgorithm):
     def __init__(self, c: float = np.sqrt(2), iter: int = 1000) -> None:
         super().__init__()
         """
-            State visite
-            action / state visite
+            State ne
+            action / state ne
             policy
             heuristic (v ou random)
         """
-        # self.states = {}           # Visit count of states
+        # self.states = {}           # n count of states
         self.states = {} # Dict of List: [
-            # s visit count,
+            # s n count,
             # s rewards sum,
             # np.array(([
-            #   sa visit count,
+            #   sa n count,
             #   sa rewards sum
             # ], 19, 19)],
             # np.array(([
@@ -46,8 +63,8 @@ class   MCTS(AbstractAlgorithm):
         self.mcts_iter = iter
         
         # self.states_shape = (3, 19, 19)
-        # self.states = {}            # Dict of List: [visit count, rewards sum, rewards / visitcount]
-        # self.states = {}     # Visit count of pairs state/action
+        # self.states = {}            # Dict of List: [n count, rewards sum, rewards / ncount]
+        # self.states = {}     # n count of pairs state/action
 
         self.engine = Gomoku(None, 19)
         # self.engine = GomokuGUI(None, 19)
@@ -59,13 +76,15 @@ class   MCTS(AbstractAlgorithm):
         # self.bsr, self.bsc = self.bs
 
         t = perf_counter()
-        for i in range(2000):
+        for i in range(self.mcts_iter):
             # print(i, " ", self.engine.rules_fn)
             self.engine.update(engine)
             # print(i, " ", self.engine.rules_fn)
             self.mcts(state, actions, i)
 
-        sa = self.states[state.tobytes()][2]
+        # state = np.random.randint(0, 2, state.shape)
+        statehash = state.tobytes()
+        sa = self.states[statehash][2]
         print('tt :', (perf_counter() - t) * 1000)
         print(((sa[0])).astype(np.uint32))
         
@@ -79,7 +98,7 @@ class   MCTS(AbstractAlgorithm):
 
     def mcts(self, state: np.ndarray, actions: np.ndarray, mcts_iter: int = 0):
 
-        print(f"\n[MCTS function {mcts_iter}]\n")
+        # print(f"\n[MCTS function {mcts_iter}]\n")
 
         path = []
 
@@ -133,7 +152,7 @@ class   MCTS(AbstractAlgorithm):
             
             amaf_masks[player_idx][..., r, c] += [1, reward]
 
-            state_data[0] += 1                       # update visit count
+            state_data[0] += 1                       # update n count
             state_data[1] += reward                  # update state value
             state_data[2][..., r, c] += [1, reward]  # update state-action count / value
             state_data[3] += amaf_masks[player_idx]    # update amaf count / value
@@ -147,11 +166,12 @@ class   MCTS(AbstractAlgorithm):
         """
             wi/ni + c * sqrt( ln(N) / ni )
         """
-        s_visits, s_value, (sa_visits, sa_value), (amaf_visits, amaf_value)  = self.states[statehash]
+        s_n, _, (sa_n, sa_v), (amaf_n, amaf_v)  = self.states[statehash]
+        return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
 
-        exp_rate = np.nan_to_num(self.c * np.sqrt(np.log(s_visits) / sa_visits))
-        amaf = np.nan_to_num(amaf_value / amaf_visits)
-        sa = np.nan_to_num(sa_value / sa_visits)
+        exp_rate = np.nan_to_num(self.c * np.sqrt(np.log(s_n) / sa_n))
+        amaf = np.nan_to_num(amaf_c / amaf_n)
+        sa = np.nan_to_num(sa_c / sa_n)
         beta = np.sqrt(1 / (1 + 3 * mcts_iter))
         quality = beta * amaf + (1 - beta) * sa
 
