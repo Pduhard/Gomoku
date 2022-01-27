@@ -187,7 +187,7 @@ class   MCTS(AbstractAlgorithm):
 
     def evaluate_random_rollingout(self, board: np.ndarray):
 
-        # return [1, 1]
+        return [1, 1]
         # print(self.engine.isover())
         i_roll = 0
         while not self.engine.isover():

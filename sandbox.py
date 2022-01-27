@@ -35,22 +35,22 @@ def main():
     # print(f"Winner is {winner}")
 
 
-    engine = GomokuGUI(None, 19)
-    winner = engine.run([Human(), Human()])
+    # engine = GomokuGUI(None, 19)
+    # winner = engine.run([Human(), Human()])
 
-    # engine = Gomoku(None, 19)
-    # mcts = MCTS()
-    # mcts.mcts_iter = 1000
-    # action = mcts(engine, engine.state.board, engine.get_actions())
-    # profiler = cProfile.Profile()
-    # mcts.mcts_iter = 2000
-    # profiler.enable()
-    # action = mcts(engine, engine.state.board, engine.get_actions())
-    # profiler.disable()
-    # stats = pstats.Stats(profiler).sort_stats('cumtime')
-    # stats.print_stats()
-    # stats.dump_stats('tmp_profile_from_script.prof')
-    # # print(action)
+    engine = Gomoku(None, 19)
+    mcts = MCTS()
+    mcts.mcts_iter = 1000
+    action = mcts(engine, engine.state.board, engine.get_actions())
+    profiler = cProfile.Profile()
+    mcts.mcts_iter = 100
+    profiler.enable()
+    action = mcts(engine, engine.state.board, engine.get_actions())
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats('cumtime')
+    stats.print_stats()
+    stats.dump_stats('tmp_profile_from_script.prof')
+    # print(action)
 
 if __name__ == '__main__':
     main()
