@@ -15,8 +15,12 @@ setup(
         'GomokuLib.Game.Rules',
         'GomokuLib.Game.State',
         'GomokuLib.Player',
-        # 'GomokuLib.Algo',
+        'GomokuLib.AI',
+        'GomokuLib.AI.Agent',
+        'GomokuLib.AI.Model',
+        'GomokuLib.AI.Dataset',
     ],
+
     # long_description=open('README.md').read(),
     install_requires=[
         # 'numpy==1.19.3',

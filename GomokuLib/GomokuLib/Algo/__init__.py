@@ -1,4 +1,4 @@
-from GomokuLib.Algo.MCTS import MCTS
+from .MCTS import MCTS
 
 __all__ = [
     'MCTS'
