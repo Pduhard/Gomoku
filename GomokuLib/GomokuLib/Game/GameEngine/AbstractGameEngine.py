@@ -1,6 +1,7 @@
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import Union, TYPE_CHECKING
+import numpy as np
 
 if TYPE_CHECKING:
     from ...Player.AbstractPlayer import AbstractPlayer
@@ -16,7 +17,7 @@ class AbstractGameEngine(metaclass=ABCMeta):
                 p.init_engine(self)
 
     @abstractmethod
-    def get_actions(self) -> list[AbstractAction]:
+    def get_actions(self) -> np.ndarray:
         pass
 
     @abstractmethod

@@ -16,8 +16,7 @@ class Human(AbstractPlayer):
         self.verbose = verbose or {}
         # self.panel = HumanCtrlPanel()
 
-    def play_turn(self, state: AbstractState,
-                  actions: list[AbstractAction]) -> AbstractAction:
+    def play_turn(self) -> AbstractAction:
 
         return self.engine.wait_player_action()
 

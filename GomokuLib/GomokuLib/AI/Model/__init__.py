@@ -1,5 +1,5 @@
-from .GomokuDataset import GomokuDataset
+from .GomokuModel import GomokuModel
 
 __all__ = [
-    'GomokuDataset'
+    'GomokuModel'
 ]

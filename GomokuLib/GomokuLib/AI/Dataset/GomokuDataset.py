@@ -16,4 +16,4 @@ class GomokuDataset(torch.Dataset):
         #     item = self.transform(item)
         # if self.target_transform:
         #     item = self.target_transform(item)
-        return image, label
+        return item

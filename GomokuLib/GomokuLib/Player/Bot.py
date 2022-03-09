@@ -19,15 +19,12 @@ class Bot(AbstractPlayer):
         self.algo = algorithm
         self.verbose = verbose
 
-    def play_turn(self, state: AbstractState,
-                  actions: np.ndarray) -> AbstractAction:
-        
-        print(actions)
-        
-        policy = self.algo(self.engine, state.board, actions)
+    def play_turn(self) -> AbstractAction:
+
+        policy = self.algo(self.engine)
         best_action_idx = np.argmax(policy)
-        print(policy)
-        print(np.argmax(policy))
+        print("policy:\n", policy)
+        print("best arg:\n", np.argmax(policy))
         return GomokuAction(
             best_action_idx // self.engine.board_size[1],
             best_action_idx % self.engine.board_size[1]

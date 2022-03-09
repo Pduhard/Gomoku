@@ -36,7 +36,7 @@ class GomokuAgent:
             self.engine.init_game()
             while not self.engine.isover():
 
-                actions, state = self.engine.get_actions(), self.engine.state
+                state = self.engine.state
 
                 # TODO
                 # mcts evaluate action

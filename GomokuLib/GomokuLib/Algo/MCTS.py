@@ -2,7 +2,7 @@ from __future__ import annotations
 import copy
 from os import stat
 from time import perf_counter, sleep
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Dict, Tuple, Union
 
 
 import numpy as np
@@ -19,49 +19,52 @@ from .AbstractAlgorithm import AbstractAlgorithm
 from ..Game.GameEngine import GomokuGUI
 from ..Game.GameEngine import Gomoku
 
-@njit(fastmath=True)
-def njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, c, mcts_iter, actions):
+# @njit(fastmath=True)
+# def njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, c, mcts_iter, actions):
 
-    exp_rate = c * np.sqrt(np.log(s_n) / (sa_n + 1))
-    amaf = amaf_v / (amaf_n + 1)
-    sa = sa_v / (sa_n + 1)
-    beta = np.sqrt(1 / (1 + 3 * mcts_iter))
-    quality = beta * amaf + (1 - beta) * sa
+#     exp_rate = c * np.sqrt(np.log(s_n) / (sa_n + 1))
+#     amaf = amaf_v / (amaf_n + 1)
+#     sa = sa_v / (sa_n + 1)
+#     beta = np.sqrt(1 / (1 + 3 * mcts_iter))
+#     quality = beta * amaf + (1 - beta) * sa
 
-    ucbs = quality + exp_rate
-    ucbs *= actions
-    # return np.random.choice(np.argwhere(ucbs == np.amax(ucbs)))
-    bestactions = np.argwhere(ucbs == np.amax(ucbs))
-    # print(bestactions)
-    return bestactions[np.random.randint(len(bestactions))]
+#     ucbs = quality + exp_rate
+#     ucbs *= actions
+#     # return np.random.choice(np.argwhere(ucbs == np.amax(ucbs)))
+#     bestactions = np.argwhere(ucbs == np.amax(ucbs))
+#     # print(bestactions)
+#     return bestactions[np.random.randint(len(bestactions))]
 
 class   MCTS(AbstractAlgorithm):
 
     engine: Gomoku = None
 
-    def __init__(self, c: float = np.sqrt(2), iter: int = 1000) -> None:
+    def __init__(self, c: float = np.sqrt(2), iter: int = 1000, lazy: bool = True) -> None:
         super().__init__()
         """
             State ne
             action / state ne
             policy
             heuristic (v ou random)
+
+            self.states : 
+                Dict of List: 
+                    State visit
+                    State reward
+                    State/actions visit/reward for each cells (2*19*19)
+                    State/actions amaf visit/reward for each cells (2*19*19)
+                    Actions (1*19*19)
         """
         # self.states = {}           # n count of states
-        self.states = {} # Dict of List: [
-            # s n count,
-            # s rewards sum,
-            # np.array(([
-            #   sa n count,
-            #   sa rewards sum
-            # ], 19, 19)],
-            # np.array(([
-            #   sa amaf count,
-            #   sa amaf sum
-            # ], 19, 19)]
+        self.states: dict = {}
         self.c = c
         self.mcts_iter = iter
-        
+        if lazy:
+            self.get_actions = self._lazy_get_actions
+            self.selection = self._lazy_selection
+        else:
+            self.get_actions = self._get_actions
+            self.selection = self._selection
         # self.states_shape = (3, 19, 19)
         # self.states = {}            # Dict of List: [n count, rewards sum, rewards / ncount]
         # self.states = {}     # n count of pairs state/action
@@ -69,57 +72,59 @@ class   MCTS(AbstractAlgorithm):
         self.engine = Gomoku(None, 19)
         # self.engine = GomokuGUI(None, 19)
 
-    def __call__(self, engine: Gomoku, state: np.ndarray, actions: np.ndarray) -> np.ndarray:
-        print("\n[MCTS Object]\n")
+    def __call__(self, game_engine: Gomoku) -> np.ndarray:
+        print("\n[MCTS Object __call__()]\n")
 
         self.bs = np.array(self.engine.board_size)
         # self.bsr, self.bsc = self.bs
 
-        t = perf_counter()
         for i in range(self.mcts_iter):
-            # print(i, " ", self.engine.rules_fn)
-            self.engine.update(engine)
-            # print(i, " ", self.engine.rules_fn)
-            self.mcts(state, actions, i)
+            self.engine.update(game_engine)
+            self.mcts(i)
 
-        # state = np.random.randint(0, 2, state.shape)
-        statehash = state.tobytes()
+        statehash = game_engine.state.board.tobytes()
         sa = self.states[statehash][2]
-        print('tt :', (perf_counter() - t) * 1000)
-        print(((sa[0])).astype(np.uint32))
-        
-        print("MCTS state:", state)
-        print(sa[0])
-        print(sa[1])
-        # exit(0)
-        arg = np.nan_to_num(sa[1] / sa[0])
-        # print("action take: ", arg // 19, arg % 19)
+
+        arg = np.nan_to_num(sa[1] / (sa[0] + 1))
+
         return arg
 
-    def mcts(self, state: np.ndarray, actions: np.ndarray, mcts_iter: int = 0):
+    def _get_actions(self) -> np.ndarray:
+        return self.engine.get_actions()
+    
+    def _lazy_get_actions(self) -> np.ndarray:
+        return np.ones(self.engine.board_size, dtype=bool)
 
-        # print(f"\n[MCTS function {mcts_iter}]\n")
+    def mcts(self, mcts_iter: int):
+
+        print(f"\n[MCTS function {mcts_iter}]\n")
 
         path = []
 
+        state = self.engine.state.board
         statehash = state.tobytes()
         # print(f"statehash: {statehash.hex()}")
         while statehash in self.states and not self.engine.isover():
 
-            actions = self.engine.get_actions()
-            # print("actions", actions.shape, actions)
+            state_data = self.states[statehash]
+            # print("actions: ", state_data[4])
 
-            bestaction = self.selection(statehash, actions, mcts_iter)
-            # print(f"selection {bestaction.shape} {bestaction}")
-            self.engine.apply_action(GomokuAction(bestaction[0], bestaction[1]))
+            ucbs = self._compute_ucbs(state_data, mcts_iter)
+            bestaction = self.selection(ucbs, state_data[4])
+            bestGAction = GomokuAction(bestaction[0], bestaction[1])
+
+            print(f"selection {bestaction}")
+            if not self.engine.is_valid_action(bestGAction):
+                print(f"Not a fucking valid action in mcts: {bestaction}")
+                raise Exception
+
+            self.engine.apply_action(bestGAction)
             self.engine.next_turn()
-            # self.engine.drawUI()
 
             path.append((statehash, bestaction))
             if self.engine.isover():
                 print(self.engine.state.board)
                 print('its over in mcts')
-                sleep(10)
                 exit(0)
 
             state = self.engine.state.board
@@ -132,16 +137,16 @@ class   MCTS(AbstractAlgorithm):
             new_amaf = None
             reward = [1]
         else:
-            brow, bcol = actions.shape
+            brow, bcol = self.engine.board_size
             new_state_actions = np.zeros((2, brow, bcol))
             new_amaf = np.zeros((2, brow, bcol))
             rewards = self.evaluate_random_rollingout(state)
             amaf_masks = [np.zeros_like(new_amaf), np.zeros_like(new_amaf)]
 
-        self.states[statehash] = [1, rewards[0], new_state_actions, new_amaf]
+        self.states[statehash] = [1, rewards[0], new_state_actions, new_amaf, self.get_actions()]
         # print(f"self.states[statehash]: {self.states[statehash]}")
         # print("leaf node evaluation end")
-        
+
         player_idx = 0
         for p in path[::-1]:
             # print(f"path: {p}")
@@ -161,29 +166,52 @@ class   MCTS(AbstractAlgorithm):
 
         return
 
-
-    def selection(self, statehash: str, actions: np.ndarray, mcts_iter: int):
+    def _compute_ucbs(self, state_data: list, mcts_iter: int) -> np.np.ndarray:
         """
             wi/ni + c * sqrt( ln(N) / ni )
         """
-        s_n, _, (sa_n, sa_v), (amaf_n, amaf_v)  = self.states[statehash]
-        return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
+        s_n, _, (sa_n, sa_v), (amaf_n, amaf_v), actions = state_data
+        # return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
 
-        exp_rate = np.nan_to_num(self.c * np.sqrt(np.log(s_n) / sa_n))
-        amaf = np.nan_to_num(amaf_c / amaf_n)
-        sa = np.nan_to_num(sa_c / sa_n)
+        exp_rate = self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
+        amaf = amaf_v / (amaf_n + 1)
+        sa = sa_v / (sa_n + 1)
         beta = np.sqrt(1 / (1 + 3 * mcts_iter))
         quality = beta * amaf + (1 - beta) * sa
 
         ucbs = quality + exp_rate
-        ucbs *= actions
-        # return np.random.choice(np.argwhere(ucbs == np.amax(ucbs)))
+        return ucbs * actions
+
+    def _lazy_selection(self, ucbs: np.ndarray, actions: np.ndarray) -> tuple:
+
+        rows, cols = np.unravel_index(np.argsort(ucbs, axis=None), ucbs.shape)
+        for x, y in zip(rows[::-1], cols[::-1]):
+            print("ucbs", ucbs[x, y], np.amax(ucbs))
+            if self.engine.is_valid_action(GomokuAction(x, y)):
+                return (x, y)
+            actions[x, y] = 0
+        return None
+
+    def _selection(self, ucbs: np.ndarray, *args) -> tuple:
+
         bestactions = np.argwhere(ucbs == np.amax(ucbs))
-        # print(bestactions)
         return bestactions[np.random.randint(len(bestactions))]
 
-    # def heuristic(self, state):
-    #     pass
+    """
+    
+    exp_rate = c * np.sqrt(np.log(s_n) / (sa_n + 1))
+    amaf = amaf_v / (amaf_n + 1)
+    sa = sa_v / (sa_n + 1)
+    beta = np.sqrt(1 / (1 + 3 * mcts_iter))
+    quality = beta * amaf + (1 - beta) * sa
+
+    ucbs = quality + exp_rate
+    ucbs *= actions
+    # return np.random.choice(np.argwhere(ucbs == np.amax(ucbs)))
+    bestactions = np.argwhere(ucbs == np.amax(ucbs))
+    # print(bestactions)
+    return bestactions[np.random.randint(len(bestactions))]
+    """
 
     def evaluate_random_rollingout(self, board: np.ndarray):
 

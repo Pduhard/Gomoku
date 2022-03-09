@@ -20,6 +20,5 @@ class AbstractPlayer(metaclass=ABCMeta):
         self.engine = engine
 
     @abstractmethod
-    def play_turn(self, state: AbstractState,
-                  actions: list[AbstractAction]) -> AbstractAction:
+    def play_turn(self) -> AbstractAction:
         pass

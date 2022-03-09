@@ -4,6 +4,7 @@ from GomokuLib.Game.GameEngine.GomokuGUI import GomokuGUI
 from GomokuLib.Player.Human import Human
 
 from GomokuLib.Player.Bot import Bot
+from GomokuLib.Player.RandomPlayer import RandomPlayer
 
 from GomokuLib.Algo.MCTS import MCTS
 
@@ -21,23 +22,16 @@ import cProfile, pstats
 
 def main():
 
-    # root = Tk()
-    # print("tk")
-    # ex = GUIBoard()
-    # print("gui")
-    # root.geometry("1000x1000+300+300")
-    # print("zgergeg")
-    # root.mainloop()
-    print("\n\t[SANDBOX]\n")
-    # engine = GomokuGUI(None, 19)
-
     mcts = MCTS()
     mcts.mcts_iter = 100
     p1 = Bot(mcts)
-    p2 = Bot(MCTS())
+    p2 = RandomPlayer()
+    # p1 = Human()
+
+    # engine = Gomoku(None, 19)
     engine = GomokuGUI(None, 19)
     winner = engine.run([p2, p1])
-    # winner = engine.run([Human(), Human()])
+
     print(f"Winner is {winner}")
 
     # engine = Gomoku(None, 19)

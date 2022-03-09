@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Union, Dict
 
 if TYPE_CHECKING:
     from GomokuLib.Game.Action.AbstractAction import AbstractAction
-    from GomokuLib.Game.State.AbstractState import AbstractState
+    from GomokuLib.Game.GameEngine.AbstractGameEngine import AbstractGameEngine
 
 from abc import abstractmethod, abstractproperty, ABCMeta
 
@@ -16,7 +16,7 @@ class AbstractAlgorithm(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def __call__(self, state: AbstractState, actions: list[AbstractAction]) -> Dict[AbstractAction, float]:
+    def __call__(self, game_engine: AbstractGameEngine) -> Dict[AbstractAction, float]:
         pass
 
     # def __call__(self, state: AbstractState, actions: list[AbstractAction]) -> Dict[AbstractAction, float]:

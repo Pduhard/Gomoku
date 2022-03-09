@@ -11,10 +11,10 @@ from pygame import key
 from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, RULES
 from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
 
-from ..Rules.Capture import Capture
 from ..State.GomokuState import GomokuState
 
 if TYPE_CHECKING:
+    from ..Rules.Capture import Capture
     from ..Action.GomokuAction import GomokuAction
     from ..Rules.AbstractRule import AbstractRule
     from ...Player.AbstractPlayer import AbstractPlayer
@@ -81,6 +81,9 @@ class Gomoku(AbstractGameEngine):
     def apply_action(self, action: GomokuAction) -> None:
         ar, ac = action.action
 
+        if not self.is_valid_action(action):
+            print(f"Not a fucking valid action: {ar} {ac}")
+            raise Exception
         # print(ar, ac)
         self.state.board[0, ar, ac] = 1
         self.last_action = action
@@ -140,9 +143,8 @@ class Gomoku(AbstractGameEngine):
 
     def _run_turn(self, players: AbstractPlayer):
         player = players[self.player_idx]
-        actions, state = self.get_actions(), self.state
 
-        player_action = player.play_turn(state, actions)
+        player_action = player.play_turn()
 
         self.apply_action(player_action)
         self.next_turn()

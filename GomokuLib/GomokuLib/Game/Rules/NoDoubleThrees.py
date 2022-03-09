@@ -138,9 +138,10 @@ class NoDoubleThrees(AbstractRule):
 		ar, ac = action.action
 		rmax, cmax = self.engine.board_size
 		board = self.engine.state.board
+		old_value = board[0, ar, ac]
 		board[0, ar, ac] = 1
 		res = njit_is_valid(rmax, cmax, ar, ac, board, self.FT_IDENT)
-		board[0, ar, ac] = 0
+		board[0, ar, ac] = old_value
 		return res
 	
 	# def count_free_threes(self, board, x, y, dr, dc):
