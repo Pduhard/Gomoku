@@ -16,14 +16,16 @@ import cProfile, pstats
 
     Notes:
 
-    Rename GameEngine -> Engine
+    TODO:
+        Rename GameEngine -> Engine
+        2 BasicRule dans rules_fn
 
 """
 
 def main():
 
     mcts = MCTS()
-    mcts.mcts_iter = 100
+    mcts.mcts_iter = 10
     p1 = Bot(mcts)
     p2 = RandomPlayer()
     # p1 = Human()

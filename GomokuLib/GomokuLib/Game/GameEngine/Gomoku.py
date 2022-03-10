@@ -31,7 +31,7 @@ class Gomoku(AbstractGameEngine):
 
         self.board_size = (board_size, board_size) if type(board_size) == int else board_size
         self.init_game()
-        self.rules_fn = self.init_rules_fn(rules)
+        self.rules_fn = self.init_rules_fn(rules.copy())
 
 
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):

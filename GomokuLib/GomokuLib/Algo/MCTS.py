@@ -1,5 +1,6 @@
 from __future__ import annotations
 import copy
+import random
 from os import stat
 from time import perf_counter, sleep
 from typing import TYPE_CHECKING, Dict, Tuple, Union
@@ -59,12 +60,6 @@ class   MCTS(AbstractAlgorithm):
         self.states: dict = {}
         self.c = c
         self.mcts_iter = iter
-        if lazy:
-            self.get_actions = self._lazy_get_actions
-            self.selection = self._lazy_selection
-        else:
-            self.get_actions = self._get_actions
-            self.selection = self._selection
         # self.states_shape = (3, 19, 19)
         # self.states = {}            # Dict of List: [n count, rewards sum, rewards / ncount]
         # self.states = {}     # n count of pairs state/action
@@ -89,7 +84,7 @@ class   MCTS(AbstractAlgorithm):
 
         return arg
 
-    def _get_actions(self) -> np.ndarray:
+    def get_actions(self) -> np.ndarray:
         return self.engine.get_actions()
     
     def _lazy_get_actions(self) -> np.ndarray:
@@ -100,7 +95,7 @@ class   MCTS(AbstractAlgorithm):
         print(f"\n[MCTS function {mcts_iter}]\n")
 
         path = []
-
+        mcts_idx = self.engine.player_idx
         state = self.engine.state.board
         statehash = state.tobytes()
         # print(f"statehash: {statehash.hex()}")
@@ -109,8 +104,8 @@ class   MCTS(AbstractAlgorithm):
             state_data = self.states[statehash]
             # print("actions: ", state_data[4])
 
-            ucbs = self._compute_ucbs(state_data, mcts_iter)
-            bestaction = self.selection(ucbs, state_data[4])
+            ucbs = self.get_policy(state_data, mcts_iter)
+            bestaction = self.selection(ucbs, state_data)
             bestGAction = GomokuAction(bestaction[0], bestaction[1])
 
             print(f"selection {bestaction}")
@@ -118,10 +113,10 @@ class   MCTS(AbstractAlgorithm):
                 print(f"Not a fucking valid action in mcts: {bestaction}")
                 raise Exception
 
+            path.append((self.engine.player_idx, statehash, bestaction))
             self.engine.apply_action(bestGAction)
             self.engine.next_turn()
 
-            path.append((statehash, bestaction))
             if self.engine.isover():
                 print(self.engine.state.board)
                 print('its over in mcts')
@@ -131,42 +126,55 @@ class   MCTS(AbstractAlgorithm):
             statehash = state.tobytes()
             mcts_iter += 1
 
+        end_game = self.engine.isover()
+        # self.expand()
+        # reward = self.reward(end_game)
+        path.append((self.engine.player_idx, statehash, None))
 
-        if self.engine.isover():
+        if end_game:
             new_state_actions = None
             new_amaf = None
-            reward = [1]
+            if self.engine.winner >= 0:
+                rewards = [self.engine.winner == mcts_idx, self.engine.winner != mcts_idx]
+            else:
+                rewards = [0.5, 0.5]
+
         else:
             brow, bcol = self.engine.board_size
             new_state_actions = np.zeros((2, brow, bcol))
             new_amaf = np.zeros((2, brow, bcol))
             rewards = self.evaluate_random_rollingout(state)
-            amaf_masks = [np.zeros_like(new_amaf), np.zeros_like(new_amaf)]
 
         self.states[statehash] = [1, rewards[0], new_state_actions, new_amaf, self.get_actions()]
         # print(f"self.states[statehash]: {self.states[statehash]}")
         # print("leaf node evaluation end")
 
-        player_idx = 0
-        for p in path[::-1]:
-            # print(f"path: {p}")
+        self.backpropagation(path, rewards)
+        return
+
+    # def new_memory(self, statehash, bestaction):
+    #     return (self.engine.player_idx, statehash, bestaction)
+
+    def backpropagation(self, memory: tuple, rewards: list):
+
+        amaf_masks = np.zeros((2, 2, self.engine.board_size[0], self.engine.board_size[1]))
+        for player_idx, statehash, bestaction in memory[::-1]:
+
             reward = rewards[player_idx]
-            statehash, bestaction = p
-            r, c = bestaction
             state_data = self.states[statehash]
-            
-            amaf_masks[player_idx][..., r, c] += [1, reward]
 
             state_data[0] += 1                       # update n count
             state_data[1] += reward                  # update state value
+            if bestaction is None:
+                continue
+
+            r, c = bestaction
             state_data[2][..., r, c] += [1, reward]  # update state-action count / value
+            amaf_masks[player_idx, ..., r, c] += [1, reward]
             state_data[3] += amaf_masks[player_idx]    # update amaf count / value
 
-            player_idx ^= 1
 
-        return
-
-    def _compute_ucbs(self, state_data: list, mcts_iter: int) -> np.np.ndarray:
+    def get_policy(self, state_data: list, mcts_iter: int) -> np.np.ndarray:
         """
             wi/ni + c * sqrt( ln(N) / ni )
         """
@@ -185,6 +193,7 @@ class   MCTS(AbstractAlgorithm):
     def _lazy_selection(self, ucbs: np.ndarray, actions: np.ndarray) -> tuple:
 
         rows, cols = np.unravel_index(np.argsort(ucbs, axis=None), ucbs.shape)
+
         for x, y in zip(rows[::-1], cols[::-1]):
             print("ucbs", ucbs[x, y], np.amax(ucbs))
             if self.engine.is_valid_action(GomokuAction(x, y)):
@@ -192,9 +201,9 @@ class   MCTS(AbstractAlgorithm):
             actions[x, y] = 0
         return None
 
-    def _selection(self, ucbs: np.ndarray, *args) -> tuple:
+    def selection(self, policy: np.ndarray, *args) -> tuple:
 
-        bestactions = np.argwhere(ucbs == np.amax(ucbs))
+        bestactions = np.argwhere(policy == np.amax(policy))
         return bestactions[np.random.randint(len(bestactions))]
 
     """
@@ -216,52 +225,26 @@ class   MCTS(AbstractAlgorithm):
     def evaluate_random_rollingout(self, board: np.ndarray):
 
         return [1, 1]
-        # print(self.engine.isover())
-        i_roll = 0
+        actions = np.meshgrid(np.arange(self.engine.board_size[0]), np.arange(self.engine.board_size[1]))
+        actions = np.array(actions).T.reshape(
+            self.engine.board_size[0] * self.engine.board_size[1], 2)
+
+        mcts_idx = self.engine.player_idx
         while not self.engine.isover():
-            actions = self.engine.get_actions()
-            actions = np.argwhere(actions)
-            # print(actions)
-            rd = np.random.randint(len(actions))
-            ranr, ranc = actions[rd]
-            action = GomokuAction(ranr, ranc)
+
+            np.random.shuffle(actions)
             i = 0
-            while not self.engine.is_valid_action(action):
-                # if (i > 10000):
-                #     print(self.engine.state.board)
-                #     exit(0)
+            while not self.engine.is_valid_action(GomokuAction(*actions[i])):
                 i += 1
-                # actions.pop(rd)
-                rd = np.random.randint(len(actions))
-                ranr, ranc = actions[rd]
-                action = GomokuAction(ranr, ranc)
-                
-            # exit(0)
-            # ranr, ranc = np.random.randint(19, size=2)
-            # # print('oui', ranr, ranc, ranr)
-            # action = GomokuAction(ranr, ranc)
-            # i = 0
-            # while self.engine.is_valid_action(action):
-            #     ranr, ranc = np.random.randint(19, size=2)
-            #     action = GomokuAction(ranr, ranc)
-            #     i += 1
-            # print(i)
-            self.engine.apply_action(action)
+
+            self.engine.apply_action(GomokuAction(*actions[i]))
             self.engine.next_turn()
-            i_roll += 1
-            # print(i_roll)
-            if i_roll == 5:
-                # print("seeeeeeeeeeeeeeee")
-                return self.evaluate(self.engine.state.board)
-            # print(self.engine.state.board)
-
-
 
         winner = self.engine.winner
         if winner == -1:
             return [0.5, 0.5]
         else:
-            return [1, 0] if self.engine.winner == 0 else [0, 1]
+            return [self.engine.winner == mcts_idx, self.engine.winner != mcts_idx]
 
     def evaluate(self, board: np.ndarray):
 
