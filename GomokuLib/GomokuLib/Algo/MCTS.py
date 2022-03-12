@@ -90,12 +90,19 @@ class   MCTS(AbstractAlgorithm):
     def _lazy_get_actions(self) -> np.ndarray:
         return np.ones(self.engine.board_size, dtype=bool)
 
+    # def init_memory(self):
+    #     pass
+
+    def new_memory(self, statehash, bestaction):
+        return (self.engine.player_idx, statehash, bestaction)
+        
     def mcts(self, mcts_iter: int):
 
         print(f"\n[MCTS function {mcts_iter}]\n")
 
+        # self.init_path()
         path = []
-        mcts_idx = self.engine.player_idx
+        self.mcts_idx = self.engine.player_idx
         state = self.engine.state.board
         statehash = state.tobytes()
         # print(f"statehash: {statehash.hex()}")
@@ -113,7 +120,7 @@ class   MCTS(AbstractAlgorithm):
                 print(f"Not a fucking valid action in mcts: {bestaction}")
                 raise Exception
 
-            path.append((self.engine.player_idx, statehash, bestaction))
+            path.append(self.new_memory(statehash, bestaction))
             self.engine.apply_action(bestGAction)
             self.engine.next_turn()
 
@@ -126,34 +133,32 @@ class   MCTS(AbstractAlgorithm):
             statehash = state.tobytes()
             mcts_iter += 1
 
-        end_game = self.engine.isover()
-        # self.expand()
-        # reward = self.reward(end_game)
-        path.append((self.engine.player_idx, statehash, None))
+        self.end_game = self.engine.isover()
+        self.win = self.mcts_idx == self.engine.winner
+        self.draw = self.engine.winner == -1
 
-        if end_game:
-            new_state_actions = None
-            new_amaf = None
-            if self.engine.winner >= 0:
-                rewards = [self.engine.winner == mcts_idx, self.engine.winner != mcts_idx]
-            else:
-                rewards = [0.5, 0.5]
+        path.append(self.new_memory(statehash, None))
 
-        else:
-            brow, bcol = self.engine.board_size
-            new_state_actions = np.zeros((2, brow, bcol))
-            new_amaf = np.zeros((2, brow, bcol))
-            rewards = self.evaluate_random_rollingout(state)
-
-        self.states[statehash] = [1, rewards[0], new_state_actions, new_amaf, self.get_actions()]
-        # print(f"self.states[statehash]: {self.states[statehash]}")
-        # print("leaf node evaluation end")
+        self.states[statehash] = self.expand(state)
+        rewards = self.evaluate(state)
 
         self.backpropagation(path, rewards)
         return
 
-    # def new_memory(self, statehash, bestaction):
-    #     return (self.engine.player_idx, statehash, bestaction)
+    def evaluate(self, state):
+        if self.end_game:
+            return self.award()
+        return self.evaluate_random_rollingout(state)
+
+    def expand(self, state):
+        if self.end_game:
+            new_state_actions = None
+            new_amaf = None
+        else:
+            brow, bcol = self.engine.board_size
+            new_state_actions = np.zeros((2, brow, bcol))
+            new_amaf = np.zeros((2, brow, bcol))
+        return [1, 0, new_state_actions, new_amaf, self.get_actions()]
 
     def backpropagation(self, memory: tuple, rewards: list):
 
@@ -173,6 +178,10 @@ class   MCTS(AbstractAlgorithm):
             amaf_masks[player_idx, ..., r, c] += [1, reward]
             state_data[3] += amaf_masks[player_idx]    # update amaf count / value
 
+    def award(self):
+        if self.draw:
+            return [0.5, 0.5]
+        return [1 if self.win else 0, 1 if not self.win else 0]
 
     def get_policy(self, state_data: list, mcts_iter: int) -> np.np.ndarray:
         """
@@ -229,7 +238,7 @@ class   MCTS(AbstractAlgorithm):
         actions = np.array(actions).T.reshape(
             self.engine.board_size[0] * self.engine.board_size[1], 2)
 
-        mcts_idx = self.engine.player_idx
+        self.mcts_idx = self.engine.player_idx
         while not self.engine.isover():
 
             np.random.shuffle(actions)
@@ -241,40 +250,37 @@ class   MCTS(AbstractAlgorithm):
             self.engine.next_turn()
 
         winner = self.engine.winner
-        if winner == -1:
-            return [0.5, 0.5]
-        else:
-            return [self.engine.winner == mcts_idx, self.engine.winner != mcts_idx]
+        return self.award(self.engine.winner == self.mcts_idx, self.engine.winner == -1)
 
-    def evaluate(self, board: np.ndarray):
+    # def evaluate(self, board: np.ndarray):
 
-        # board = np.ones_like(board)
-        count = np.sum(board, axis=(1, 2))
-        # print(count.shape, count)
-        countscoef = np.nan_to_num(count / np.sum(count))
+    #     # board = np.ones_like(board)
+    #     count = np.sum(board, axis=(1, 2))
+    #     # print(count.shape, count)
+    #     countscoef = np.nan_to_num(count / np.sum(count))
 
-        # coords = board[board != 0]
-        # coords = np.transpose(np.nonzero(board))
-        coords = (
-            np.argwhere(board[0]) - self.bs // 2,
-            np.argwhere(board[1]) - self.bs // 2
-        )
-        # coord = board[board.astype(np.bool)]
-        # print(board.shape, board)
-        # print("coords: ", coords)
-        # print("coord")
+    #     # coords = board[board != 0]
+    #     # coords = np.transpose(np.nonzero(board))
+    #     coords = (
+    #         np.argwhere(board[0]) - self.bs // 2,
+    #         np.argwhere(board[1]) - self.bs // 2
+    #     )
+    #     # coord = board[board.astype(np.bool)]
+    #     # print(board.shape, board)
+    #     # print("coords: ", coords)
+    #     # print("coord")
 
-        dists = np.nan_to_num([
-            np.mean(np.sum(np.abs(coords[0]), axis=-1)),
-            np.mean(np.sum(np.abs(coords[1]), axis=-1))
-        ])
+    #     dists = np.nan_to_num([
+    #         np.mean(np.sum(np.abs(coords[0]), axis=-1)),
+    #         np.mean(np.sum(np.abs(coords[1]), axis=-1))
+    #     ])
 
-        # dists1 = np.sum(abs(coords[1]), axis=0)
-        # print("dists :", dists)
+    #     # dists1 = np.sum(abs(coords[1]), axis=0)
+    #     # print("dists :", dists)
 
-        distscoef = np.nan_to_num(dists / np.sum(dists))
-        # print("distcoef: ", distscoef)
-        # print("countcoef: ", countscoef)
-        # exit(0)
+    #     distscoef = np.nan_to_num(dists / np.sum(dists))
+    #     # print("distcoef: ", distscoef)
+    #     # print("countcoef: ", countscoef)
+    #     # exit(0)
 
-        return (countscoef + distscoef) / 2
+    #     return (countscoef + distscoef) / 2
