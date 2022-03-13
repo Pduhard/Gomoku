@@ -110,7 +110,11 @@ class NoDoubleThrees(AbstractRule):
 		"""
 			Need to find an optimized way to compute that
 		"""
-		return np.ones_like(self.engine.state.full_board)
+		actions = np.empty_like(self.engine.state.full_board)
+		for r in range(self.engine.board_size[0]):
+			for c in range(self.engine.board_size[1]):
+				actions[r, c] = self.is_valid(GomokuAction(r, c))
+		return actions
 
 
 	def is_valid(self, action: GomokuAction):

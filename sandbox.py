@@ -7,6 +7,8 @@ from GomokuLib.Player.Bot import Bot
 from GomokuLib.Player.RandomPlayer import RandomPlayer
 
 from GomokuLib.Algo.MCTS import MCTS
+from GomokuLib.Algo.MCTSLazy import MCTSLazy
+from GomokuLib.Algo.MCTSAMAFLazy import MCTSAMAFLazy
 
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -25,14 +27,16 @@ import cProfile, pstats
 def main():
 
     mcts = MCTS()
-    mcts.mcts_iter = 10
+    mcts.mcts_iter = 2000
     p1 = Bot(mcts)
-    p2 = RandomPlayer()
-    # p1 = Human()
+    # p1 = RandomPlayer()
 
-    # engine = Gomoku(None, 19)
+    mcts = MCTSAMAFLazy()
+    mcts.mcts_iter = 2000
+    p2 = Bot(mcts)
+
     engine = GomokuGUI(None, 19)
-    winner = engine.run([p2, p1])
+    winner = engine.run([p1, p2])
 
     print(f"Winner is {winner}")
 

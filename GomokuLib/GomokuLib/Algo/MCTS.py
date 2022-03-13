@@ -40,7 +40,7 @@ class   MCTS(AbstractAlgorithm):
 
     engine: Gomoku = None
 
-    def __init__(self, c: float = np.sqrt(2), iter: int = 1000, lazy: bool = True) -> None:
+    def __init__(self, c: float = np.sqrt(2), iter: int = 1000) -> None:
         super().__init__()
         """
             State ne
@@ -56,16 +56,13 @@ class   MCTS(AbstractAlgorithm):
                     State/actions amaf visit/reward for each cells (2*19*19)
                     Actions (1*19*19)
         """
-        # self.states = {}           # n count of states
         self.states: dict = {}
         self.c = c
         self.mcts_iter = iter
-        # self.states_shape = (3, 19, 19)
-        # self.states = {}            # Dict of List: [n count, rewards sum, rewards / ncount]
-        # self.states = {}     # n count of pairs state/action
-
         self.engine = Gomoku(None, 19)
-        # self.engine = GomokuGUI(None, 19)
+
+        self.board_size = self.engine.board_size
+        self.brow, self.bcol = self.engine.board_size
 
     def __call__(self, game_engine: Gomoku) -> np.ndarray:
         print("\n[MCTS Object __call__()]\n")
@@ -86,15 +83,9 @@ class   MCTS(AbstractAlgorithm):
 
     def get_actions(self) -> np.ndarray:
         return self.engine.get_actions()
-    
-    def _lazy_get_actions(self) -> np.ndarray:
-        return np.ones(self.engine.board_size, dtype=bool)
-
-    # def init_memory(self):
-    #     pass
 
     def new_memory(self, statehash, bestaction):
-        return (self.engine.player_idx, statehash, bestaction)
+        return (0 if self.engine.player_idx == self.mcts_idx else 1, statehash, bestaction)
         
     def mcts(self, mcts_iter: int):
 
@@ -111,8 +102,8 @@ class   MCTS(AbstractAlgorithm):
             state_data = self.states[statehash]
             # print("actions: ", state_data[4])
 
-            ucbs = self.get_policy(state_data, mcts_iter)
-            bestaction = self.selection(ucbs, state_data)
+            policy = self.get_policy(state_data, mcts_iter)
+            bestaction = self.selection(policy, state_data)
             bestGAction = GomokuAction(bestaction[0], bestaction[1])
 
             print(f"selection {bestaction}")
@@ -127,7 +118,7 @@ class   MCTS(AbstractAlgorithm):
             if self.engine.isover():
                 print(self.engine.state.board)
                 print('its over in mcts')
-                exit(0)
+                # exit(0)
 
             state = self.engine.state.board
             statehash = state.tobytes()
@@ -139,7 +130,7 @@ class   MCTS(AbstractAlgorithm):
 
         path.append(self.new_memory(statehash, None))
 
-        self.states[statehash] = self.expand(state)
+        self.states[statehash] = self.expand()
         rewards = self.evaluate(state)
 
         self.backpropagation(path, rewards)
@@ -150,70 +141,57 @@ class   MCTS(AbstractAlgorithm):
             return self.award()
         return self.evaluate_random_rollingout(state)
 
-    def expand(self, state):
+    def expand(self):
         if self.end_game:
             new_state_actions = None
-            new_amaf = None
         else:
             brow, bcol = self.engine.board_size
             new_state_actions = np.zeros((2, brow, bcol))
-            new_amaf = np.zeros((2, brow, bcol))
-        return [1, 0, new_state_actions, new_amaf, self.get_actions()]
+        return [1, 0, new_state_actions, self.get_actions()]
 
-    def backpropagation(self, memory: tuple, rewards: list):
-
-        amaf_masks = np.zeros((2, 2, self.engine.board_size[0], self.engine.board_size[1]))
-        for player_idx, statehash, bestaction in memory[::-1]:
-
-            reward = rewards[player_idx]
-            state_data = self.states[statehash]
-
-            state_data[0] += 1                       # update n count
-            state_data[1] += reward                  # update state value
-            if bestaction is None:
-                continue
-
-            r, c = bestaction
-            state_data[2][..., r, c] += [1, reward]  # update state-action count / value
-            amaf_masks[player_idx, ..., r, c] += [1, reward]
-            state_data[3] += amaf_masks[player_idx]    # update amaf count / value
-
-    def award(self):
-        if self.draw:
-            return [0.5, 0.5]
-        return [1 if self.win else 0, 1 if not self.win else 0]
-
-    def get_policy(self, state_data: list, mcts_iter: int) -> np.np.ndarray:
+    def get_policy(self, state_data: list, *args) -> np.ndarray:
         """
             wi/ni + c * sqrt( ln(N) / ni )
+            TODO: SPLIT get_quality // EXP RATE
         """
-        s_n, _, (sa_n, sa_v), (amaf_n, amaf_v), actions = state_data
+        s_n, _, (sa_n, sa_v), actions = state_data
         # return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
 
         exp_rate = self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
-        amaf = amaf_v / (amaf_n + 1)
         sa = sa_v / (sa_n + 1)
-        beta = np.sqrt(1 / (1 + 3 * mcts_iter))
-        quality = beta * amaf + (1 - beta) * sa
 
-        ucbs = quality + exp_rate
+        ucbs = sa + exp_rate
         return ucbs * actions
-
-    def _lazy_selection(self, ucbs: np.ndarray, actions: np.ndarray) -> tuple:
-
-        rows, cols = np.unravel_index(np.argsort(ucbs, axis=None), ucbs.shape)
-
-        for x, y in zip(rows[::-1], cols[::-1]):
-            print("ucbs", ucbs[x, y], np.amax(ucbs))
-            if self.engine.is_valid_action(GomokuAction(x, y)):
-                return (x, y)
-            actions[x, y] = 0
-        return None
 
     def selection(self, policy: np.ndarray, *args) -> tuple:
 
         bestactions = np.argwhere(policy == np.amax(policy))
         return bestactions[np.random.randint(len(bestactions))]
+
+    def backpropagation(self, path: list, rewards: list):
+
+        for mem in path[::-1]:
+            self.backprop_memory(mem, rewards)
+
+    def backprop_memory(self, memory: tuple, rewards: list):
+
+        player_idx, statehash, bestaction = memory
+
+        reward = rewards[player_idx]
+        state_data = self.states[statehash]
+
+        state_data[0] += 1                       # update n count
+        state_data[1] += reward                  # update state value
+        if bestaction is None:
+            return
+
+        r, c = bestaction
+        state_data[2][..., r, c] += [1, reward]  # update state-action count / value
+
+    def award(self):
+        if self.draw:
+            return [0.5, 0.5]
+        return [1 if self.win else 0, 1 if not self.win else 0]
 
     """
     
@@ -233,7 +211,7 @@ class   MCTS(AbstractAlgorithm):
 
     def evaluate_random_rollingout(self, board: np.ndarray):
 
-        return [1, 1]
+        return [0.5, 0.5]
         actions = np.meshgrid(np.arange(self.engine.board_size[0]), np.arange(self.engine.board_size[1]))
         actions = np.array(actions).T.reshape(
             self.engine.board_size[0] * self.engine.board_size[1], 2)
@@ -249,8 +227,10 @@ class   MCTS(AbstractAlgorithm):
             self.engine.apply_action(GomokuAction(*actions[i]))
             self.engine.next_turn()
 
-        winner = self.engine.winner
-        return self.award(self.engine.winner == self.mcts_idx, self.engine.winner == -1)
+        self.end_game = self.engine.isover()
+        self.win = self.mcts_idx == self.engine.winner
+        self.draw = self.engine.winner == -1
+        return self.award()
 
     # def evaluate(self, board: np.ndarray):
 

@@ -120,9 +120,6 @@ class Gomoku(AbstractGameEngine):
                 and not any([rule.nowinning(self.last_action) for rule in self.rules_fn['nowinning']])
             )
 
-            self.player_idx ^= 1
-            self.state.board = self.state.board[::-1, ...]
-
         except ForceWinPlayer as e:
             print(f"Player {self.player_idx} win. Reason: {e.reason}")
             self._isover = True
@@ -132,10 +129,15 @@ class Gomoku(AbstractGameEngine):
             print(f"Player {self.player_idx ^ 1} win. Reason: {e.reason}")
             self._isover = True
             self.winner = self.player_idx ^ 1
-        
+
         except Exception as e:
             print(f"An exception occur: {e}")
             exit(0)
+
+        finally:
+            self.player_idx ^= 1
+            self.state.board = self.state.board[::-1, ...]
+
 
     def isover(self):
         # print(f"Gomoku(): isover() return {self._isover}")
