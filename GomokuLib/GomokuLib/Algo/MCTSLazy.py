@@ -9,7 +9,7 @@ class MCTSLazy(MCTS):
         super().__init__()
 
     def get_actions(self) -> np.ndarray:
-        return np.ones(self.engine.board_size, dtype=bool)
+        return np.ones(self.board_size, dtype=bool)
 
     def selection(self, policy: np.ndarray, state_data: list) -> tuple:
 

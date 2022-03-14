@@ -9,6 +9,7 @@ from GomokuLib.Player.RandomPlayer import RandomPlayer
 from GomokuLib.Algo.MCTS import MCTS
 from GomokuLib.Algo.MCTSLazy import MCTSLazy
 from GomokuLib.Algo.MCTSAMAFLazy import MCTSAMAFLazy
+from GomokuLib.Algo.MCTSAI import MCTSAI
 
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -27,11 +28,12 @@ import cProfile, pstats
 def main():
 
     # mcts = MCTS()
-    # mcts.mcts_iter = 2000
+    # mcts.mcts_iter = 100
     # p1 = Bot(mcts)
     p1 = RandomPlayer()
 
-    mcts = MCTSAMAFLazy()
+    mcts = MCTSAI(None)
+    # mcts = MCTSAMAFLazy()
     mcts.mcts_iter = 2000
     p2 = Bot(mcts)
 

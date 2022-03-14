@@ -1,4 +1,3 @@
-import numpy as np
 from .MCTSLazy import MCTSLazy
 from .MCTSAMAF import MCTSAMAF
 

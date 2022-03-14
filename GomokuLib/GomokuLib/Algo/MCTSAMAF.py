@@ -7,13 +7,13 @@ class MCTSAMAF(MCTS):
     def __init__(self) -> None:
         super().__init__()
 
-    def get_quality(self, state_data: list, mcts_iter: int) -> np.ndarray:
+    def get_quality(self, state_data: list, mcts_iter: int, **kwargs) -> np.ndarray:
         """
-            q(s, a)     = rewards(s, a)     / (visits(s, a)     + 1)
-            AMAF(s, a)  = rewardsAMAF(s, a) / (visitsAMAF(s, a) + 1)
+            quality(s, a) = rewards(s, a)     / (visits(s, a)     + 1)
+            AMAF(s, a)    = rewardsAMAF(s, a) / (visitsAMAF(s, a) + 1)
             0 < beta < 1
 
-            qAMAF(s, a) = beta * AMAF(s, a) + (1 - beta) * q(s, a)
+            AMAFQuality(s, a) = beta * AMAF(s, a) + (1 - beta) * quality(s, a)
         """
         _, _, (sa_n, sa_v), _, (amaf_n, amaf_v) = state_data[:5]
 

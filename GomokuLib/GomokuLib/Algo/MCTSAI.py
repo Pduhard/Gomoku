@@ -9,24 +9,23 @@ class MCTSAI(MCTSAMAFLazy):
         super().__init__()
         self.model = model
 
-    def _get_model_policy(self, state, action):
-        # if (dejavu):
-        #     _, _, _, _, policy, value = self.states[]
-        # policy, value = self.model(state)
-        # return
-        pass
+    def _get_model_policies(self) -> tuple:
+        # policy, value = self.model(self.current_state)
+        policy = np.random.rand(self.brow, self.bcol)
+        reward = 0.5                                      # 0 < r < 1
+        return policy, (reward, 1 - reward)
 
-    def get_exp_rate(self, state_data: list, *args) -> np.ndarray:
+    def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
         """
-            exploration_rate(s, a) = c * P(s, a) * sqrt( visits(s) ) / (1 + visits(s, a))
+            exploration_rate(s, a) = c * policy(s, a) * sqrt( visits(s) ) / (1 + visits(s, a))
         """
-        s_n, _, (sa_n, _), _ = state_data
-        return self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
+        policy, _ = state_data[5]
+        return policy * super().get_exp_rate(state_data)
 
-    def selection(self):
-        pass
+    def expand(self):
+        memory = super().expand()
+        memory.append(self._get_model_policies())
+        return memory
 
     def award(self):
-        if self.draw:
-            return [0.5, 0.5]
-        return [1 if self.win else 0, 1 if not self.win else 0]
+        return self.states[self.current_board.tobytes()][5][1]
