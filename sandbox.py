@@ -26,10 +26,10 @@ import cProfile, pstats
 
 def main():
 
-    mcts = MCTS()
-    mcts.mcts_iter = 2000
-    p1 = Bot(mcts)
-    # p1 = RandomPlayer()
+    # mcts = MCTS()
+    # mcts.mcts_iter = 2000
+    # p1 = Bot(mcts)
+    p1 = RandomPlayer()
 
     mcts = MCTSAMAFLazy()
     mcts.mcts_iter = 2000

@@ -7,23 +7,20 @@ class MCTSAMAF(MCTS):
     def __init__(self) -> None:
         super().__init__()
 
-    def get_policy(self, state_data: list, mcts_iter: int) -> np.ndarray:
+    def get_quality(self, state_data: list, mcts_iter: int) -> np.ndarray:
         """
-            wi/ni + c * sqrt( ln(N) / ni )
-            TODO: SPLIT get_quality // EXP RATE
+            q(s, a)     = rewards(s, a)     / (visits(s, a)     + 1)
+            AMAF(s, a)  = rewardsAMAF(s, a) / (visitsAMAF(s, a) + 1)
+            0 < beta < 1
 
+            qAMAF(s, a) = beta * AMAF(s, a) + (1 - beta) * q(s, a)
         """
-        s_n, _, (sa_n, sa_v), actions, (amaf_n, amaf_v) = state_data
-        # return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
+        _, _, (sa_n, sa_v), _, (amaf_n, amaf_v) = state_data[:5]
 
-        exp_rate = self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
-        amaf = amaf_v / (amaf_n + 1)
         sa = sa_v / (sa_n + 1)
+        amaf = amaf_v / (amaf_n + 1)
         beta = np.sqrt(1 / (1 + 3 * mcts_iter))
-        quality = beta * amaf + (1 - beta) * sa
-
-        ucbs = quality + exp_rate
-        return ucbs * actions
+        return beta * amaf + (1 - beta) * sa
 
     def expand(self):
         memory = super().expand()

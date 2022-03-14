@@ -1,3 +1,5 @@
+import numpy as np
+
 from .MCTSAMAFLazy import MCTSAMAFLazy
 
 
@@ -14,13 +16,12 @@ class MCTSAI(MCTSAMAFLazy):
         # return
         pass
 
-    def get_policy(self, state_data: list, mcts_iter: int) -> np.ndarray:
-        # TODO: SPLIT
-        # get_quality // EXP
-        # RATE
-
-        # q(s, a) = q(s, a) + c * P(s, a) * (sqrt(n(s)) / (1 + n(s, a)))
-        pass
+    def get_exp_rate(self, state_data: list, *args) -> np.ndarray:
+        """
+            exploration_rate(s, a) = c * P(s, a) * sqrt( visits(s) ) / (1 + visits(s, a))
+        """
+        s_n, _, (sa_n, _), _ = state_data
+        return self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
 
     def selection(self):
         pass

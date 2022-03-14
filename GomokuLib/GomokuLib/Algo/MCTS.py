@@ -149,18 +149,27 @@ class   MCTS(AbstractAlgorithm):
             new_state_actions = np.zeros((2, brow, bcol))
         return [1, 0, new_state_actions, self.get_actions()]
 
+    def get_quality(self, state_data: list, *args) -> np.ndarray:
+        """
+            q(s, a) = rewards(s, a) / (visits(s, a) + 1)
+        """
+        _, _, (sa_n, sa_v), _ = state_data[:4]
+        return sa_v / (sa_n + 1)
+
+    def get_exp_rate(self, state_data: list, *args) -> np.ndarray:
+        """
+            exploration_rate(s, a) = c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
+        """
+        s_n, _, (sa_n, _), _ = state_data[:4]
+        return self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
+
     def get_policy(self, state_data: list, *args) -> np.ndarray:
         """
-            wi/ni + c * sqrt( ln(N) / ni )
-            TODO: SPLIT get_quality // EXP RATE
+            ucb(s, a) = (q(s, a) + exp(s, a)) * valid_actions
         """
-        s_n, _, (sa_n, sa_v), actions = state_data
         # return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
-
-        exp_rate = self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
-        sa = sa_v / (sa_n + 1)
-
-        ucbs = sa + exp_rate
+        _, _, _, actions = state_data[:4]
+        ucbs = self.get_quality(state_data, *args) + self.get_exp_rate(state_data, *args)
         return ucbs * actions
 
     def selection(self, policy: np.ndarray, *args) -> tuple:
