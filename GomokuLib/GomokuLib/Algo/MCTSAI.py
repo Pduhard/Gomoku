@@ -1,4 +1,5 @@
 import numpy as np
+import torch.nn.functional
 
 from .MCTSAMAFLazy import MCTSAMAFLazy
 
@@ -10,8 +11,8 @@ class MCTSAI(MCTSAMAFLazy):
         self.model = model
 
     def _get_model_policies(self) -> tuple:
-        # policy, value = self.model(self.current_state)
-        policy = np.random.rand(self.brow, self.bcol)
+        policy, value = self.model.forward(self.current_board)
+        # policy = np.random.rand(self.brow, self.bcol)
         reward = 0.5                                      # 0 < r < 1
         return policy, (reward, 1 - reward)
 
