@@ -1,4 +1,3 @@
-import numpy as np
 import torch.nn.functional
 
 from .MCTSAMAFLazy import MCTSAMAFLazy
@@ -11,14 +10,17 @@ class MCTSAI(MCTSAMAFLazy):
         self.model = model
 
     def _get_model_policies(self) -> tuple:
-        policy, value = self.model.forward(self.current_board)
+        history = self.engine.get_history()
+
+        policy, value = self.model.forward(inputs)
+
         # policy = np.random.rand(self.brow, self.bcol)
-        reward = 0.5                                      # 0 < r < 1
-        return policy, (reward, 1 - reward)
+        return policy, (value, -value)
 
     def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
         """
-            exploration_rate(s, a) = c * policy(s, a) * sqrt( visits(s) ) / (1 + visits(s, a))
+            exploration_rate(s, a) =
+                policy(s, a) * c * sqrt( visits(s) ) / (1 + visits(s, a))
         """
         policy, _ = state_data[5]
         return policy * super().get_exp_rate(state_data)

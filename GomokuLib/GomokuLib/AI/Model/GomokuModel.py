@@ -32,20 +32,19 @@ class GomokuModel(torch.nn.Module):
         super().__init__()
         self.width = width
         self.height = height
+        self.channels = channels
+        self.input_shape = (self.channels, self.width, self.height)
         self.conv_upscale = ModelUtils.build_conv2d_layer(channels, conv_filters, 3, padding=1)
         self.resnet = ModelUtils.build_resnet(resnet_depth, conv_filters, 3)
         self.policy_head = build_policy_head_net(conv_filters, width, height)
         self.value_head = build_value_head_net(conv_filters, width, height)
 
     def forward(self, x: np.ndarray) -> tuple:
-        # x = torch.from_numpy(x.reshape((1, 2, 19, 19)))
-        x = torch.Tensor(x.copy().reshape((1, 2, 19, 19)))
         x = self.conv_upscale(x)
         x = self.resnet(x)
         value = self.value_head(x)
         policy = self.policy_head(x).view(x.shape[0], self.width, self.height)
-        policy = policy.detach().numpy().reshape((19, 19))
-        return policy, value
+        return policy, float(value)
 
 
 if __name__ == "__main__":

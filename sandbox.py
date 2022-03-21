@@ -32,12 +32,12 @@ def main():
     # p1 = Bot(mcts)
     p1 = RandomPlayer()
 
-    mcts = MCTSAI(GomokuModel(2, 19, 19))
+    mcts = MCTSAI(GomokuModel(17, 19, 19))
     # mcts = MCTSAMAFLazy()
-    mcts.mcts_iter = 500
+    mcts.mcts_iter = 100
     p2 = Bot(mcts)
 
-    engine = GomokuGUI(None, 19)
+    engine = GomokuGUI(None, 19, history_size=8)
     winner = engine.run([p1, p2]) # White: 0 / Black: 1
 
     print(f"Winner is {winner}")

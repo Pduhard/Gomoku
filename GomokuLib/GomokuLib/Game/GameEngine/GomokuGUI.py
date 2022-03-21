@@ -20,8 +20,9 @@ class GomokuGUI(Gomoku):
                  players: Union[list[AbstractPlayer], tuple[AbstractPlayer]],
                  board_size: Union[int, tuple[int]] = 19,
                  win_size: Union[list[int], tuple[int]] = (1450, 950),
+                 history_size: int = 0,
                  **kwargs) -> None:
-        super().__init__(players, board_size=board_size, **kwargs)
+        super().__init__(players, board_size=board_size, history_size=history_size, **kwargs)
         self.initUI(win_size)
         # self.init_boardUI()
         for i in range(10):

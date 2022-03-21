@@ -157,6 +157,8 @@ class   MCTS(AbstractAlgorithm):
 
         bestactions = np.argwhere(policy == np.amax(policy))
         return bestactions[np.random.randint(len(bestactions))]
+        # ret = np.choice(bestactions)
+        # return ret
 
 
     def expand(self):
@@ -200,12 +202,12 @@ class   MCTS(AbstractAlgorithm):
 
     def award_end_game(self):
         if self.draw:
-            return [0.5, 0.5]
-        return [1 if self.win else 0.01, 1 if not self.win else 0.01]
+            return [0, 0]
+        return [1 if self.win else -1, 1 if not self.win else -1]
 
     def _evaluate_random_rollingout(self):
 
-        return [0.5, 0.5]
+        return [0, 0]
         actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
         actions = np.array(actions).T.reshape(self.cells_count, 2)
 

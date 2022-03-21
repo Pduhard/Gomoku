@@ -1,12 +1,7 @@
 
 from __future__ import annotations
-import copy
-from subprocess import call
 from typing import Union, TYPE_CHECKING
 import numpy as np
-
-from GomokuLib.Game.Action.AbstractAction import AbstractAction
-from pygame import key
 
 from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, RULES
 from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
@@ -21,6 +16,7 @@ if TYPE_CHECKING:
 
 from .AbstractGameEngine import AbstractGameEngine
 
+
 class Gomoku(AbstractGameEngine):
 
     def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]],
@@ -30,9 +26,9 @@ class Gomoku(AbstractGameEngine):
         super().__init__(players)
 
         self.board_size = (board_size, board_size) if type(board_size) == int else board_size
-        self.init_game()
         self.rules_fn = self.init_rules_fn(rules.copy())
-
+        self.history_size = history_size
+        self.init_game()
 
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
 
@@ -55,13 +51,14 @@ class Gomoku(AbstractGameEngine):
         self.winner = -1
         self.player_idx = 0
         self.state = self.init_board()
+        C, H, W = self.state.board.shape
+        self.history = np.zeros((1, C, H, W), dtype=int) if self.history_size < 1 else np.zeros((self.history_size, C, H, W), dtype=int)
 
     def init_board(self):
         """
             np array but we should go bitboards next
         """
         return GomokuState(self.board_size)
-        # return np.random.randint(-1, 2, self.board_size)
 
 
 
@@ -90,35 +87,39 @@ class Gomoku(AbstractGameEngine):
 
 
     def new_rule(self, obj: object, operation: str):
-        # def rule(self, rule, action):
-        #     cls, method = rule
-        #     if cls is None:
-        #         return method(action)
-        #     return getattr(cls, method)(action)
-        # pass
-
         self.rules_fn[operation].append(obj)
     
     def remove_rule(self, obj: object, operation: str):
         self.rules_fn[operation].remove(obj)
 
 
+    def get_history(self) -> np.ndarray:
+        return self.history
+
+
     def next_turn(self) -> None:
+
+        self.history = np.roll(self.history, 1, axis=1)
+        self.history[0] = self.state.board
+        # self.history = np.roll(self.history, 2, axis=0)
+        # self.history[0:2, ...] = self.state.board
+
+        if np.all(self.state.full_board != 0):
+            print("DRAW")
+            self._isover = True
+            self.winner = -1
+            return
         try:
-            if np.all(self.state.full_board != 0):
-                print("DRAW")
-                self._isover = True
-                self.winner = -1
-                return
 
             for rule in self.rules_fn['endturn']:
                 rule.endturn(self.last_action)
 
             # print(self.rules_fn['winning'])
-            self._isover = (
-                any([rule.winning(self.last_action) for rule in self.rules_fn['winning']])
-                and not any([rule.nowinning(self.last_action) for rule in self.rules_fn['nowinning']])
-            )
+            if (any([rule.winning(self.last_action) for rule in self.rules_fn['winning']])
+                and not any([rule.nowinning(self.last_action) for rule in self.rules_fn['nowinning']])):
+
+                self._isover = True
+                self.winner = self.player_idx       # ?????????????????????????????
 
         except ForceWinPlayer as e:
             print(f"Player {self.player_idx} win. Reason: {e.reason}")
@@ -170,10 +171,12 @@ class Gomoku(AbstractGameEngine):
 
     def update(self, engine: Gomoku):
 
-        # print("Gomoku.copy()")
         self.state.board = engine.state.board.copy()
+        self.history = engine.history.copy()
+
         self._isover = engine._isover
         self.player_idx = engine.player_idx
+
         # print(engine.rules_fn)
         # print(self.rules_fn)
         # print('----------------------')
