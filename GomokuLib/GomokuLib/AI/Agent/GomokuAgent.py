@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from ..Model.GomokuModel import GomokuModel
+from ..Model.ModelInterface import ModelInterface
 from ..Dataset.GomokuDataset import GomokuDataset
 from ...Game.GameEngine.Gomoku import Gomoku
 from ...Game.Action.GomokuAction import GomokuAction
@@ -12,15 +13,20 @@ from  ...Algo.MCTSAI import MCTSAI
 
 class GomokuAgent:
 
-    def __init__(self, engine: Gomoku, model: GomokuModel, dataset: GomokuDataset = None) -> None:
-        self.model = model
+    # def __init__(self, engine: Gomoku, model: GomokuModel, dataset: GomokuDataset = None) -> None:
+    def __init__(self, engine: Gomoku, model_interface: ModelInterface, dataset: GomokuDataset = None) -> None:
+
+        # self.model = model
         self.engine = engine
         self.dataset = dataset or GomokuDataset()
+        self.model_interface = model_interface
 
-        self.player = Bot(MCTSAI(model))
+        self.mcts = MCTSAI(self.model_interface)
 
-        self.memory_size_goal = 1000
-        self.memory_size_cp = 10
+        # self.memory_size_goal = 1000
+        # self.memory_size_cp = 10
+        self.training_loops = 100
+        self.play_n_games = 10
         self.memory = []
 
 
@@ -31,10 +37,6 @@ class GomokuAgent:
             reward *= -1
         breakpoint() # Verify rewards are actually modified
 
-    def _update_dataset(self):
-        print("Agent: Add self.memory to self.dataset")
-        pass
-
     def _train_model(self):
         print("Agent: Train model")
         # Train model + erase old one
@@ -43,29 +45,41 @@ class GomokuAgent:
     def _play(self):
 
         self.memory = []
-        n_game = 0
-        while len(self.memory) < self.memory_size_cp:
+        # while len(self.memory) < self.memory_size_cp:
+        for n_game in range(self.play_n_games):
 
             print("Agent start game n=", n_game)
             self.current_memory = []
             self.engine.init_game()
             while not self.engine.isover():
 
-                action = self.player.play_turn()
+                model_inputs = self.model_interface.prepare(self.engine.player_idx, self.engine.get_history())
 
-                self.current_memory.append([self.engine.player_idx, self.engine.get_history(), self.player.get_last_policy(), 0])
-                self.engine.apply_action(action)
+                mcts_policy = self.mcts(self.engine)
+                best_action_idx = np.argmax(mcts_policy)
+                best_action = GomokuAction(
+                    best_action_idx // self.engine.board_size[1],
+                    best_action_idx % self.engine.board_size[1]
+                )
+
+                self.current_memory.append([
+                    self.engine.player_idx,
+                    model_inputs,
+                    mcts_policy,
+                    0
+                ])
+                self.engine.apply_action(best_action)
                 self.engine.next_turn()
 
             self._rewarding()
             self.memory.extend(self.current_memory)
-            n_game += 1
 
 
     def train(self):
 
-        while True:
+        for t_loop in range(self.training_loops):
 
+            print(f"Agent start new training loop, t_loop={t_loop}, of {self.play_n_games} games ->\n")
             self._play()
-            self._update_dataset()
+            self.dataset.update(self.memory)
             self._train_model()

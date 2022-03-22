@@ -165,7 +165,7 @@ class   MCTS(AbstractAlgorithm):
         return [
             1,
             0,
-            None if self.end_game else np.zeros((2, self.brow, self.bcol)),
+            None if self.end_game else np.concatenate((np.zeros((1, self.brow, self.bcol)), -np.ones((1, self.brow, self.bcol)))),
             self.get_actions()
         ]
 

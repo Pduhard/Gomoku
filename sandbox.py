@@ -1,44 +1,33 @@
-from tkinter import *
-
-from GomokuLib.Game.GameEngine.GomokuGUI import GomokuGUI
-from GomokuLib.Player.Human import Human
-
-from GomokuLib.Player.Bot import Bot
-from GomokuLib.Player.RandomPlayer import RandomPlayer
-
-from GomokuLib.Algo.MCTS import MCTS
-from GomokuLib.Algo.MCTSLazy import MCTSLazy
-from GomokuLib.Algo.MCTSAMAFLazy import MCTSAMAFLazy
-from GomokuLib.Algo.MCTSAI import MCTSAI
-
-from GomokuLib.AI.Model.GomokuModel import GomokuModel
+import GomokuLib
 
 import cProfile, pstats
 
 """
-
     Notes:
 
     TODO:
         Rename GameEngine -> Engine
-        2 BasicRule dans rules_fn
 
 """
 
 def main():
 
-    # mcts = MCTS()
-    # mcts.mcts_iter = 100
-    # p1 = Bot(mcts)
-    p1 = RandomPlayer()
+    model_interface = GomokuLib.AI.Model.ModelInterface(
+        GomokuLib.AI.Model.GomokuModel(17, 19, 19),
+        GomokuLib.AI.Dataset.Compose([
+            GomokuLib.AI.Dataset.ToTensorTransform(),
+            GomokuLib.AI.Dataset.AddBatchTransform()
+        ])
+    )
 
-    mcts = MCTSAI(GomokuModel(17, 19, 19))
-    # mcts = MCTSAMAFLazy()
+    p1 = GomokuLib.Player.RandomPlayer()
+
+    mcts = GomokuLib.Algo.MCTSAI(model_interface)
     mcts.mcts_iter = 100
-    p2 = Bot(mcts)
+    p2 = GomokuLib.Player.Bot(mcts)
 
-    engine = GomokuGUI(None, 19, history_size=8)
-    winner = engine.run([p1, p2]) # White: 0 / Black: 1
+    engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
+    winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
     print(f"Winner is {winner}")
 

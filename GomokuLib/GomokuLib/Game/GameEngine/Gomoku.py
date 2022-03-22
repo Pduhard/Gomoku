@@ -27,7 +27,6 @@ class Gomoku(AbstractGameEngine):
 
         self.board_size = (board_size, board_size) if type(board_size) == int else board_size
         self.rules_fn = self.init_rules_fn(rules.copy())
-        self.history_size = history_size
         self.init_game()
 
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
@@ -47,12 +46,13 @@ class Gomoku(AbstractGameEngine):
         return rules_fn
 
     def init_game(self):
+        self.last_action = None
         self._isover = False
         self.winner = -1
         self.player_idx = 0
         self.state = self.init_board()
-        C, H, W = self.state.board.shape
-        self.history = np.zeros((1, C, H, W), dtype=int) if self.history_size < 1 else np.zeros((self.history_size, C, H, W), dtype=int)
+        self.C, self.H, self.W = self.state.board.shape
+        self.history = np.zeros((1, self.C, self.H, self.W), dtype=int)
 
     def init_board(self):
         """
@@ -77,8 +77,8 @@ class Gomoku(AbstractGameEngine):
 
     def apply_action(self, action: GomokuAction) -> None:
         ar, ac = action.action
-
         if not self.is_valid_action(action):
+            breakpoint()
             print(f"Not a fucking valid action: {ar} {ac}")
             raise Exception
         # print(ar, ac)
@@ -94,15 +94,13 @@ class Gomoku(AbstractGameEngine):
 
 
     def get_history(self) -> np.ndarray:
-        return self.history
+        return self.history[1:]
 
 
     def next_turn(self) -> None:
 
-        self.history = np.roll(self.history, 1, axis=1)
-        self.history[0] = self.state.board
-        # self.history = np.roll(self.history, 2, axis=0)
-        # self.history[0:2, ...] = self.state.board
+        board = self.state.board if self.player_idx == 0 else self.state.board[::-1, ...]
+        self.history = np.insert(self.history, len(self.history), board, axis=0)
 
         if np.all(self.state.full_board != 0):
             print("DRAW")

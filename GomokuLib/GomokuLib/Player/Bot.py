@@ -24,7 +24,7 @@ class Bot(AbstractPlayer):
 
         self.last_policy = self.algo(self.engine)
         best_action_idx = np.argmax(self.last_policy)
-        print("policy:\n", self.last_policy)
+        print("policy (rewards sum / visit count):\n", self.last_policy)
         print("best arg:\n", np.argmax(self.last_policy))
         return GomokuAction(
             best_action_idx // self.engine.board_size[1],

@@ -1,19 +1,23 @@
 import torch
-#
-class GomokuDataset:
+from .DatasetTransforms import Compose
 
-    def __init__(self, transform=None, target_transform=None):
-        self.transform = transform
-        self.target_transform = target_transform
+class GomokuDataset(torch.utils.data.Dataset):
+
+    def __init__(self, transforms=None):
+        self.transforms = transforms
         self.data = []
-#
-#     def __len__(self):
-#         return len(self.data)
-#
-#     def __getitem__(self, idx):
-#         item = self.data[idx]
-#         # if self.transform:
-#         #     item = self.transform(item)
-#         # if self.target_transform:
-#         #     item = self.target_transform(item)
-#         return item
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        _, inputs, policy, value = self.data[idx]
+
+        if self.transforms:
+            inputs = self.transforms(inputs)
+            policy = self.transforms.invert(policy)
+
+        return inputs, (policy, value)
+
+    def update(self, samples):
+        self.data.extend(samples)

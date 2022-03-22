@@ -8,17 +8,18 @@ setup(
     keywords='lib',
     packages=[
         'GomokuLib',
+        'GomokuLib.AI',
+        'GomokuLib.AI.Agent',
+        'GomokuLib.AI.Model',
+        'GomokuLib.AI.Dataset',
         'GomokuLib.Algo',
         'GomokuLib.Game',
         'GomokuLib.Game.Action',
         'GomokuLib.Game.GameEngine',
         'GomokuLib.Game.Rules',
         'GomokuLib.Game.State',
-        'GomokuLib.Player',
-        'GomokuLib.AI',
-        'GomokuLib.AI.Agent',
-        'GomokuLib.AI.Model',
-        'GomokuLib.AI.Dataset',
+        'GomokuLib.Media',
+        'GomokuLib.Player'
     ],
 
     # long_description=open('README.md').read(),

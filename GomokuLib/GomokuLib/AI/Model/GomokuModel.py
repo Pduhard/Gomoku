@@ -44,7 +44,7 @@ class GomokuModel(torch.nn.Module):
         x = self.resnet(x)
         value = self.value_head(x)
         policy = self.policy_head(x).view(x.shape[0], self.width, self.height)
-        return policy, float(value)
+        return policy, value
 
 
 if __name__ == "__main__":

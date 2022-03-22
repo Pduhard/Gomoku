@@ -1,20 +1,25 @@
 import torch.nn.functional
+import numpy as np
 
 from .MCTSAMAFLazy import MCTSAMAFLazy
-
+from ..AI.Model.ModelInterface import ModelInterface
 
 class MCTSAI(MCTSAMAFLazy):
 
-    def __init__(self, model) -> None:
+    # def __init__(self, model) -> None:
+    def __init__(self, model_interface: ModelInterface) -> None:
+
         super().__init__()
-        self.model = model
+        self.model_interface = model_interface
+        # self.model = model
+        # self.model_interface = ModelInterface(self.model)
 
     def _get_model_policies(self) -> tuple:
         history = self.engine.get_history()
 
-        policy, value = self.model.forward(inputs)
-
-        # policy = np.random.rand(self.brow, self.bcol)
+        # Link history object to model interface in the constructor ? Always same address ?
+        inputs = self.model_interface.prepare(self.engine.player_idx, self.engine.get_history())
+        policy, value = self.model_interface.forward(inputs)
         return policy, (value, -value)
 
     def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
