@@ -1,8 +1,10 @@
 from __future__ import annotations
+from multiprocessing.dummy import Process
 from time import sleep
 from typing import TYPE_CHECKING, Union
 import numpy as np
 import pygame
+import multiprocessing as mp
 import threading
 
 from GomokuLib.Game.Action.GomokuAction import GomokuAction
@@ -22,9 +24,14 @@ class GomokuGUI(Gomoku):
                  **kwargs) -> None:
         super().__init__(players, board_size=board_size, history_size=history_size, **kwargs)
 
+        self.Gui_queue = mp.Queue()
         self.GUI = UIManager(win_size, self.board_size)
-
-        self.GUI_thread = threading.Thread(target=self.GUI, args=(self.get_turn_data,))
+        self.GUI_proc = Process(target=self.GUI, args=(self.Gui_queue, ))
+        self.GUI_proc.start()
+        # self.processes = [
+        #     self.GUI_proc,
+        # ]
+        # threading.Thread(target=self.GUI, args=(self.get_turn_data,))
 
         # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
 
@@ -37,25 +44,25 @@ class GomokuGUI(Gomoku):
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
         while not self.isover():
-            events = self.GUI.get_events()
-            self.apply_events(events)
+            # events = self.GUI.get_events()
+            # self.apply_events(events)
             self._run_turn(players)
-
+            self.Gui_queue.put(self)
             # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
             # self.drawUI()
 
         print(f"Player {self.winner} win.")
         sleep(5)
 
-    def isover(self):
-        over = super().isover()
-        if over:
-            self.GUI_thread.join()
-        return over
+    # def isover(self):
+    #     over = super().isover()
+    #     if over:
+    #         self.GUI_thread.join()
+    #     return over
 
-    def init_game(self):
-        self.GUI_thread.start()
-        super().init_game()
+    # def init_game(self):
+    #     self.GUI_thread.start()
+    #     super().init_game()
 
 
     def apply_events(self, events: list):

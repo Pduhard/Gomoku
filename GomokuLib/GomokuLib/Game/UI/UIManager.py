@@ -1,3 +1,4 @@
+from time import sleep
 import pygame
 
 from .Board import Board
@@ -15,7 +16,7 @@ class UIManager:
         self.win_size = win_size
         self.n_cells = n_cells
         self.events = []
-        self.initUI()
+        # self.initUI()
 
     def initUI(self):
 
@@ -32,13 +33,16 @@ class UIManager:
         for o in self.components:
             o.initUI()
 
-    def __call__(self, get_turn_data): # Thread function
+    def __call__(self, queue): # Thread function
 
         print("UIManager __call__()\n")
+        i = 0
         while True:
-            turn_data = get_turn_data()
-            self.drawUI(turn_data)
-            self.handle_event()
+            i += 1
+            print('bonjour' + str(i))
+            sleep(1)
+            # self.drawUI(turn_data)
+            # self.handle_event()
 
     def drawUI(self, *args, **kwargs):
         for o in self.components:

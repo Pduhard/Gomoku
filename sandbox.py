@@ -1,3 +1,4 @@
+from time import sleep
 import GomokuLib
 
 import cProfile, pstats
@@ -14,13 +15,13 @@ import cProfile, pstats
 
 def main():
 
-    model_interface = GomokuLib.AI.Model.ModelInterface(
-        GomokuLib.AI.Model.GomokuModel(17, 19, 19),
-        GomokuLib.AI.Dataset.Compose([
-            GomokuLib.AI.Dataset.ToTensorTransform(),
-            GomokuLib.AI.Dataset.AddBatchTransform()
-        ])
-    )
+    # model_interface = GomokuLib.AI.Model.ModelInterface(
+    #     GomokuLib.AI.Model.GomokuModel(17, 19, 19),
+    #     GomokuLib.AI.Dataset.Compose([
+    #         GomokuLib.AI.Dataset.ToTensorTransform(),
+    #         GomokuLib.AI.Dataset.AddBatchTransform()
+    #     ])
+    # )
 
     # p1 = GomokuLib.Player.RandomPlayer()
     p1 = GomokuLib.Player.Human()
@@ -31,7 +32,14 @@ def main():
     p2 = GomokuLib.Player.Human()
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
+    i = 0
+    while True:
+        print(i)
+        i += 1
+        sleep(1)
     winner = engine.run([p1, p2])  # White: 0 / Black: 1
+
+
 
     print(f"Winner is {winner}")
 
