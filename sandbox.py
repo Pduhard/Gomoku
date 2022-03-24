@@ -4,6 +4,8 @@ import cProfile, pstats
 
 """
     Notes:
+        ENELVER LE ***** DE GOMOKUACTION -> C'est juste un tuple !
+        Reset mcts data dans le RL ?
 
     TODO:
         Rename GameEngine -> Engine
@@ -20,11 +22,13 @@ def main():
         ])
     )
 
-    p1 = GomokuLib.Player.RandomPlayer()
+    # p1 = GomokuLib.Player.RandomPlayer()
+    p1 = GomokuLib.Player.Human()
 
-    mcts = GomokuLib.Algo.MCTSAI(model_interface)
-    mcts.mcts_iter = 100
-    p2 = GomokuLib.Player.Bot(mcts)
+    # mcts = GomokuLib.Algo.MCTSAI(model_interface)
+    # mcts.mcts_iter = 50
+    # p2 = GomokuLib.Player.Bot(mcts)
+    p2 = GomokuLib.Player.Human()
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
     winner = engine.run([p1, p2])  # White: 0 / Black: 1
@@ -45,5 +49,21 @@ def main():
     # stats.dump_stats('tmp_profile_from_script.prof')
     # print(action)
 
+def RLmain():
+
+    model_interface = GomokuLib.AI.Model.ModelInterface(
+        GomokuLib.AI.Model.GomokuModel(17, 19, 19),
+        GomokuLib.AI.Dataset.Compose([
+            GomokuLib.AI.Dataset.ToTensorTransform(),
+            GomokuLib.AI.Dataset.AddBatchTransform()
+        ])
+    )
+    engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
+
+    agent = GomokuLib.AI.Agent.GomokuAgent(engine, model_interface, mcts_iter=1000)
+    agent.train(2, 2)
+
+
 if __name__ == '__main__':
     main()
+    # RLmain()

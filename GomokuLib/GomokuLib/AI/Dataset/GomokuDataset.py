@@ -1,11 +1,11 @@
 import torch
-from .DatasetTransforms import Compose
 
 class GomokuDataset(torch.utils.data.Dataset):
 
-    def __init__(self, transforms=None):
+    def __init__(self, transforms=None, saving_path='DatasetSave'):
         self.transforms = transforms
         self.data = []
+        self.saving_path = saving_path
 
     def __len__(self):
         return len(self.data)
@@ -21,3 +21,9 @@ class GomokuDataset(torch.utils.data.Dataset):
 
     def update(self, samples):
         self.data.extend(samples)
+
+    def save(self, path):
+        pass
+
+    def load(self, path):
+        pass

@@ -65,17 +65,23 @@ class   MCTS(AbstractAlgorithm):
         self.brow, self.bcol = self.engine.board_size
         self.cells_count = self.brow * self.bcol
 
-    def __call__(self, game_engine: Gomoku) -> np.ndarray:
+    def __call__(self, game_engine: Gomoku) -> tuple:
         print("\n[MCTS Object __call__()]\n")
-
-        # self.bs = np.array(self.engine.board_size)
 
         for i in range(self.mcts_iter):
             self.engine.update(game_engine)
             self.mcts(i)
 
-        _, _, (sa_n, sa_v) = self.states[game_engine.state.board.tobytes()][:3]
-        return np.nan_to_num(sa_v / (sa_n + 1))
+        state_data = self.states[game_engine.state.board.tobytes()]
+        _, _, (sa_n, sa_v) = state_data[:3]
+
+        policy = sa_v / (sa_n + 1)
+        print("policy (rewards sum / visit count):\n", policy)
+
+        gAction = self.selection(policy, state_data)
+        print("best arg:\n", gAction.action)
+
+        return policy, gAction
 
     def mcts(self, mcts_iter: int):
 
@@ -90,19 +96,17 @@ class   MCTS(AbstractAlgorithm):
         while statehash in self.states and not self.engine.isover():
 
             state_data = self.states[statehash]
-            # print("actions: ", state_data[4])
 
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
-            bestaction = self.selection(policy, state_data)
-            bestGAction = GomokuAction(bestaction[0], bestaction[1])
+            bestGAction = self.selection(policy, state_data)
 
-            print(f"selection {bestaction}")
+            print(f"selection {bestGAction.action}")
             if not self.engine.is_valid_action(bestGAction):
-                print(f"Not a fucking valid action in mcts: {bestaction}")
+                print(f"Not a fucking valid action in mcts: {bestGAction.action}")
                 breakpoint()
                 raise Exception
 
-            path.append(self.new_memory(statehash, bestaction))
+            path.append(self.new_memory(statehash, bestGAction.action))
             self.engine.apply_action(bestGAction)
             self.engine.next_turn()
 
@@ -157,18 +161,23 @@ class   MCTS(AbstractAlgorithm):
 
         bestactions = np.argwhere(policy == np.amax(policy))
         return bestactions[np.random.randint(len(bestactions))]
-        # ret = np.choice(bestactions)
-        # return ret
-
+        # coords = np.unravel_index(np.argsort(policy, axis=None)[::-1], policy.shape)
+        #
+        # for x, y in zip(*coords):
+        #     gAction = GomokuAction(x, y)
+        #     if self.engine.is_valid_action(gAction):
+        #         return gAction
+        #
+        # raise Exception("No valid action to select.")
 
     def expand(self):
         return [
             1,
             0,
-            None if self.end_game else np.concatenate((np.zeros((1, self.brow, self.bcol)), -np.ones((1, self.brow, self.bcol)))),
+            None if self.end_game else np.zeros((2, self.brow, self.bcol)),
             self.get_actions()
         ]
-
+        # None if self.end_game else np.concatenate((np.zeros((1, self.brow, self.bcol)), -np.ones((1, self.brow, self.bcol)))),
 
     def new_memory(self, statehash, bestaction):
         return (0 if self.engine.player_idx == self.mcts_idx else 1, statehash, bestaction)
@@ -202,30 +211,30 @@ class   MCTS(AbstractAlgorithm):
 
     def award_end_game(self):
         if self.draw:
-            return [0, 0]
-        return [1 if self.win else -1, 1 if not self.win else -1]
+            return [0.5, 0.5]
+        return [1 if self.win else 0, 1 if not self.win else 0]
 
     def _evaluate_random_rollingout(self):
 
         return [0, 0]
-        actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
-        actions = np.array(actions).T.reshape(self.cells_count, 2)
-
-        self.mcts_idx = self.engine.player_idx
-        while not self.engine.isover():
-
-            np.random.shuffle(actions)
-            i = 0
-            while not self.engine.is_valid_action(GomokuAction(*actions[i])):
-                i += 1
-
-            self.engine.apply_action(GomokuAction(*actions[i]))
-            self.engine.next_turn()
-
-        self.end_game = self.engine.isover()
-        self.win = self.mcts_idx == self.engine.winner
-        self.draw = self.engine.winner == -1
-        return self.award_end_game()
+        # actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
+        # actions = np.array(actions).T.reshape(self.cells_count, 2)
+        #
+        # self.mcts_idx = self.engine.player_idx
+        # while not self.engine.isover():
+        #
+        #     np.random.shuffle(actions)
+        #     i = 0
+        #     while not self.engine.is_valid_action(GomokuAction(*actions[i])):
+        #         i += 1
+        #
+        #     self.engine.apply_action(GomokuAction(*actions[i]))
+        #     self.engine.next_turn()
+        #
+        # self.end_game = self.engine.isover()
+        # self.win = self.mcts_idx == self.engine.winner
+        # self.draw = self.engine.winner == -1
+        # return self.award_end_game()
 
 
 

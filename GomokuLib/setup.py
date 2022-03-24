@@ -18,6 +18,7 @@ setup(
         'GomokuLib.Game.GameEngine',
         'GomokuLib.Game.Rules',
         'GomokuLib.Game.State',
+        'GomokuLib.Game.UI',
         'GomokuLib.Media',
         'GomokuLib.Player'
     ],

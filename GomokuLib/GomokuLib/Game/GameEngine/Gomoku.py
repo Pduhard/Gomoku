@@ -26,8 +26,18 @@ class Gomoku(AbstractGameEngine):
         super().__init__(players)
 
         self.board_size = (board_size, board_size) if type(board_size) == int else board_size
-        self.rules_fn = self.init_rules_fn(rules.copy())
+        self.rules_str = rules
         self.init_game()
+
+    def init_game(self):
+        self.last_action = None
+        self._isover = False
+        self.winner = -1
+        self.player_idx = 0
+        self.state = self.init_board()
+        self.C, self.H, self.W = self.state.board.shape
+        self.history = np.zeros((1, self.C, self.H, self.W), dtype=int)
+        self.rules_fn = self.init_rules_fn(self.rules_str.copy())
 
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
 
@@ -44,15 +54,6 @@ class Gomoku(AbstractGameEngine):
             for k in RULES
         }
         return rules_fn
-
-    def init_game(self):
-        self.last_action = None
-        self._isover = False
-        self.winner = -1
-        self.player_idx = 0
-        self.state = self.init_board()
-        self.C, self.H, self.W = self.state.board.shape
-        self.history = np.zeros((1, self.C, self.H, self.W), dtype=int)
 
     def init_board(self):
         """
@@ -88,7 +89,7 @@ class Gomoku(AbstractGameEngine):
 
     def new_rule(self, obj: object, operation: str):
         self.rules_fn[operation].append(obj)
-    
+
     def remove_rule(self, obj: object, operation: str):
         self.rules_fn[operation].remove(obj)
 
@@ -109,12 +110,15 @@ class Gomoku(AbstractGameEngine):
             return
         try:
 
+            if self.last_action is None:
+                breakpoint()
+
             for rule in self.rules_fn['endturn']:
                 rule.endturn(self.last_action)
 
             # print(self.rules_fn['winning'])
             if (any([rule.winning(self.last_action) for rule in self.rules_fn['winning']])
-                and not any([rule.nowinning(self.last_action) for rule in self.rules_fn['nowinning']])):
+                    and not any([rule.nowinning(self.last_action) for rule in self.rules_fn['nowinning']])):
 
                 self._isover = True
                 self.winner = self.player_idx       # ?????????????????????????????
@@ -169,11 +173,13 @@ class Gomoku(AbstractGameEngine):
 
     def update(self, engine: Gomoku):
 
-        self.state.board = engine.state.board.copy()
         self.history = engine.history.copy()
+        self.last_action = engine.last_action
+        self.state.board = engine.state.board.copy()
 
-        self._isover = engine._isover
         self.player_idx = engine.player_idx
+        self._isover = engine._isover
+        self.winner = engine.winner
 
         # print(engine.rules_fn)
         # print(self.rules_fn)

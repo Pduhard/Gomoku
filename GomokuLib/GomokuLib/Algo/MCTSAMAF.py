@@ -4,8 +4,8 @@ from .MCTS import MCTS
 
 class MCTSAMAF(MCTS):
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
     def get_quality(self, state_data: list, mcts_iter: int, **kwargs) -> np.ndarray:
         """

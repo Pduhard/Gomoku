@@ -9,7 +9,3 @@ class GomokuAction(AbstractAction):
 
     def __init__(self, row: int, col: int) -> None:
         self.action = (row, col)
-
-    # def __hash__(self) -> tuple:
-    #     print(self.action)
-    #     return self.action
