@@ -15,29 +15,43 @@ import cProfile, pstats
 
 def main():
 
-    # model_interface = GomokuLib.AI.Model.ModelInterface(
-    #     GomokuLib.AI.Model.GomokuModel(17, 19, 19),
-    #     GomokuLib.AI.Dataset.Compose([
-    #         GomokuLib.AI.Dataset.ToTensorTransform(),
-    #         GomokuLib.AI.Dataset.AddBatchTransform()
-    #     ])
-    # )
+    model_interface = GomokuLib.AI.Model.ModelInterface(
+        GomokuLib.AI.Model.GomokuModel(17, 19, 19),
+        GomokuLib.AI.Dataset.Compose([
+            GomokuLib.AI.Dataset.ToTensorTransform(),
+            GomokuLib.AI.Dataset.AddBatchTransform()
+        ])
+    )
+
+
+    model_interface2 = GomokuLib.AI.Model.ModelInterface(
+        GomokuLib.AI.Model.GomokuModel(17, 19, 19),
+        GomokuLib.AI.Dataset.Compose([
+            GomokuLib.AI.Dataset.ToTensorTransform(),
+            GomokuLib.AI.Dataset.AddBatchTransform()
+        ])
+    )
 
     # p1 = GomokuLib.Player.RandomPlayer()
     p1 = GomokuLib.Player.Human()
 
-    # mcts = GomokuLib.Algo.MCTSAI(model_interface)
-    # mcts.mcts_iter = 50
-    # p2 = GomokuLib.Player.Bot(mcts)
-    p2 = GomokuLib.Player.Human()
+    mcts = GomokuLib.Algo.MCTSAI(model_interface)
+    mcts.mcts_iter = 50
+    p2 = GomokuLib.Player.Bot(mcts)
+
+
+    mcts2 = GomokuLib.Algo.MCTSAI(model_interface2)
+    mcts2.mcts_iter = 50
+    p1 = GomokuLib.Player.Bot(mcts2)
+    # p2 = GomokuLib.Player.Human()
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
-    i = 0
-    while True:
-        print(i)
-        i += 1
-        sleep(1)
-    winner = engine.run([p1, p2])  # White: 0 / Black: 1
+    # i = 0
+    # while True:
+    #     print(i)
+    #     i += 1
+    #     sleep(1)
+    winner = engine.run([p2, p1])  # White: 0 / Black: 1
 
 
 

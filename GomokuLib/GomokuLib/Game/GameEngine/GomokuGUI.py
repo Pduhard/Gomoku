@@ -24,10 +24,13 @@ class GomokuGUI(Gomoku):
                  **kwargs) -> None:
         super().__init__(players, board_size=board_size, history_size=history_size, **kwargs)
 
-        self.Gui_queue = mp.Queue()
-        self.GUI = UIManager(win_size, self.board_size)
-        self.GUI_proc = Process(target=self.GUI, args=(self.Gui_queue, ))
+        self.Gui_outqueue = mp.Queue()
+        self.Gui_inqueue = mp.Queue()
+        self.GUI = UIManager(win_size, self.board_size, self)
+        self.GUI_proc = Process(target=self.GUI, args=(self.Gui_outqueue, self.Gui_inqueue))
         self.GUI_proc.start()
+        self.pause = False
+        self.player_action = None
         # self.processes = [
         #     self.GUI_proc,
         # ]
@@ -36,7 +39,6 @@ class GomokuGUI(Gomoku):
         # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
 
         # self.initUI(win_size)
-        # self.state = self.init_board()
         # self.drawUI()
         print("END __init__() GomokuGUI\n")
 
@@ -44,10 +46,12 @@ class GomokuGUI(Gomoku):
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
         while not self.isover():
+            self.get_gui_input()
             # events = self.GUI.get_events()
             # self.apply_events(events)
-            self._run_turn(players)
-            self.Gui_queue.put(self)
+            if not self.pause:
+                self._run_turn(players)
+            # self.Gui_queue.put()
             # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
             # self.drawUI()
 
@@ -153,23 +157,35 @@ class GomokuGUI(Gomoku):
     #     pygame.display.flip()
     #
 
-    # def wait_player_action(self):
-    #     while True:
-    #         for event in pygame.event.get():
-    #             if event.type == pygame.MOUSEBUTTONUP:
-    #
-    #                 if event.pos[0] < self.board_winsize[0]:
-    #
-    #                     # print(event.pos)
-    #                     x, y = (np.array(event.pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
-    #                     # print(x, y)
-    #                     action = GomokuAction(x, y)
-    #                     if self.is_valid_action(action):
-    #                         return action
-    #
-    #                 else:
-    #                     # Ctrl Panel
-    #                     pass
-    #             elif event.type == pygame.WINDOWCLOSE:
-    #                 #  or event.type == pygame.K_ESCAPE:
-    #                 exit(0)
+    def get_gui_input(self):
+
+        try:
+            while True:
+                inpt = self.Gui_inqueue.get_nowait()
+                print(inpt)
+                if inpt['code'] == 'request-pause':
+                    self.pause = inpt['data']
+                
+                # skip player action
+
+                elif inpt['code'] == 'response-player-action':
+                    self.player_action = inpt['data']
+        except:
+            pass
+
+    def wait_player_action(self):
+        self.Gui_outqueue.put({
+            'code': 'request-player-action'
+        })
+        while True:
+            self.get_gui_input()
+            if self.player_action:
+                if self.pause:
+                    self.Gui_outqueue.put({
+                        'code': 'request-player-action'
+                    })
+                    self.player_action = None
+                    continue
+                action = self.player_action
+                self.player_action = None
+                return action
