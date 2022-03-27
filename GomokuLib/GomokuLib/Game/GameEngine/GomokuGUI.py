@@ -42,6 +42,8 @@ class GomokuGUI(Gomoku):
         # self.drawUI()
         print("END __init__() GomokuGUI\n")
 
+    def get_deep_copy():
+        pass
 
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
@@ -51,7 +53,7 @@ class GomokuGUI(Gomoku):
             # self.apply_events(events)
             if not self.pause:
                 self._run_turn(players)
-            # self.Gui_queue.put()
+            # self.Gui_outqueue.put(self.get_deep_copy())
             # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
             # self.drawUI()
 

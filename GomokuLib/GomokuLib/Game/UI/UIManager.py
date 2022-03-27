@@ -1,4 +1,5 @@
 from ast import While
+from subprocess import call
 from typing import Union
 from time import sleep
 import numpy as np
@@ -15,14 +16,16 @@ from .Button import Button
 class UIManager:
 
     # def __init__(self, gomokuGUI: GomokuGUI, win_size: tuple):
-    def __init__(self, win_size: tuple, n_cells: int, engine):
+    def __init__(self, win_size: tuple, board_size: int, engine):
 
         # self.gomokuGUI = gomokuGUI
         self.engine = engine
         self.win_size = win_size
+        self.board_size = board_size
+
         self.requestPlayerAction = False
         self.pause = False
-        # self.n_cells = n_cells
+        self.callbacks = {}
         # self.events = []
         # self.initUI()
 
@@ -33,14 +36,20 @@ class UIManager:
     #     self.win = pygame.display.set_mode(self.win_size)
 
     #     self.components = [
-    #         Board(self.win, self.win_size, 0, 0, 0.66, 1, self.n_cells),
+    #         Board(self.win, origin=(0, 0), size=(1000, 1000), board_size=self.board_size),
+    #         # Board(self.win, self.win_size, 0, 0, 2 / 3, 1, self.board_size),
     #         # Board(self.win, win_size, 0.66, 0.5, 0.33, 0.5),
     #         # Button(self.win, win_size, 0.83, 0.25, 0.1, 0.1)
     #     ]
 
-    #     for o in self.components:
-    #         o.initUI()
+    #     # for o in self.components:
+    #     #     o.initUI()
 
+    def register(self, event_type, callback):
+        if str(event_type) in self.callbacks:
+           self.callbacks[str(event_type)].append(callback)
+        else:
+            self.callbacks[str(event_type)] = [callback]
 
     def __call__(self, inqueue, outqueue): # Thread function
 
@@ -58,6 +67,10 @@ class UIManager:
             except:
                 pass
             for event in pygame.event.get():
+                if str(event.type) in self.callbacks:
+                    for callback in self.callbacks[str(event.type)]:
+                        callback(event)
+
                 if event.type == pygame.MOUSEBUTTONUP:
     
                     if event.pos[0] < self.board_winsize[0]:
@@ -109,10 +122,17 @@ class UIManager:
     
         print("init GUI")
         pygame.init()
-    
-        board_size = min(int(win_size[0] * 2/3), win_size[1])
+
         self.win = pygame.display.set_mode(win_size)
-        self.board_winsize = board_size, win_size[1]
+        self.components = [
+            Board(self.win, origin=(0, 0), size=(1000, 1000), board_size=self.board_size),
+            # Board(self.win, self.win_size, 0, 0, 2 / 3, 1, self.board_size),
+            # Board(self.win, win_size, 0.66, 0.5, 0.33, 0.5),
+            # Button(self.win, win_size, 0.83, 0.25, 0.1, 0.1)
+        ]
+        for c in self.components:
+            c.init_event(self)
+        self.board_winsize = min(int(win_size[0] * 2/3), win_size[1]), win_size[1]
         self.wx, self.wy = self.board_winsize
     
         # self.panelx = win_size[0] - self.wx
@@ -155,7 +175,9 @@ class UIManager:
     
         # on_off_btn = pygame.Rect(self.panelx + marginx, self.panely + marginy, self.on_off_btn_width)
         # print("end init GUI.")
-    
+
+        print("init ui ok")
+
     def drawUI(self):
     
         self.win.blit(self.bg, (0, 0))
@@ -179,12 +201,10 @@ class UIManager:
             self.win.blit(self.blackstone, (x - self.csx, y - self.csy))
         pygame.display.flip()
     
-
     def wait_player_action(self):
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.MOUSEBUTTONUP:
-    
                     if event.pos[0] < self.board_winsize[0]:
     
                         # print(event.pos)

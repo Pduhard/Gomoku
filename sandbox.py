@@ -43,7 +43,7 @@ def main():
     mcts2 = GomokuLib.Algo.MCTSAI(model_interface2)
     mcts2.mcts_iter = 50
     p1 = GomokuLib.Player.Bot(mcts2)
-    # p2 = GomokuLib.Player.Human()
+    p2 = GomokuLib.Player.Human()
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
     # i = 0
