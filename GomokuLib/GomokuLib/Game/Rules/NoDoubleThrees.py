@@ -101,6 +101,7 @@ def njit_is_valid(rmax, cmax, ar, ac, board, FT_IDENT):
 class NoDoubleThrees(AbstractRule):
 
 	restricting = True # Imply existing methods get_valid() and is_valid()
+	name = 'NoDoubleThrees'
 
 	def __init__(self, engine: Any) -> None:
 		super().__init__(engine)
@@ -189,6 +190,13 @@ class NoDoubleThrees(AbstractRule):
 	# 	# exit(0)
 
 	# 	return 0
+
+	
+	def create_snapshot(self):
+		return { }
+
+	def update_from_snapshot(self, snapshot):
+		pass
 
 	def copy(self, engine: Gomoku, rule: AbstractRule):
 		return NoDoubleThrees(engine)

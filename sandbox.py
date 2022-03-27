@@ -35,14 +35,14 @@ def main():
     # p1 = GomokuLib.Player.RandomPlayer()
     p1 = GomokuLib.Player.Human()
 
-    mcts = GomokuLib.Algo.MCTSAI(model_interface)
-    mcts.mcts_iter = 50
-    p2 = GomokuLib.Player.Bot(mcts)
+    # mcts = GomokuLib.Algo.MCTSAI(model_interface)
+    # mcts.mcts_iter = 50
+    # p2 = GomokuLib.Player.Bot(mcts)
 
 
-    mcts2 = GomokuLib.Algo.MCTSAI(model_interface2)
-    mcts2.mcts_iter = 50
-    p1 = GomokuLib.Player.Bot(mcts2)
+    # mcts2 = GomokuLib.Algo.MCTSAI(model_interface2)
+    # mcts2.mcts_iter = 50
+    # p1 = GomokuLib.Player.Bot(mcts2)
     p2 = GomokuLib.Player.Human()
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)

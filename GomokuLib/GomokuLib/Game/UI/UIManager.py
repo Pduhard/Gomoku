@@ -52,16 +52,20 @@ class UIManager:
     
     def process_inputs(self):
         for input in self.inputs:
-            if input['code'] == 'request-player-action':
+            code = input['code']
+            if code == 'request-player-action':
                 self.request_player_action = True
-            if input['code'] == 'board-click':
+            if code == 'board-click':
                 x, y = input['data']
                 self.board_clicked_action = GomokuAction(x, y)
                 print(input, x, y, self.board_clicked_action)
+            if code == 'game-snapshot':
+                self.game_snapshots.append(input['data'])
+
 
     def process_events(self):
         for event in pygame.event.get():
-            print(event.type, pygame.event.event_name(event.type))
+            # print(event.type, pygame.event.event_name(event.type))
             if event.type == pygame.QUIT:
                 self.outqueue.put({
                     'code': 'shutdown',
@@ -110,8 +114,10 @@ class UIManager:
 
         self.request_player_action = False
         self.pause = False
-        self.inputs = []
         self.board_clicked_action = None
+        self.inputs = []
+        self.game_snapshots = []
+
         while True:
             self.read_inqueue()
             self.process_events()

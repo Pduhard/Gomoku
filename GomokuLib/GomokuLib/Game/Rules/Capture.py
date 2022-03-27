@@ -89,6 +89,8 @@ def njit_endturn(board, action, board_size, CAPTURE_MASK):
 
 class Capture(AbstractRule):
 
+	name = 'Capture'
+
 	def __init__(self, engine: Any) -> None:
 		super().__init__(engine)
 		self.CAPTURE_MASK=init_capture_mask()
@@ -140,6 +142,15 @@ class Capture(AbstractRule):
 		if self.player_count_capture[self.engine.player_idx] >= 5:
 			raise ForceWinPlayer(reason="Five captures.")
 		return False
+
+
+	def create_snapshot(self):
+		return {
+			'player_count_capture': self.player_count_capture.copy()
+		}
+	
+	def update_from_snapshot(self, snapshot):
+		self.player_count_capture = snapshot['player_count_capture']
 
 	def copy(self, engine: Gomoku, rule: AbstractRule):
 		newrule = Capture(engine)

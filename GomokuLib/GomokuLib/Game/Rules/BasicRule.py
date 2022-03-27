@@ -55,6 +55,7 @@ def njit_winning(board, ar, ac, rmax, cmax):
 
 class BasicRule(AbstractRule):
 
+	name = 'BasicRule'
 	restricting = True  # Imply existing methods get_valid() and is_valid()
 
 	def get_valid(self):
@@ -104,7 +105,11 @@ class BasicRule(AbstractRule):
 				return i
 		return 4
 
+	def create_snapshot(self):
+		return { }
 
+	def update_from_snapshot(self, snapshot):
+		pass
 
 	def copy(self, engine: Gomoku, rule: AbstractRule):
 		return BasicRule(engine)

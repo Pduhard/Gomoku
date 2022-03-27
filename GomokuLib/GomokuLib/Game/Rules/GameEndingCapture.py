@@ -20,6 +20,8 @@ class ForceWinOpponent(Exception):
 
 class GameEndingCapture(AbstractRule):
 
+	name = 'GameEndingCapture'
+
 	def __init__(self, engine: Gomoku) -> None:
 		super().__init__(engine)
 		self.last_capture = [None, None]
@@ -73,6 +75,17 @@ class GameEndingCapture(AbstractRule):
 			if (x < 0 or x >= xmax or y < 0 or y >= ymax or board[0, x, y] == 0):
 				return i
 		return 4
+	
+	
+	def create_snapshot(self):
+		return {
+			'last_capture': self.last_capture,
+			'winning': self.winning
+		}
+
+	def update_from_snapshot(self, snapshot):
+		self.last_capture = snapshot['last_capture']
+		self.winning = snapshot['winning']
 
 	def copy(self, engine: Gomoku, _: AbstractRule):
 		rule = GameEndingCapture(engine)

@@ -39,6 +39,12 @@ class Gomoku(AbstractGameEngine):
         self.history = np.zeros((1, self.C, self.H, self.W), dtype=int)
         self.rules_fn = self.init_rules_fn(self.rules_str.copy())
 
+    def set_rules_fn(self, rules):
+        self.rules_fn = {
+            k: [r for r in rules if (hasattr(r, k) and getattr(r, k) != None)]
+            for k in RULES
+        }
+
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
 
         tab = {
@@ -48,12 +54,9 @@ class Gomoku(AbstractGameEngine):
         }
 
         rules.append(BasicRule(self))
-        rules = [tab[r.lower()](self) if isinstance(r, str) else r for r in rules]
-        rules_fn = {
-            k: [r for r in rules if (hasattr(r, k) and getattr(r, k) != None)]
-            for k in RULES
-        }
-        return rules_fn
+        self.rules = [tab[r.lower()](self) if isinstance(r, str) else r for r in rules]
+        self.set_rules_fn(self.rules)
+        return self.rules_fn
 
     def init_board(self):
         """
@@ -171,6 +174,29 @@ class Gomoku(AbstractGameEngine):
         return players[self.winner] if self.winner >= 0 else self.winner
 
 
+    def create_snapshot(self):
+        return {
+            'history': self.history.copy(),
+            'last_action': self.last_action,
+            'board': self.state.board.copy(),
+            'player_idx': self.player_idx,
+            '_isover': self._isover,
+            'winner': self.winner,
+            'rules': {
+                rule.name: rule.create_snapshot() for rule in self.rules
+            }
+        }
+
+    def update_from_snapshot(self, snapshot):
+        self.history = snapshot['history'].copy()
+        self.last_action = snapshot['last_action']
+        self.state.board = snapshot['board'].copy()
+        self.player_idx = snapshot['player_idx']
+        self._isover = snapshot['_isover']
+        self.winner = snapshot['winner']
+        for rule in self.rules:
+            rule.update_from_snapshot(snapshot['rules'][rule.name])
+
     def update(self, engine: Gomoku):
 
         self.history = engine.history.copy()
@@ -184,10 +210,8 @@ class Gomoku(AbstractGameEngine):
         # print(engine.rules_fn)
         # print(self.rules_fn)
         # print('----------------------')
-        self.rules_fn = {
-            k : [rule.copy(self, rule) for rule in rules]
-            for k, rules in engine.rules_fn.items()
-        }
+        self.rules = [rule.copy(self, rule) for rule in engine.rules]
+        self.set_rules_fn(self.rules)
         # print(engine.rules_fn)
         # print(self.rules_fn)
 
