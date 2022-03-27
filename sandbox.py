@@ -80,12 +80,13 @@ def RLmain():
             GomokuLib.AI.Dataset.AddBatchTransform()
         ])
     )
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
+    engine = GomokuLib.Game.GameEngine.Gomoku(None)
+    # engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
 
-    agent = GomokuLib.AI.Agent.GomokuAgent(engine, model_interface, mcts_iter=1000)
-    agent.train(2, 2)
+    agent = GomokuLib.AI.Agent.GomokuAgent(engine, model_interface, mcts_iter=5)
+    agent.train(training_loops=2, tl_n_games=1)
 
 
 if __name__ == '__main__':
-    main()
-    # RLmain()
+    # main()
+    RLmain()

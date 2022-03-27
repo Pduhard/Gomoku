@@ -36,7 +36,7 @@ from ..Game.GameEngine import Gomoku
 #     # print(bestactions)
 #     return bestactions[np.random.randint(len(bestactions))]
 
-class   MCTS(AbstractAlgorithm):
+class MCTS(AbstractAlgorithm):
 
     engine: Gomoku = None
 
@@ -73,13 +73,19 @@ class   MCTS(AbstractAlgorithm):
             self.mcts(i)
 
         state_data = self.states[game_engine.state.board.tobytes()]
-        _, _, (sa_n, sa_v) = state_data[:3]
+        sa_n, sa_v = state_data[2]
 
         policy = sa_v / (sa_n + 1)
         print("policy (rewards sum / visit count):\n", policy)
 
-        gAction = self.selection(policy, state_data)
-        print("best arg:\n", gAction.action)
+        gAction = None
+        while not (gAction and game_engine.is_valid_action(gAction)):
+            gAction = self.selection(policy, state_data)
+            print("Ultimate __call__() selection:\n", gAction.action)
+
+        # if np.all(policy == 0):
+        #     print("Be carefull / wtf policy")
+        #     breakpoint()
 
         return policy, gAction
 
@@ -153,14 +159,16 @@ class   MCTS(AbstractAlgorithm):
             ucb(s, a) = (quality(s, a) + exp_rate(s, a)) * valid_action(s, a)
         """
         # return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
-        _, _, _, actions = state_data[:4]
+        # _, _, _, actions = state_data[:4]
         ucbs = self.get_quality(state_data, **kwargs) + self.get_exp_rate(state_data, **kwargs)
-        return ucbs * actions
+        return ucbs
 
-    def selection(self, policy: np.ndarray, *args) -> tuple:
+    def selection(self, policy: np.ndarray, state_data, *args) -> tuple:
 
+        policy *= state_data[3]
         bestactions = np.argwhere(policy == np.amax(policy))
-        return bestactions[np.random.randint(len(bestactions))]
+        bestaction = bestactions[np.random.randint(len(bestactions))]
+        return GomokuAction(*bestaction)
         # coords = np.unravel_index(np.argsort(policy, axis=None)[::-1], policy.shape)
         #
         # for x, y in zip(*coords):
@@ -196,11 +204,12 @@ class   MCTS(AbstractAlgorithm):
 
         state_data[0] += 1                       # update n count
         state_data[1] += reward                  # update state value
+
         if bestaction is None:
             return
-
         r, c = bestaction
         state_data[2][..., r, c] += [1, reward]  # update state-action count / value
+        # print(f"Backprop reward {reward} within {rewards}")
 
 
     def evaluate(self):

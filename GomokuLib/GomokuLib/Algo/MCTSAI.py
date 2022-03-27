@@ -3,10 +3,11 @@ import numpy as np
 
 from .MCTSAMAFLazy import MCTSAMAFLazy
 from .MCTSLazy import MCTSLazy
+from .MCTS import MCTS
 from ..AI.Model.ModelInterface import ModelInterface
 
 # class MCTSAI(MCTSAMAFLazy):
-class MCTSAI(MCTSLazy):
+class MCTSAI(MCTS):
 
     # def __init__(self, model) -> None:
     def __init__(self, model_interface: ModelInterface, *args, **kwargs) -> None:

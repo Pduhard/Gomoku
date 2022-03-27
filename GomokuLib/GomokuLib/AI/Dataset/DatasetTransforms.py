@@ -50,7 +50,7 @@ class VerticalTransform:
 class ToTensorTransform:
 
     def __call__(self, inputs: np.ndarray) -> torch.Tensor:
-        return torch.Tensor(inputs)
+        return torch.tensor(inputs, dtype=torch.float)
         # return torch.Tensor(inputs).cuda()
 
     def invert(self, output: torch.Tensor) -> np.ndarray:

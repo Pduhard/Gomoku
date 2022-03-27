@@ -1,3 +1,5 @@
+import copy
+
 import torch
 import numpy as np
 
@@ -27,7 +29,8 @@ class ModelInterface:
         self.ones = np.ones((1, self.width, self.height), dtype=int)
         self.zeros = np.zeros((1, self.width, self.height), dtype=int)
 
-        self.loss_fn = torch.nn.CrossEntropyLoss()
+        self.loss_fn_policy = torch.nn.CrossEntropyLoss()
+        self.loss_fn_value = torch.nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(self.model.parameters())
 
 
@@ -46,25 +49,53 @@ class ModelInterface:
                 history = np.concatenate((self.zero_fill[:self.history_size - history_length, ...], history))
             else:
                 history = self.zero_fill
-        p0 = history[-self.history_size + history_length % 2::2, 0, ...]
+        p0 = history[-self.history_size + history_length % 2::2, 0, ...]        # Step: 2 by 2
         p1 = history[-self.history_size + (history_length + 1) % 2::2, 1, ...]
 
         inputs = np.concatenate((p0, p1, self.ones if history_length % 2 == 0 else self.zeros))
         return inputs
 
-    def train(self, dataset: GomokuDataset):
 
-        if len(dataset) < 100:
-            tts_lengths = int(len(dataset) * 0.8), int(len(dataset) * 0.2)
-        else:
-            tts_lengths = self.tts_lengths if self.tts_lengths else (80, 20)
+    def _train_one_batch(self, X: torch.Tensor, targets: list):
 
-        train_set, test_set = torch.utils.data.random_split(dataset, tts_lengths)
+            target_policy, target_value = targets
+            breakpoint()
+            y_policy, y_value = self.forward(X)
 
-        train_dataloader = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True)
-        test_dataloader = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True)
+            # Zero gradients before every batch !
+            self.optimizer.zero_grad()
+
+            policy_loss = self.loss_fn_policy(y_policy, target_policy)
+            value_loss = self.loss_fn_value(y_value, target_value)
+            policy_loss.backward()
+            value_loss.backward()
+
+            # Adjust learning weights
+            self.optimizer.step()
 
 
+    def _train_one_epoch(self, train_dataloader):
+
+        for (batch_id, batch) in enumerate(train_dataloader):
+            print(f"\n\tBatch {batch_id}/{train_dataloader.batch_size}")
+
+            self._train_one_batch(*batch)
+
+    def train(self, dataset: GomokuDataset, epochs: int = 1):
+
+        # tts_lengths = int(len(dataset) * 0.8)
+        # tts_lengths = (tts_lengths, len(dataset) - tts_lengths)
+        # train_set, test_set = torch.utils.data.random_split(dataset, tts_lengths)
+        # train_dataloader = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True)
+        # test_dataloader = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True)
+
+        train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=64, shuffle=True)
+
+        for epoch in range(epochs):
+            print("\n==============================\n")
+            print(f"Epoch {epoch}/{epochs}")
+
+            self._train_one_epoch(train_dataloader)
 
     def save(self, path, cp_n, game_played):
         torch.save({
@@ -81,6 +112,12 @@ class ModelInterface:
         self.model.load_state_dict(cp['model_state_dict'])
         self.optimizer.load_state_dict(cp['optimizer_state_dict'])
 
+    def copy(self):
+        return ModelInterface(
+            copy.deepcopy(self.model),
+            self.transforms,
+            self.tts_lengths
+        )
 
 if __name__ == "__main__":
     modelinterface = ModelInterface(GomokuModel(17, 19, 19))
