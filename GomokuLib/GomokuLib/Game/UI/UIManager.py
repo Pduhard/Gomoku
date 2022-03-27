@@ -22,10 +22,8 @@ class UIManager:
         self.engine = engine
         self.win_size = win_size
         self.board_size = board_size
-
-        self.requestPlayerAction = False
-        self.pause = False
         self.callbacks = {}
+
         # self.events = []
         # self.initUI()
 
@@ -45,11 +43,62 @@ class UIManager:
     #     # for o in self.components:
     #     #     o.initUI()
 
+    def read_inqueue(self):
+        try:
+            while True:
+                self.inputs.append(self.inqueue.get_nowait())
+        except:
+            pass
+    
+    def process_inputs(self):
+        for input in self.inputs:
+            if input['code'] == 'request-player-action':
+                self.request_player_action = True
+            if input['code'] == 'board-click':
+                x, y = input['data']
+                self.board_clicked_action = GomokuAction(x, y)
+                print(input, x, y, self.board_clicked_action)
+
+    def process_events(self):
+        for event in pygame.event.get():
+            print(event.type, pygame.event.event_name(event.type))
+            if event.type == pygame.QUIT:
+                self.outqueue.put({
+                    'code': 'shutdown',
+                })
+                pygame.quit()
+                #  or event.type == pygame.K_ESCAPE:
+                exit(0)
+            if str(event.type) not in self.callbacks:
+                continue
+            for callback in self.callbacks[str(event.type)]:
+                response = callback(event)
+                if response:
+                    self.inputs.append(response)
+            
+
     def register(self, event_type, callback):
         if str(event_type) in self.callbacks:
            self.callbacks[str(event_type)].append(callback)
         else:
             self.callbacks[str(event_type)] = [callback]
+
+    def update(self):
+        if self.request_player_action and self.board_clicked_action:
+            
+            if self.engine.is_valid_action(self.board_clicked_action):
+                self.request_player_action = False
+                self.outqueue.put({
+                    'code': 'response-player-action',
+                    'data': self.board_clicked_action,
+                })
+
+        for o in self.components:
+            o.draw(board=self.engine.state.board, player_idx=self.engine.player_idx)
+        pygame.display.flip()
+
+        self.board_clicked_action = None
+        self.inputs = []
 
     def __call__(self, inqueue, outqueue): # Thread function
 
@@ -58,47 +107,20 @@ class UIManager:
         i = 0
         self.inqueue = inqueue
         self.outqueue = outqueue
-        while True:
-            try:
-                while True:
-                    inpt = self.inqueue.get_nowait()
-                    if inpt['code'] == 'request-player-action':
-                        self.requestPlayerAction = True
-            except:
-                pass
-            for event in pygame.event.get():
-                if str(event.type) in self.callbacks:
-                    for callback in self.callbacks[str(event.type)]:
-                        callback(event)
 
-                if event.type == pygame.MOUSEBUTTONUP:
-    
-                    if event.pos[0] < self.board_winsize[0]:
-                        x, y = (np.array(event.pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
-                        print("mouse down ", x, y, "request player action: ", self.requestPlayerAction)
-                        action = GomokuAction(x, y)
-                        if self.requestPlayerAction and self.engine.is_valid_action(action):
-                            self.requestPlayerAction = False
-                            self.outqueue.put({
-                                'code': 'response-player-action',
-                                'data': action,
-                            })
-                    else:
-                        self.pause = not self.pause
-                        self.outqueue.put({
-                            'code': 'request-pause',
-                            'data': self.pause,
-                        })
-                elif event.type == pygame.WINDOWCLOSE:
-                    #  or event.type == pygame.K_ESCAPE:
-                    exit(0)
-            i += 1
-            self.drawUI()
+        self.request_player_action = False
+        self.pause = False
+        self.inputs = []
+        self.board_clicked_action = None
+        while True:
+            self.read_inqueue()
+            self.process_events()
+            self.process_inputs()
+            self.update()
+            # self.drawUI()
             # self.handle_event()
 
     # def drawUI(self, *args, **kwargs):
-    #     for o in self.components:
-    #         o.draw(*args, **kwargs)
 
     # def handle_event(self):
     #     pass
@@ -125,13 +147,15 @@ class UIManager:
 
         self.win = pygame.display.set_mode(win_size)
         self.components = [
-            Board(self.win, origin=(0, 0), size=(1000, 1000), board_size=self.board_size),
+            Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size),
             # Board(self.win, self.win_size, 0, 0, 2 / 3, 1, self.board_size),
             # Board(self.win, win_size, 0.66, 0.5, 0.33, 0.5),
             # Button(self.win, win_size, 0.83, 0.25, 0.1, 0.1)
         ]
         for c in self.components:
             c.init_event(self)
+        
+        return
         self.board_winsize = min(int(win_size[0] * 2/3), win_size[1]), win_size[1]
         self.wx, self.wy = self.board_winsize
     
@@ -178,45 +202,45 @@ class UIManager:
 
         print("init ui ok")
 
-    def drawUI(self):
+    # def drawUI(self):
     
-        self.win.blit(self.bg, (0, 0))
-        # print(self.cells_coord.shape,  self.state.board[np.newaxis, ...].shape)
-        stone_x, stone_y = self.cells_coord * self.engine.state.board[self.engine.player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
-        empty_cells = stone_x != 0                               # Boolean array to remove empty cells
-        stone_x = stone_x[empty_cells]
-        stone_y = stone_y[empty_cells]
-        stones = np.stack([stone_x, stone_y], axis=-1)
+    #     self.win.blit(self.bg, (0, 0))
+    #     # print(self.cells_coord.shape,  self.state.board[np.newaxis, ...].shape)
+    #     stone_x, stone_y = self.cells_coord * self.engine.state.board[self.engine.player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
+    #     empty_cells = stone_x != 0                               # Boolean array to remove empty cells
+    #     stone_x = stone_x[empty_cells]
+    #     stone_y = stone_y[empty_cells]
+    #     stones = np.stack([stone_x, stone_y], axis=-1)
     
-        for x, y in stones:
-            self.win.blit(self.whitestone, (x - self.csx, y - self.csy))
+    #     for x, y in stones:
+    #         self.win.blit(self.whitestone, (x - self.csx, y - self.csy))
     
-        stone_x, stone_y = self.cells_coord * self.engine.state.board[self.engine.player_idx ^ 1][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
-        empty_cells = stone_x != 0                                          # Boolean array to remove empty cells
-        stone_x = stone_x[empty_cells]
-        stone_y = stone_y[empty_cells]
-        stones = np.stack([stone_x, stone_y], axis=-1)
+    #     stone_x, stone_y = self.cells_coord * self.engine.state.board[self.engine.player_idx ^ 1][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
+    #     empty_cells = stone_x != 0                                          # Boolean array to remove empty cells
+    #     stone_x = stone_x[empty_cells]
+    #     stone_y = stone_y[empty_cells]
+    #     stones = np.stack([stone_x, stone_y], axis=-1)
     
-        for x, y in stones:
-            self.win.blit(self.blackstone, (x - self.csx, y - self.csy))
-        pygame.display.flip()
+    #     for x, y in stones:
+    #         self.win.blit(self.blackstone, (x - self.csx, y - self.csy))
+    #     pygame.display.flip()
     
-    def wait_player_action(self):
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONUP:
-                    if event.pos[0] < self.board_winsize[0]:
+    # def wait_player_action(self):
+    #     while True:
+    #         for event in pygame.event.get():
+    #             if event.type == pygame.MOUSEBUTTONUP:
+    #                 if event.pos[0] < self.board_winsize[0]:
     
-                        # print(event.pos)
-                        x, y = (np.array(event.pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
-                        # print(x, y)
-                        action = GomokuAction(x, y)
-                        if self.is_valid_action(action):
-                            return action
+    #                     # print(event.pos)
+    #                     x, y = (np.array(event.pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
+    #                     # print(x, y)
+    #                     action = GomokuAction(x, y)
+    #                     if self.is_valid_action(action):
+    #                         return action
     
-                    else:
-                        # Ctrl Panel
-                        pass
-                elif event.type == pygame.WINDOWCLOSE:
-                    #  or event.type == pygame.K_ESCAPE:
-                    exit(0)
+    #                 else:
+    #                     # Ctrl Panel
+    #                     pass
+    #             elif event.type == pygame.WINDOWCLOSE:
+    #                 #  or event.type == pygame.K_ESCAPE:
+    #                 exit(0)

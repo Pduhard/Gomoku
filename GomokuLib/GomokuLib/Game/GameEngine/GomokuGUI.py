@@ -3,7 +3,7 @@ from multiprocessing.dummy import Process
 from time import sleep
 from typing import TYPE_CHECKING, Union
 import numpy as np
-import pygame
+# import pygame
 import multiprocessing as mp
 import threading
 
@@ -30,6 +30,7 @@ class GomokuGUI(Gomoku):
         self.GUI_proc = Process(target=self.GUI, args=(self.Gui_outqueue, self.Gui_inqueue))
         self.GUI_proc.start()
         self.pause = False
+        self.shutdown = False
         self.player_action = None
         # self.processes = [
         #     self.GUI_proc,
@@ -172,6 +173,9 @@ class GomokuGUI(Gomoku):
 
                 elif inpt['code'] == 'response-player-action':
                     self.player_action = inpt['data']
+
+                elif inpt['code'] == 'shutdown':
+                    self.shutdown = True
         except:
             pass
 
@@ -181,6 +185,8 @@ class GomokuGUI(Gomoku):
         })
         while True:
             self.get_gui_input()
+            if self.shutdown:
+                exit(0)
             if self.player_action:
                 if self.pause:
                     self.Gui_outqueue.put({
