@@ -67,6 +67,8 @@ class UIManager:
                 print(input, x, y, self.board_clicked_action)
             elif code == 'game-snapshot':
                 self.game_snapshots.append(input['data'])
+                self.current_snapshot_idx += 1
+                self.snapshot_idx_modified = True
             elif code == 'step-back':
                 if self.current_snapshot_idx > 0:
                     self.current_snapshot_idx -= 1
@@ -113,6 +115,7 @@ class UIManager:
         
         if self.snapshot_idx_modified:
             self.engine.update_from_snapshot(self.game_snapshots[self.current_snapshot_idx])
+            self.game_snapshots = self.game_snapshots[:self.current_snapshot_idx + 1]
             self.outqueue.put({
                 'code': 'game-snapshot',
                 'data': self.game_snapshots[self.current_snapshot_idx]
@@ -150,22 +153,6 @@ class UIManager:
             # self.drawUI()
             # self.handle_event()
 
-    # def drawUI(self, *args, **kwargs):
-
-    # def handle_event(self):
-    #     pass
-
-    # def get_events(self) -> list:
-    #     return self.events
-
-
-
-
-
-
-    ###  OLD FUNCTIONS   ###
-
-
     def initUI(self, win_size: Union[list[int], tuple[int]]):
     
         # self.board_size = (19, 19)
@@ -181,99 +168,6 @@ class UIManager:
             Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255)),
             Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0)),
             Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255)),
-            # Board(self.win, self.win_size, 0, 0, 2 / 3, 1, self.board_size),
-            # Board(self.win, win_size, 0.66, 0.5, 0.33, 0.5),
-            # Button(self.win, win_size, 0.83, 0.25, 0.1, 0.1)
         ]
         for c in self.components:
             c.init_event(self)
-        
-        return
-        self.board_winsize = min(int(win_size[0] * 2/3), win_size[1]), win_size[1]
-        self.wx, self.wy = self.board_winsize
-    
-        # self.panelx = win_size[0] - self.wx
-        # self.panely = 0
-    
-        # self.board_winsize = int(win_size[0] * 2/3), win_size[1]
-    
-        self.cell_size = self.wx / self.engine.board_size[0], self.wy / self.engine.board_size[1]
-        self.csx, self.csy = self.cell_size
-    
-        self.bg = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WoodBGBoard.jpg").convert()
-        self.bg = pygame.transform.scale(self.bg, self.board_winsize)
-    
-        self.whitestone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WhiteStone.png").convert_alpha()
-        self.whitestone = pygame.transform.scale(self.whitestone, (int(self.csx), int(self.csy)))
-        # self.whitestone = pygame.transform.scale(self.whitestone, (self.csx * 19/20, self.csy * 19/20))
-    
-        self.blackstone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/BlackStone.png").convert_alpha()
-        self.blackstone = pygame.transform.scale(self.blackstone, (int(self.csx), int(self.csy)))
-        # self.blackstone = pygame.transform.scale(self.blackstone, (self.csx * 19/20, self.csy * 19/20))
-    
-        i = self.csx / 2
-        iend = self.board_winsize[0] - self.csx / 2
-        for j in range(self.engine.board_size[0]):
-            pygame.draw.line(self.bg, (0, 0, 0), (i, self.csy / 2), (i, self.board_winsize[1] - self.csy / 2))
-            i += self.csx
-    
-        i = self.csy / 2
-        iend = self.board_winsize[1] - self.csy / 2
-        for j in range(self.engine.board_size[1]):
-            pygame.draw.line(self.bg, (0, 0, 0), (self.csx / 2, i), (self.board_winsize[0] - self.csx / 2, i))
-            i += self.csy
-    
-        axe = np.arange(1, 20)
-        grid = np.meshgrid(axe, axe)
-        self.cells_coord = grid * np.array(self.cell_size)[..., np.newaxis, np.newaxis]
-    
-        # marginx = win_size[0] / 25
-        # marginy = win_size[1] / 25
-    
-        # on_off_btn = pygame.Rect(self.panelx + marginx, self.panely + marginy, self.on_off_btn_width)
-        # print("end init GUI.")
-
-        print("init ui ok")
-
-    # def drawUI(self):
-    
-    #     self.win.blit(self.bg, (0, 0))
-    #     # print(self.cells_coord.shape,  self.state.board[np.newaxis, ...].shape)
-    #     stone_x, stone_y = self.cells_coord * self.engine.state.board[self.engine.player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
-    #     empty_cells = stone_x != 0                               # Boolean array to remove empty cells
-    #     stone_x = stone_x[empty_cells]
-    #     stone_y = stone_y[empty_cells]
-    #     stones = np.stack([stone_x, stone_y], axis=-1)
-    
-    #     for x, y in stones:
-    #         self.win.blit(self.whitestone, (x - self.csx, y - self.csy))
-    
-    #     stone_x, stone_y = self.cells_coord * self.engine.state.board[self.engine.player_idx ^ 1][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
-    #     empty_cells = stone_x != 0                                          # Boolean array to remove empty cells
-    #     stone_x = stone_x[empty_cells]
-    #     stone_y = stone_y[empty_cells]
-    #     stones = np.stack([stone_x, stone_y], axis=-1)
-    
-    #     for x, y in stones:
-    #         self.win.blit(self.blackstone, (x - self.csx, y - self.csy))
-    #     pygame.display.flip()
-    
-    # def wait_player_action(self):
-    #     while True:
-    #         for event in pygame.event.get():
-    #             if event.type == pygame.MOUSEBUTTONUP:
-    #                 if event.pos[0] < self.board_winsize[0]:
-    
-    #                     # print(event.pos)
-    #                     x, y = (np.array(event.pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
-    #                     # print(x, y)
-    #                     action = GomokuAction(x, y)
-    #                     if self.is_valid_action(action):
-    #                         return action
-    
-    #                 else:
-    #                     # Ctrl Panel
-    #                     pass
-    #             elif event.type == pygame.WINDOWCLOSE:
-    #                 #  or event.type == pygame.K_ESCAPE:
-    #                 exit(0)

@@ -31,6 +31,7 @@ class Gomoku(AbstractGameEngine):
         self.init_game()
 
     def init_game(self):
+        self.turn = 0
         self.last_action = None
         self._isover = False
         self.winner = -1
@@ -148,7 +149,7 @@ class Gomoku(AbstractGameEngine):
         finally:
             self.player_idx ^= 1
             self.state.board = self.state.board[::-1, ...]
-
+            self.turn += 1
 
     def isover(self):
         # print(f"Gomoku(): isover() return {self._isover}")
@@ -182,11 +183,12 @@ class Gomoku(AbstractGameEngine):
     def create_snapshot(self):
         return {
             'history': self.history.copy(),
-            'last_action': GomokuAction(*self.last_action.action),
+            'last_action': None if self.last_action is None else GomokuAction(*self.last_action.action),
             'board': self.state.board.copy(),
             'player_idx': self.player_idx,
             '_isover': self._isover,
             'winner': self.winner,
+            'turn': self.turn,
             'rules': {
                 rule.name: rule.create_snapshot() for rule in self.rules
             }
@@ -194,23 +196,25 @@ class Gomoku(AbstractGameEngine):
 
     def update_from_snapshot(self, snapshot):
         self.history = snapshot['history'].copy()
-        self.last_action = snapshot['last_action']
+        self.last_action = None if snapshot['last_action'] is None else GomokuAction(*snapshot['last_action'].action)
         self.state.board = snapshot['board'].copy()
         self.player_idx = snapshot['player_idx']
         self._isover = snapshot['_isover']
         self.winner = snapshot['winner']
+        self.turn = snapshot['turn']
         for rule in self.rules:
             rule.update_from_snapshot(snapshot['rules'][rule.name])
 
     def update(self, engine: Gomoku):
 
         self.history = engine.history.copy()
-        self.last_action = GomokuAction(*engine.last_action.action)
+        self.last_action = None if engine.last_action is None else GomokuAction(*engine.last_action.action)
         self.state.board = engine.state.board.copy()
 
         self.player_idx = engine.player_idx
         self._isover = engine._isover
         self.winner = engine.winner
+        self.turn = engine.turn
 
         # print(engine.rules_fn)
         # print(self.rules_fn)
