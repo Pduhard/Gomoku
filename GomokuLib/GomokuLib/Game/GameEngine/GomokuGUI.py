@@ -25,24 +25,27 @@ class GomokuGUI(Gomoku):
                  **kwargs) -> None:
         super().__init__(players, board_size=board_size, history_size=history_size, **kwargs)
 
-        self.Gui_outqueue = mp.Queue()
-        self.Gui_inqueue = mp.Queue()
-        self.GUI = UIManager(win_size, self.board_size)
-        self.GUI_proc = Process(target=self.GUI, args=(self.Gui_outqueue, self.Gui_inqueue))
-        self.GUI_proc.start()
+        self.gui_outqueue = mp.Queue()
+        self.gui_inqueue = mp.Queue()
+        self.gui = UIManager(win_size, self.board_size)
+        self.gui_proc = Process(target=self.gui, args=(self.gui_outqueue, self.gui_inqueue))
+        self.gui_proc.start()
+
         self.pause = False
         self.shutdown = False
         self.player_action = None
+        self.current_snapshot_idx = -1
+
         # self.processes = [
-        #     self.GUI_proc,
+        #     self.gui_proc,
         # ]
-        # threading.Thread(target=self.GUI, args=(self.get_turn_data,))
+        # threading.Thread(target=self.gui, args=(self.get_turn_data,))
 
         # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
 
         # self.initUI(win_size)
         # self.drawUI()
-        print("END __init__() GomokuGUI\n")
+        print("END __init__() Gomokugui\n")
 
     def get_deep_copy(self):
         return {
@@ -54,11 +57,11 @@ class GomokuGUI(Gomoku):
 
         while not self.isover():
             self.get_gui_input()
-            # events = self.GUI.get_events()
+            # events = self.gui.get_events()
             # self.apply_events(events)
             if not self.pause:
                 self._run_turn(players)
-            self.Gui_outqueue.put(self.get_deep_copy())
+            self.gui_outqueue.put(self.get_deep_copy())
             # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
             # self.drawUI()
 
@@ -78,7 +81,7 @@ class GomokuGUI(Gomoku):
 
         try:
             while True:
-                inpt = self.Gui_inqueue.get_nowait()
+                inpt = self.gui_inqueue.get_nowait()
                 print(inpt)
                 if inpt['code'] == 'request-pause':
                     self.pause = inpt['data']
@@ -94,7 +97,7 @@ class GomokuGUI(Gomoku):
             pass
 
     def wait_player_action(self):
-        self.Gui_outqueue.put({
+        self.gui_outqueue.put({
             'code': 'request-player-action'
         })
         while True:
@@ -103,7 +106,7 @@ class GomokuGUI(Gomoku):
                 exit(0)
             if self.player_action:
                 if self.pause:
-                    self.Gui_outqueue.put({
+                    self.gui_outqueue.put({
                         'code': 'request-player-action'
                     })
                     self.player_action = None

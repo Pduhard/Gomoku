@@ -158,7 +158,9 @@ class UIManager:
         self.win = pygame.display.set_mode(win_size)
         self.components = [
             Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size),
-            Button(self.win, origin=(1100, 100), size=(100, 200), event_code='pause-play'),
+            Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255)),
+            Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0)),
+            Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255)),
             # Board(self.win, self.win_size, 0, 0, 2 / 3, 1, self.board_size),
             # Board(self.win, win_size, 0.66, 0.5, 0.33, 0.5),
             # Button(self.win, win_size, 0.83, 0.25, 0.1, 0.1)
