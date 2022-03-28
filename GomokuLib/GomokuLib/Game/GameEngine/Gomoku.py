@@ -8,9 +8,10 @@ from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
 
 from ..State.GomokuState import GomokuState
 
+from ..Action.GomokuAction import GomokuAction
 if TYPE_CHECKING:
     from ..Rules.Capture import Capture
-    from ..Action.GomokuAction import GomokuAction
+    # from ..Action.GomokuAction import GomokuAction
     from ..Rules.AbstractRule import AbstractRule
     from ...Player.AbstractPlayer import AbstractPlayer
 
@@ -91,9 +92,12 @@ class Gomoku(AbstractGameEngine):
 
 
     def new_rule(self, obj: object, operation: str):
+        print('haled new rule')
         self.rules_fn[operation].append(obj)
+        print('haled new rule')
 
     def remove_rule(self, obj: object, operation: str):
+        print('haled remove rule')
         self.rules_fn[operation].remove(obj)
 
 
@@ -177,7 +181,7 @@ class Gomoku(AbstractGameEngine):
     def create_snapshot(self):
         return {
             'history': self.history.copy(),
-            'last_action': self.last_action,
+            'last_action': GomokuAction(*self.last_action.action),
             'board': self.state.board.copy(),
             'player_idx': self.player_idx,
             '_isover': self._isover,
@@ -200,7 +204,7 @@ class Gomoku(AbstractGameEngine):
     def update(self, engine: Gomoku):
 
         self.history = engine.history.copy()
-        self.last_action = engine.last_action
+        self.last_action = GomokuAction(*engine.last_action.action)
         self.state.board = engine.state.board.copy()
 
         self.player_idx = engine.player_idx

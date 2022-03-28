@@ -25,11 +25,11 @@ class GameEndingCapture(AbstractRule):
 	def __init__(self, engine: Gomoku) -> None:
 		super().__init__(engine)
 		self.last_capture = [None, None]
-		self.winning = None
+		self.check_ending_capture = np.array([0, 0])
 
-	def win_again(self, action):
-		
-		# print("Win again ???")
+	def winning(self, action):
+		if self.check_ending_capture[self.engine.player_idx ^ 1] == 0:
+			return False
 		board = self.engine.state.board[::-1]
 
 		ar, ac = self.last_capture[self.engine.player_idx ^ 1].action
@@ -54,17 +54,12 @@ class GameEndingCapture(AbstractRule):
 		if win:
 			raise ForceWinOpponent(reason="GameEndingCapture")
 
-		self.engine.remove_rule(self, "winning")
-		self.winning = None
-		# print(f"remove rule player {self.engine.player_idx ^ 1}")
+		self.check_ending_capture[self.engine.player_idx ^ 1] = 0
 		return False
 
 	def nowinning(self, action: GomokuAction):
-
 		self.last_capture[self.engine.player_idx] = action
-		self.winning = self.win_again
-		self.engine.new_rule(self, "winning")
-		# print(f"add rule player {self.engine.player_idx}")
+		self.check_ending_capture[self.engine.player_idx ^ 1] = 1
 		return True
 
 	def count_align_this_way(self, board, x, y, dx, dy):
@@ -79,16 +74,16 @@ class GameEndingCapture(AbstractRule):
 	
 	def create_snapshot(self):
 		return {
-			'last_capture': self.last_capture,
-			'winning': self.winning
+			'last_capture': [GomokuAction(*c.action) if c is not None else c for c in self.last_capture],
+			'check_ending_capture': self.check_ending_capture.copy()
 		}
 
 	def update_from_snapshot(self, snapshot):
-		self.last_capture = snapshot['last_capture']
-		self.winning = snapshot['winning']
+		self.last_capture = [GomokuAction(*c.action) if c is not None else c for c in snapshot['last_capture']]
+		self.check_ending_capture = snapshot['check_ending_capture'].copy()
 
 	def copy(self, engine: Gomoku, _: AbstractRule):
 		rule = GameEndingCapture(engine)
-		rule.last_capture = self.last_capture
-		rule.winning = self.winning
+		rule.last_capture = [GomokuAction(*c.action) if c is not None else c for c in self.last_capture]
+		rule.check_ending_capture = self.check_ending_capture.copy()
 		return rule

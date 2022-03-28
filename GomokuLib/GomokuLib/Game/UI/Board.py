@@ -41,7 +41,7 @@ class Board:
         action_pos = self.get_action_from_mouse_pos(event.pos)
 
         if action_pos is None:
-            res = None
+            return None
         res = {
             'code': 'board-click',
             'data': action_pos

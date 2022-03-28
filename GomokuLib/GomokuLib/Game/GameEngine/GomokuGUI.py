@@ -27,7 +27,7 @@ class GomokuGUI(Gomoku):
 
         self.Gui_outqueue = mp.Queue()
         self.Gui_inqueue = mp.Queue()
-        self.GUI = UIManager(win_size, self.board_size, self)
+        self.GUI = UIManager(win_size, self.board_size)
         self.GUI_proc = Process(target=self.GUI, args=(self.Gui_outqueue, self.Gui_inqueue))
         self.GUI_proc.start()
         self.pause = False

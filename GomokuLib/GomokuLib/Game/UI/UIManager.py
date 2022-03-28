@@ -5,6 +5,8 @@ from time import sleep
 import numpy as np
 import pygame
 
+from ..GameEngine.Gomoku import Gomoku
+
 from ..Action.GomokuAction import GomokuAction
 
 from .Board import Board
@@ -16,10 +18,11 @@ from .Button import Button
 class UIManager:
 
     # def __init__(self, gomokuGUI: GomokuGUI, win_size: tuple):
-    def __init__(self, win_size: tuple, board_size: int, engine):
+    def __init__(self, win_size: tuple, board_size: int):
 
         # self.gomokuGUI = gomokuGUI
-        self.engine = engine
+        self.engine = Gomoku(None, 19)
+        # self.engine = engine
         self.win_size = win_size
         self.board_size = board_size
         self.callbacks = {}
@@ -61,6 +64,7 @@ class UIManager:
                 print(input, x, y, self.board_clicked_action)
             if code == 'game-snapshot':
                 self.game_snapshots.append(input['data'])
+                self.engine.update_from_snapshot(input['data'])
 
 
     def process_events(self):
@@ -154,6 +158,7 @@ class UIManager:
         self.win = pygame.display.set_mode(win_size)
         self.components = [
             Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size),
+            Button(self.win, origin=(1100, 100), size=(100, 200), event_code='pause-play'),
             # Board(self.win, self.win_size, 0, 0, 2 / 3, 1, self.board_size),
             # Board(self.win, win_size, 0.66, 0.5, 0.33, 0.5),
             # Button(self.win, win_size, 0.83, 0.25, 0.1, 0.1)
