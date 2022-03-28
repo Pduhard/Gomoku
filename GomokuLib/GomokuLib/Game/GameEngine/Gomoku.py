@@ -83,6 +83,7 @@ class Gomoku(AbstractGameEngine):
     def apply_action(self, action: GomokuAction) -> None:
         ar, ac = action.action
         if not self.is_valid_action(action):
+            print('action', action)
             breakpoint()
             print(f"Not a fucking valid action: {ar} {ac}")
             raise Exception

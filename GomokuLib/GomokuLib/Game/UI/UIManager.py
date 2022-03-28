@@ -26,6 +26,9 @@ class UIManager:
         self.win_size = win_size
         self.board_size = board_size
         self.callbacks = {}
+        self.current_snapshot_idx = -1
+        self.pause = True
+        self.snapshot_idx_modified = False
 
         # self.events = []
         # self.initUI()
@@ -58,13 +61,20 @@ class UIManager:
             code = input['code']
             if code == 'request-player-action':
                 self.request_player_action = True
-            if code == 'board-click':
+            elif code == 'board-click':
                 x, y = input['data']
                 self.board_clicked_action = GomokuAction(x, y)
                 print(input, x, y, self.board_clicked_action)
-            if code == 'game-snapshot':
+            elif code == 'game-snapshot':
                 self.game_snapshots.append(input['data'])
-                self.engine.update_from_snapshot(input['data'])
+            elif code == 'step-back':
+                if self.current_snapshot_idx > 0:
+                    self.current_snapshot_idx -= 1
+                    self.snapshot_idx_modified = True
+            elif code == 'step-front':
+                if self.current_snapshot_idx < len(self.game_snapshots) - 1:
+                    self.current_snapshot_idx += 1
+                    self.snapshot_idx_modified = True
 
 
     def process_events(self):
@@ -100,6 +110,15 @@ class UIManager:
                     'code': 'response-player-action',
                     'data': self.board_clicked_action,
                 })
+        
+        if self.snapshot_idx_modified:
+            self.engine.update_from_snapshot(self.game_snapshots[self.current_snapshot_idx])
+            self.outqueue.put({
+                'code': 'game-snapshot',
+                'data': self.game_snapshots[self.current_snapshot_idx]
+            })
+            self.snapshot_idx_modified = False
+
 
         for o in self.components:
             o.draw(board=self.engine.state.board, player_idx=self.engine.player_idx)
@@ -117,10 +136,11 @@ class UIManager:
         self.outqueue = outqueue
 
         self.request_player_action = False
-        self.pause = False
+        self.pause = True
         self.board_clicked_action = None
         self.inputs = []
         self.game_snapshots = []
+        self.snapshot_idx_modified = False
 
         while True:
             self.read_inqueue()

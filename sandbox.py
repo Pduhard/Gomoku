@@ -53,8 +53,6 @@ def main():
     #     sleep(1)
     winner = engine.run([p2, p1])  # White: 0 / Black: 1
 
-
-
     print(f"Winner is {winner}")
 
     # engine = Gomoku(None, 19)

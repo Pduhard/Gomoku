@@ -31,9 +31,7 @@ class GameEndingCapture(AbstractRule):
 		if self.check_ending_capture[self.engine.player_idx ^ 1] == 0:
 			return False
 		board = self.engine.state.board[::-1]
-		print('la ?')
 		ar, ac = self.last_capture[self.engine.player_idx ^ 1].action
-		print('oui')
 
 		win = False
 		if (self.count_align_this_way(board, ar, ac, -1, -1) +\

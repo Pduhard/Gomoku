@@ -34,7 +34,6 @@ class GomokuGUI(Gomoku):
         self.pause = False
         self.shutdown = False
         self.player_action = None
-        self.current_snapshot_idx = -1
 
         # self.processes = [
         #     self.gui_proc,
@@ -82,7 +81,6 @@ class GomokuGUI(Gomoku):
         try:
             while True:
                 inpt = self.gui_inqueue.get_nowait()
-                print(inpt)
                 if inpt['code'] == 'request-pause':
                     self.pause = inpt['data']
                 
@@ -93,6 +91,9 @@ class GomokuGUI(Gomoku):
 
                 elif inpt['code'] == 'shutdown':
                     self.shutdown = True
+                
+                elif inpt['code'] == 'game-snapshot':
+                    self.update_from_snapshot(inpt['data'])
         except:
             pass
 
