@@ -2,6 +2,7 @@ import copy
 
 import torch
 import numpy as np
+from typing import Union, TYPE_CHECKING
 
 from .GomokuModel import GomokuModel
 
@@ -19,20 +20,15 @@ class ModelInterface:
         self.history_size = self.channels - 1
 
         self.transforms = transforms or Compose([
-            ToTensorTransform(),
             HorizontalTransform(0.5),
             VerticalTransform(0.5),
+            ToTensorTransform(),
             AddBatchTransform()
         ])
 
         self.zero_fill = np.zeros((self.history_size, 2, self.width, self.height), dtype=int)
         self.ones = np.ones((1, self.width, self.height), dtype=int)
         self.zeros = np.zeros((1, self.width, self.height), dtype=int)
-
-        self.loss_fn_policy = torch.nn.CrossEntropyLoss()
-        self.loss_fn_value = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters())
-
 
     def forward(self, inputs: np.ndarray) -> tuple:
 
@@ -54,48 +50,8 @@ class ModelInterface:
 
         inputs = np.concatenate((p0, p1, self.ones if history_length % 2 == 0 else self.zeros))
         return inputs
+        # return inputs.astype(np.float)
 
-
-    def _train_one_batch(self, X: torch.Tensor, targets: list):
-
-            target_policy, target_value = targets
-            breakpoint()
-            y_policy, y_value = self.forward(X)
-
-            # Zero gradients before every batch !
-            self.optimizer.zero_grad()
-
-            policy_loss = self.loss_fn_policy(y_policy, target_policy)
-            value_loss = self.loss_fn_value(y_value, target_value)
-            policy_loss.backward()
-            value_loss.backward()
-
-            # Adjust learning weights
-            self.optimizer.step()
-
-
-    def _train_one_epoch(self, train_dataloader):
-
-        for (batch_id, batch) in enumerate(train_dataloader):
-            print(f"\n\tBatch {batch_id}/{train_dataloader.batch_size}")
-
-            self._train_one_batch(*batch)
-
-    def train(self, dataset: GomokuDataset, epochs: int = 1):
-
-        # tts_lengths = int(len(dataset) * 0.8)
-        # tts_lengths = (tts_lengths, len(dataset) - tts_lengths)
-        # train_set, test_set = torch.utils.data.random_split(dataset, tts_lengths)
-        # train_dataloader = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True)
-        # test_dataloader = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True)
-
-        train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=64, shuffle=True)
-
-        for epoch in range(epochs):
-            print("\n==============================\n")
-            print(f"Epoch {epoch}/{epochs}")
-
-            self._train_one_epoch(train_dataloader)
 
     def save(self, path, cp_n, game_played):
         torch.save({
@@ -118,6 +74,7 @@ class ModelInterface:
             self.transforms,
             self.tts_lengths
         )
+
 
 if __name__ == "__main__":
     modelinterface = ModelInterface(GomokuModel(17, 19, 19))

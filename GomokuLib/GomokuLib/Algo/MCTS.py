@@ -103,6 +103,10 @@ class MCTS(AbstractAlgorithm):
 
             state_data = self.states[statehash]
 
+            if state_data is None:
+                print("UNEXPECTED STATE DATA")
+                breakpoint()
+
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
             bestGAction = self.selection(policy, state_data)
 

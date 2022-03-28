@@ -73,18 +73,23 @@ def main():
 
 def RLmain():
 
-    model_interface = GomokuLib.AI.Model.ModelInterface(
-        GomokuLib.AI.Model.GomokuModel(17, 19, 19),
-        GomokuLib.AI.Dataset.Compose([
-            GomokuLib.AI.Dataset.ToTensorTransform(),
-            GomokuLib.AI.Dataset.AddBatchTransform()
-        ])
-    )
     engine = GomokuLib.Game.GameEngine.Gomoku(None)
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
 
-    agent = GomokuLib.AI.Agent.GomokuAgent(engine, model_interface, mcts_iter=5)
-    agent.train(training_loops=2, tl_n_games=1)
+    model_interface = GomokuLib.AI.Model.ModelInterface(
+        GomokuLib.AI.Model.GomokuModel(17, 19, 19)
+    )
+
+    dataset = GomokuLib.AI.Dataset.GomokuDataset(
+        GomokuLib.AI.Dataset.Compose([
+            GomokuLib.AI.Dataset.HorizontalTransform(0.5),
+            GomokuLib.AI.Dataset.VerticalTransform(0.5),
+            GomokuLib.AI.Dataset.ToTensorTransform(),
+        ])
+    )
+
+    agent = GomokuLib.AI.Agent.GomokuAgent(engine, model_interface, dataset, mcts_iter=5)
+    agent.trainning_loop(training_loops=2, tl_n_games=1)
 
 
 if __name__ == '__main__':

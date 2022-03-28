@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import os
 import copy
+from tqdm import tqdm_notebook as tqdm
 
 from ..Model.GomokuModel import GomokuModel
 from ..Model.ModelInterface import ModelInterface
@@ -9,22 +10,26 @@ from ..Dataset.GomokuDataset import GomokuDataset
 from ...Game.GameEngine.Gomoku import Gomoku
 from ...Game.Action.GomokuAction import GomokuAction
 
+from ..Dataset.DatasetTransforms import Compose, HorizontalTransform, VerticalTransform
+
 from  ...Player.Bot import Bot
 from  ...Algo.MCTSAI import MCTSAI
 
 
 class GomokuAgent:
 
-    def __init__(self, engine: Gomoku, model_interface: ModelInterface,
-                 mcts_iter: int = 500,
+    def __init__(self, engine: Gomoku, model_interface: ModelInterface, dataset: GomokuDataset,
+                 mcts_iter: int = 500, batch_size=64, shuffle=True,
                  # models_cp_dir: str = "models_cp", datasets_cp_dir: str = "datasets_cp"
                  ) -> None:
 
         self.engine = engine
-        self.dataset = GomokuDataset()
-
-        self.mcts_iter = mcts_iter
         self.model_interface = model_interface
+        self.dataset = dataset
+        self.mcts_iter = mcts_iter
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+
         self.mcts = MCTSAI(self.model_interface, iter=self.mcts_iter)
         self.best_model_interface = None
         self.best_model_mcts = None
@@ -34,6 +39,9 @@ class GomokuAgent:
         self.games_played = 0
         self.memory = []
         self.evaluation_n_games = 10
+        self.loss_fn_policy = torch.nn.MSELoss()
+        self.loss_fn_value = torch.nn.MSELoss()
+        self.optimizer = torch.optim.Adam(self.model_interface.model.parameters())
 
         self.media_path = os.path.join(os.path.abspath("."), "GomokuLib/GomokuLib/Media")
         self.models_cp_dir = "models_cp"
@@ -56,7 +64,7 @@ class GomokuAgent:
         self.memory = []
         while game_i < tl_n_games:
 
-            print("Agent start game n=", game_i)
+            print("- Agent start game n=", game_i)
             self.current_memory = []
             self.engine.init_game()
             while not self.engine.isover():
@@ -82,6 +90,7 @@ class GomokuAgent:
             self.games_played += 1
             game_i += 1
 
+
     def _model_comparison(self) -> float:
 
         new_model_wins = 0
@@ -103,8 +112,7 @@ class GomokuAgent:
         print("Model comparison: New model win rate=", new_model_wins / self.evaluation_n_games)
         return new_model_wins / self.evaluation_n_games
 
-
-    def _evaluate_model(self):
+    def _model_inhibition(self):
 
         if self.best_model_mcts is None:
             self.best_model_interface = self.model_interface.copy()
@@ -122,7 +130,43 @@ class GomokuAgent:
                 print(f"New model is worst...")
 
 
-    def train(self, training_loops: int = None, tl_n_games: int = None):
+    def _train_batch(self, X: torch.Tensor, targets: list):
+
+        target_policy, target_value = targets
+        y_policy, y_value = self.model_interface.model.forward(X)
+        y_value.squeeze(0)
+
+        # Zero gradients before every batch !
+        self.optimizer.zero_grad()
+
+        breakpoint()
+        policy_loss = self.loss_fn_policy(y_policy, target_policy)
+        value_loss = self.loss_fn_value(y_value, target_value)
+        policy_loss.backward()
+        value_loss.backward()
+
+        # Adjust learning weights
+        self.optimizer.step()
+
+    def _train(self, epochs: int = 1):
+
+        dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+
+        for epoch in range(epochs):
+            print("\n==============================\n")
+            print(f"Epoch {epoch}/{epochs}")
+
+            self.model_interface.model.train()
+
+            # tk0 = tqdm(dataloader, total=int(len(dataloader)))
+            # for (batch_id, batch) in enumerate(tk0):
+            for (batch_id, batch) in enumerate(dataloader):
+                print(f"\n\tBatch {batch_id}/{dataloader.batch_size}")
+
+                self._train_batch(*batch)
+                # tk0.set_postfix(loss=self.loss_fn_policy.item())
+
+    def trainning_loop(self, training_loops: int = None, tl_n_games: int = None):
 
         if training_loops is None:
             training_loops = self.training_loops
@@ -137,11 +181,11 @@ class GomokuAgent:
             # dataset_path = os.path.join(self.datasets_path, f"dataset_cp_{self.t_loop}.ds")
             # self.dataset.save(dataset_path)
 
-            self.model_interface.train(self.dataset)
+            self._train()
             # model_path = os.path.join(self.models_path, f"model_cp_{self.t_loop}.pt")
             # self.model_interface.save(model_path, self.t_loop, self.games_played)
 
-            self._evaluate_model()
+            self._model_inhibition()
             self.t_loop += 1
 
 

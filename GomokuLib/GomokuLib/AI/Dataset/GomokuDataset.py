@@ -15,12 +15,11 @@ class GomokuDataset(torch.utils.data.Dataset):
 
         if self.transforms:
             inputs = self.transforms(inputs)
-            policy = self.transforms.invert(policy)
+            policy = self.transforms(policy)
 
         return inputs, (policy, value)
 
-    def update(self, samples):
-        breakpoint()
+    def update(self, samples: list):
         self.data.extend(samples)
 
     def save(self, path):

@@ -23,6 +23,7 @@ class MCTSAI(MCTS):
         # Link history object to model interface in the constructor ? Always same address ?
         inputs = self.model_interface.prepare(self.engine.player_idx, self.engine.get_history())
         policy, value = self.model_interface.forward(inputs)
+        # breakpoint()
         value = (value + 1) / 2
         return policy, (value, 1 - value)
 

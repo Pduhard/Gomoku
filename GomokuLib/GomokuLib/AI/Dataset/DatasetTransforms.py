@@ -24,12 +24,14 @@ class HorizontalTransform:
 
     def __call__(self, inputs: np.ndarray) -> np.ndarray:
         self.flip = self.prob < np.random.rand()
-        print(f"Horizontal flip={self.flip}")
-        return inputs[..., ::-1, :].copy() if self.flip else inputs
+        # print(f"Horizontal flip={self.flip}")
+        output = inputs[..., ::-1, :].copy() if self.flip else inputs
+        return output
         # ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().)   problem: [::-1]
 
     def invert(self, output: np.ndarray) -> np.ndarray:
-        return output[..., ::-1, :].copy() if self.flip else output
+        input = output[..., ::-1, :].copy() if self.flip else output
+        return input
 
 
 class VerticalTransform:
@@ -39,7 +41,7 @@ class VerticalTransform:
 
     def __call__(self, inputs: np.ndarray) -> np.ndarray:
         self.flip = self.prob < np.random.rand()
-        print(f"Vertical flip={self.flip}")
+        # print(f"Vertical flip={self.flip}")
         return inputs[..., ::-1].copy() if self.flip else inputs
         # ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().)   problem: [::-1]
 
@@ -50,7 +52,7 @@ class VerticalTransform:
 class ToTensorTransform:
 
     def __call__(self, inputs: np.ndarray) -> torch.Tensor:
-        return torch.tensor(inputs, dtype=torch.float)
+        return torch.tensor(inputs)
         # return torch.Tensor(inputs).cuda()
 
     def invert(self, output: torch.Tensor) -> np.ndarray:
