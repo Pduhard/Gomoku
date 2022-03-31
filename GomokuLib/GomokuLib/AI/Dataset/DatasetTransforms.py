@@ -11,6 +11,11 @@ class Compose:
             inputs = t(inputs)
         return inputs
 
+    def repeat(self, inputs):
+        for t in self.transforms:
+            inputs = t.repeat(inputs)
+        return inputs
+
     def invert(self, output):
         for t in self.transforms[::-1]:
             output = t.invert(output)
@@ -29,9 +34,11 @@ class HorizontalTransform:
         return output
         # ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().)   problem: [::-1]
 
+    def repeat(self, inputs: np.ndarray) -> torch.Tensor:
+        return inputs[..., ::-1, :].copy() if self.flip else inputs
+
     def invert(self, output: np.ndarray) -> np.ndarray:
-        input = output[..., ::-1, :].copy() if self.flip else output
-        return input
+        return output[..., ::-1, :].copy() if self.flip else output
 
 
 class VerticalTransform:
@@ -45,6 +52,9 @@ class VerticalTransform:
         return inputs[..., ::-1].copy() if self.flip else inputs
         # ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().)   problem: [::-1]
 
+    def repeat(self, inputs: np.ndarray) -> torch.Tensor:
+        return inputs[..., ::-1].copy() if self.flip else inputs
+
     def invert(self, output: np.ndarray) -> np.ndarray:
         return output[..., ::-1].copy() if self.flip else output
 
@@ -52,8 +62,10 @@ class VerticalTransform:
 class ToTensorTransform:
 
     def __call__(self, inputs: np.ndarray) -> torch.Tensor:
-        return torch.tensor(inputs)
-        # return torch.Tensor(inputs).cuda()
+        return torch.tensor(inputs).type(torch.FloatTensor)
+
+    def repeat(self, inputs: np.ndarray) -> torch.Tensor:
+        return self(inputs)
 
     def invert(self, output: torch.Tensor) -> np.ndarray:
         return output.detach().numpy()
@@ -63,6 +75,9 @@ class AddBatchTransform:
 
     def __call__(self, inputs: torch.Tensor) -> torch.Tensor:
         return inputs.unsqueeze(0)
+
+    def repeat(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self(inputs)
 
     def invert(self, output: torch.Tensor) -> torch.Tensor:
         return output.squeeze(0)

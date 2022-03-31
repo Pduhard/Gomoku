@@ -15,7 +15,7 @@ class GomokuDataset(torch.utils.data.Dataset):
 
         if self.transforms:
             inputs = self.transforms(inputs)
-            policy = self.transforms(policy)
+            policy = self.transforms.repeat(policy)
 
         return inputs, (policy, value)
 

@@ -26,12 +26,16 @@ class ModelInterface:
             AddBatchTransform()
         ])
 
-        self.zero_fill = np.zeros((self.history_size, 2, self.width, self.height), dtype=int)
-        self.ones = np.ones((1, self.width, self.height), dtype=int)
-        self.zeros = np.zeros((1, self.width, self.height), dtype=int)
+        # self.zero_fill = np.zeros((self.history_size, 2, self.width, self.height))
+        # self.ones = np.ones((1, self.width, self.height))
+        # self.zeros = np.zeros((1, self.width, self.height))
+        self.zero_fill = np.zeros((self.history_size, 2, self.width, self.height), dtype=np.float)
+        self.ones = np.ones((1, self.width, self.height), dtype=np.float)
+        self.zeros = np.zeros((1, self.width, self.height), dtype=np.float)
 
     def forward(self, inputs: np.ndarray) -> tuple:
 
+        # breakpoint()
         inputs = self.transforms(inputs)
         policy, value = self.model.forward(inputs)
         policy = self.transforms.invert(policy)
@@ -49,14 +53,19 @@ class ModelInterface:
         p1 = history[-self.history_size + (history_length + 1) % 2::2, 1, ...]
 
         inputs = np.concatenate((p0, p1, self.ones if history_length % 2 == 0 else self.zeros))
+
         return inputs
         # return inputs.astype(np.float)
 
 
-    def save(self, path, cp_n, game_played):
+    def save(self, path, cp_n, game_played, win_rate, policy_loss, value_loss):
+        print(f"ModelInterface.save() | path={path}")
         torch.save({
-                'cp': cp_n,
+                'train loop': cp_n,
                 'self-play': game_played,
+                'win rate': win_rate,
+                'policy loss': policy_loss,
+                'value loss': value_loss,
                 'model_state_dict': self.model.state_dict(),
                 'optimizer_state_dict': self.optimizer.state_dict(),
             },

@@ -88,8 +88,8 @@ def RLmain():
         ])
     )
 
-    agent = GomokuLib.AI.Agent.GomokuAgent(engine, model_interface, dataset, mcts_iter=5)
-    agent.trainning_loop(training_loops=2, tl_n_games=1)
+    agent = GomokuLib.AI.Agent.GomokuAgent(engine, model_interface, dataset, mcts_iter=1)
+    agent.trainning_loop(training_loops=2, tl_n_games=2)
 
 
 if __name__ == '__main__':

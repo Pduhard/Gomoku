@@ -50,9 +50,9 @@ class GomokuAgent:
         self.datasets_path = os.path.join(self.media_path, self.datasets_cp_dir)
 
     def _rewarding(self):
-        reward = 1 if self.engine.winner == self.current_memory[-1][0] else -1
+        reward = 1.0 if self.engine.winner == self.current_memory[-1][0] else -1.0
         for mem in self.current_memory[::-1]:
-            mem[3] = reward
+            mem[3] = torch.FloatTensor([reward])
             reward *= -1
 
     def _self_play(self, tl_n_games):
@@ -119,15 +119,20 @@ class GomokuAgent:
             # self.best_model_interface.model = copy.deepcopy(self.model_interface.model)
             self.best_model_mcts = MCTSAI(self.best_model_interface, iter=self.mcts_iter)
             print(f"First evaluation. No comparison. Remember this model.")
+            breakpoint()
 
         else:
             win_rate = self._model_comparison()
             print(f"Benchmark: New model win rate: ", win_rate)
             if win_rate > 0.55:
-                print(f"New best model !")
                 self.best_model_interface.model = copy.deepcopy(self.model_interface.model)
+
+                model_path = os.path.join(self.models_path, f"model_cp_{self.t_loop}.pt")
+                print(f"New best model !")
+                self.model_interface.save(model_path, self.t_loop, self.games_played, win_rate, self.p_loss, self.v_loss)
             else:
                 print(f"New model is worst...")
+            breakpoint()
 
 
     def _train_batch(self, X: torch.Tensor, targets: list):
@@ -139,11 +144,15 @@ class GomokuAgent:
         # Zero gradients before every batch !
         self.optimizer.zero_grad()
 
-        breakpoint()
+        # breakpoint()
         policy_loss = self.loss_fn_policy(y_policy, target_policy)
         value_loss = self.loss_fn_value(y_value, target_value)
-        policy_loss.backward()
+        policy_loss.backward(retain_graph=True)
         value_loss.backward()
+
+        # Update losses
+        self.p_loss += policy_loss.item()
+        self.v_loss += value_loss.item()
 
         # Adjust learning weights
         self.optimizer.step()
@@ -152,6 +161,8 @@ class GomokuAgent:
 
         dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=self.shuffle)
 
+        self.p_loss = 0
+        self.v_loss = 0
         for epoch in range(epochs):
             print("\n==============================\n")
             print(f"Epoch {epoch}/{epochs}")
@@ -161,10 +172,14 @@ class GomokuAgent:
             # tk0 = tqdm(dataloader, total=int(len(dataloader)))
             # for (batch_id, batch) in enumerate(tk0):
             for (batch_id, batch) in enumerate(dataloader):
-                print(f"\n\tBatch {batch_id}/{dataloader.batch_size}")
+                print(f"\n\tBatch {batch_id}/{len(dataloader)} | batch_size={dataloader.batch_size}")
 
                 self._train_batch(*batch)
                 # tk0.set_postfix(loss=self.loss_fn_policy.item())
+
+            self.p_loss /= len(dataloader)
+            self.v_loss /= len(dataloader)
+            print(f"Losses: policy={self.p_loss} | value={self.v_loss}")
 
     def trainning_loop(self, training_loops: int = None, tl_n_games: int = None):
 
@@ -182,8 +197,6 @@ class GomokuAgent:
             # self.dataset.save(dataset_path)
 
             self._train()
-            # model_path = os.path.join(self.models_path, f"model_cp_{self.t_loop}.pt")
-            # self.model_interface.save(model_path, self.t_loop, self.games_played)
 
             self._model_inhibition()
             self.t_loop += 1

@@ -11,8 +11,8 @@ class ModelUtils:
             (N, Cin, H, W)   (Cout, Cin, K, K)   (N, Cout, H-K/2, W-K/2)
         """
         return nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv2d(int(in_channels), int(out_channels), int(kernel_size), stride=int(stride), padding=int(padding)),
+            nn.BatchNorm2d(int(out_channels)),
             nn.ReLU()
         )
 
