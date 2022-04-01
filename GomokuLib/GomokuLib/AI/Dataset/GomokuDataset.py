@@ -19,7 +19,7 @@ class GomokuDataset(torch.utils.data.Dataset):
 
         return inputs, (policy, value)
 
-    def update(self, samples: list):
+    def add(self, samples: list):
         self.data.extend(samples)
 
     def save(self, path):

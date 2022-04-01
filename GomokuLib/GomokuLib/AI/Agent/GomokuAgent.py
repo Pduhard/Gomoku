@@ -34,11 +34,15 @@ class GomokuAgent:
         self.best_model_interface = None
         self.best_model_mcts = None
 
-        self.training_loops = 10
+        # Put these config numbers in an agent_config file
+        self.training_loops = 5
+        self.dataset_max_length = 1000
         self.self_play_n_games = 2
+        self.epochs = 10
+        self.evaluation_n_games = 10
+
         self.games_played = 0
         self.memory = []
-        self.evaluation_n_games = 10
         self.loss_fn_policy = torch.nn.MSELoss()
         self.loss_fn_value = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.model_interface.model.parameters())
@@ -48,6 +52,9 @@ class GomokuAgent:
         self.models_path = os.path.join(self.media_path, self.models_cp_dir)
         self.datasets_cp_dir = "datasets_cp"
         self.datasets_path = os.path.join(self.media_path, self.datasets_cp_dir)
+
+    def set_mcts_iter(self, mcts_iter):
+        self.mcts.mcts_iter = mcts_iter
 
     def _rewarding(self):
         reward = 1.0 if self.engine.winner == self.current_memory[-1][0] else -1.0
@@ -151,15 +158,20 @@ class GomokuAgent:
         value_loss.backward()
 
         # Update losses
-        self.p_loss += policy_loss.item()
-        self.v_loss += value_loss.item()
+        p_loss = policy_loss.item()
+        v_loss = value_loss.item()
+        self.p_loss += p_loss
+        self.v_loss += v_loss
+        print(f"\t\tLosses: policy={p_loss} | value={v_loss}")
 
         # Adjust learning weights
         self.optimizer.step()
 
-    def _train(self, epochs: int = 1):
+    def _train(self, epochs):
 
         dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+        samples = torch.utils.data.RandomSampler(self.dataset, num_samples=self.samples_per_epoch)
+        batchs = torch.utils.data.BatchSampler(samples, self.batch_size)
 
         self.p_loss = 0
         self.v_loss = 0
@@ -181,24 +193,35 @@ class GomokuAgent:
             self.v_loss /= len(dataloader)
             print(f"Losses: policy={self.p_loss} | value={self.v_loss}")
 
-    def trainning_loop(self, training_loops: int = None, tl_n_games: int = None):
+    def _dataset_update(self):
+
+        print(f"Update Dataset, length={len(self.dataset)}")
+        self.dataset.add(self.memory)
+        # if len(self.dataset) > self.dataset_max_length:
+        #     self.dataset = torch.utils.data.Subset(self.dataset, [-i for i in range(self.dataset_max_length)])
+        #     breakpoint()
+        print(f"New Dataset length={len(self.dataset)}")
+
+        # dataset_path = os.path.join(self.datasets_path, f"dataset_cp_{self.t_loop}.ds")
+        # self.dataset.save(dataset_path)
+
+    def trainning_loop(self, training_loops: int = None, tl_n_games: int = None, epochs: int = None):
 
         if training_loops is None:
             training_loops = self.training_loops
+        if epochs is None:
+            epochs = self.epochs
 
         self.t_loop = 0
         while self.t_loop < training_loops:
 
             print(f"Agent start new training loop, t_loop={self.t_loop}, of {self.self_play_n_games} games ->\n")
             self._self_play(tl_n_games)
+            self._dataset_update()
 
-            self.dataset.update(self.memory)
-            # dataset_path = os.path.join(self.datasets_path, f"dataset_cp_{self.t_loop}.ds")
-            # self.dataset.save(dataset_path)
-
-            self._train()
-
+            self._train(epochs)
             self._model_inhibition()
+
             self.t_loop += 1
 
 

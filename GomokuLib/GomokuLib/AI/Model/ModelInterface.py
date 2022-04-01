@@ -67,7 +67,7 @@ class ModelInterface:
                 'policy loss': policy_loss,
                 'value loss': value_loss,
                 'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
+                # 'optimizer_state_dict': self.optimizer.state_dict(),
             },
             path
         )

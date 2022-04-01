@@ -7,7 +7,7 @@ from .MCTS import MCTS
 from ..AI.Model.ModelInterface import ModelInterface
 
 # class MCTSAI(MCTSAMAFLazy):
-class MCTSAI(MCTS):
+class MCTSAI(MCTSAMAFLazy):
 
     # def __init__(self, model) -> None:
     def __init__(self, model_interface: ModelInterface, *args, **kwargs) -> None:
@@ -32,8 +32,8 @@ class MCTSAI(MCTS):
             exploration_rate(s, a) =
                 policy(s, a) * c * sqrt( visits(s) ) / (1 + visits(s, a))
         """
-        # policy, _ = state_data[5]
-        policy, _ = state_data[4]
+        policy, _ = state_data[5]
+        # policy, _ = state_data[4]
         return policy * super().get_exp_rate(state_data)
 
     def expand(self):
@@ -41,6 +41,7 @@ class MCTSAI(MCTS):
         memory.append(self._get_model_policies())
         return memory
 
-    def award(self):
-        # return self.states[self.current_board.tobytes()][5][1]
-        return self.states[self.current_board.tobytes()][4][1]
+    def award(self) -> tuple:
+        return self.states[self.current_board.tobytes()][5][1]
+        # breakpoint()
+        # return self.states[self.current_board.tobytes()][4][1]

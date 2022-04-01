@@ -45,7 +45,6 @@ class MCTSAMAF(MCTS):
         if bestaction is None:
             return
 
-        # breakpoint()
         r, c = bestaction
         state_data[2][..., r, c] += [1, reward]  # update state-action count / value
         self.amaf_masks[player_idx, ..., r, c] += [1, reward]
