@@ -15,6 +15,20 @@ import cProfile, pstats
         mctsia reset tree ? 
         WeightedRandomSampler ? Base on abs(value) ? 
         1 itertion de mcts va si loin ! Bug ? Ou toujours les memes coups sont pris ?
+        
+        Communication entre Agent <-> UI pour epoch / n self-play games 
+        
+        
+    To talk:
+    
+        POur chaque sample à inserer dans le dataset ->
+            Inserer toutes les versions possibles (Rotations + Symétries)
+            ainsi que d'autres sample généré à partir de celui-ci (Translations)
+
+        Au début du train, se focus plus sur la fin de game ?
+        Limiter le dataset aux n derniers coups (big number) et train seulement avec une partie de ces n coups
+        
+
 """
 
 def main():
@@ -26,8 +40,6 @@ def main():
             GomokuLib.AI.Dataset.AddBatchTransform()
         ])
     )
-
-
     model_interface2 = GomokuLib.AI.Model.ModelInterface(
         GomokuLib.AI.Model.GomokuModel(17, 19, 19),
         GomokuLib.AI.Dataset.Compose([
@@ -77,12 +89,7 @@ def main():
 
 def RLmain():
 
-    # engine = GomokuLib.Game.GameEngine.Gomoku(None)
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
-
-    model_interface = GomokuLib.AI.Model.ModelInterface(
-        GomokuLib.AI.Model.GomokuModel(17, 19, 19)
-    )
+    RL_engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
 
     dataset = GomokuLib.AI.Dataset.GomokuDataset(
         GomokuLib.AI.Dataset.Compose([
@@ -92,13 +99,62 @@ def RLmain():
         ])
     )
 
-    agent = GomokuLib.AI.Agent.GomokuAgent(engine, model_interface, dataset)
-    agent.set_mcts_iter(1)
-    agent.trainning_loop(training_loops=1, tl_n_games=5, epochs=20)    # Make sure the network predict policies around 0 at the beginning
-    agent.set_mcts_iter(200)
-    agent.trainning_loop(training_loops=10, tl_n_games=2, epochs=10)
+    rndPlayer = GomokuLib.Player.RandomPlayer()
+    agent = GomokuLib.AI.Agent.GomokuAgent(
+        RL_engine,
+        GomokuLib.AI.Model.ModelInterface(
+            GomokuLib.AI.Model.GomokuModel(17, 19, 19)
+        ),
+        dataset, mcts_iter=50
+    )
+
+    winners = [None] * 10
+    while not all(winners[-10:]):
+        agent.training_loop(n_loops=2, tl_n_games=3, epochs=10)
+
+        print("New engine run random game to test model until it won 10 times consecutively")
+        winner = RL_engine.run([rndPlayer, agent])
+        print(f"History -> {winners}")
+        print(f"Winner between RandomPlayer and RLAgent -> {winner}")
+        winners.append(winner == agent)
+
+def save_load_tests():
+    RL_engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
+
+    dataset = GomokuLib.AI.Dataset.GomokuDataset(
+        GomokuLib.AI.Dataset.Compose([
+            GomokuLib.AI.Dataset.HorizontalTransform(0.5),
+            GomokuLib.AI.Dataset.VerticalTransform(0.5),
+            GomokuLib.AI.Dataset.ToTensorTransform(),
+        ])
+    )
+
+    rndPlayer = GomokuLib.Player.RandomPlayer()
+    agent_save = GomokuLib.AI.Agent.GomokuAgent(
+        RL_engine,
+        GomokuLib.AI.Model.ModelInterface(
+            GomokuLib.AI.Model.GomokuModel(17, 19, 19)
+        ),
+        dataset,
+        mcts_iter=2
+    )
+
+    agent_save.training_loop(tl_n_games=1, epochs=5)
+    agent_save.save_best_model(name="save_load_test_model.pt")
+
+    agent_load = GomokuLib.AI.Agent.GomokuAgent(
+        RL_engine,
+        GomokuLib.AI.Model.ModelInterface(
+            GomokuLib.AI.Model.GomokuModel(17, 19, 19)
+        ),
+        dataset,
+        mcts_iter=50
+    )
+    agent_load.load(model_name="save_load_test_model.pt")
+    print(f"Winner: {RL_engine.run([rndPlayer, agent_load])}")
 
 
 if __name__ == '__main__':
     # main()
     RLmain()
+    # save_load_tests()

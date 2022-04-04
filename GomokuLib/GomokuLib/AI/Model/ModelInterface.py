@@ -57,26 +57,6 @@ class ModelInterface:
         return inputs
         # return inputs.astype(np.float)
 
-
-    def save(self, path, cp_n, game_played, win_rate, policy_loss, value_loss):
-        print(f"ModelInterface.save() | path={path}")
-        torch.save({
-                'train loop': cp_n,
-                'self-play': game_played,
-                'win rate': win_rate,
-                'policy loss': policy_loss,
-                'value loss': value_loss,
-                'model_state_dict': self.model.state_dict(),
-                # 'optimizer_state_dict': self.optimizer.state_dict(),
-            },
-            path
-        )
-
-    def load(self, path):
-        cp = torch.load(path)
-        self.model.load_state_dict(cp['model_state_dict'])
-        self.optimizer.load_state_dict(cp['optimizer_state_dict'])
-
     def copy(self):
         return ModelInterface(
             copy.deepcopy(self.model),

@@ -78,6 +78,7 @@ class MCTS(AbstractAlgorithm):
         policy = sa_v / (sa_n + 1)
         print("policy (rewards sum / visit count):\n", policy)
 
+        self.engine.update(game_engine)
         gAction = None
         while not (gAction and game_engine.is_valid_action(gAction)):
             gAction = self.selection(policy, state_data)
@@ -91,9 +92,8 @@ class MCTS(AbstractAlgorithm):
 
     def mcts(self, mcts_iter: int):
 
-        print(f"\n[MCTS function {mcts_iter}]\n")
+        # print(f"\n[MCTS function {mcts_iter}]\n")
 
-        # self.init_path()
         path = []
         self.mcts_idx = self.engine.player_idx
         self.current_board = self.engine.state.board
@@ -110,18 +110,18 @@ class MCTS(AbstractAlgorithm):
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
             bestGAction = self.selection(policy, state_data)
 
-            print(f"selection {bestGAction.action}")
-            if not self.engine.is_valid_action(bestGAction):
-                print(f"Not a fucking valid action in mcts: {bestGAction.action}")
-                breakpoint()
-                raise Exception
+            # print(f"selection {bestGAction.action}")
+            # if not self.engine.is_valid_action(bestGAction):
+            #     print(f"Not a fucking valid action in mcts: {bestGAction.action}")
+            #     breakpoint()
+            #     raise Exception
 
             path.append(self.new_memory(statehash, bestGAction.action))
             self.engine.apply_action(bestGAction)
             self.engine.next_turn()
 
-            if self.engine.isover():
-                print('its over in mcts')
+            # if self.engine.isover():
+            #     print('its over in mcts')
                 # exit(0)
 
             self.current_board = self.engine.state.board
@@ -186,7 +186,8 @@ class MCTS(AbstractAlgorithm):
         return [
             1,
             0,
-            None if self.end_game else np.zeros((2, self.brow, self.bcol)),
+            np.zeros((2, self.brow, self.bcol)),
+            # None if self.end_game else np.zeros((2, self.brow, self.bcol)),
             self.get_actions()
         ]
         # None if self.end_game else np.concatenate((np.zeros((1, self.brow, self.bcol)), -np.ones((1, self.brow, self.bcol)))),
