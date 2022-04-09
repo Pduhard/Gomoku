@@ -3,6 +3,7 @@ import numpy as np
 
 
 class Compose:
+
     def __init__(self, transforms: list):
         self.transforms = transforms
 
@@ -25,7 +26,7 @@ class Compose:
 class HorizontalTransform:
 
     def __init__(self, prob: float = 1):
-        self.prob = prob
+        self.prob = 1 - prob
 
     def __call__(self, inputs: np.ndarray) -> np.ndarray:
         self.flip = self.prob < np.random.rand()
@@ -34,7 +35,7 @@ class HorizontalTransform:
         return output
         # ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().)   problem: [::-1]
 
-    def repeat(self, inputs: np.ndarray) -> torch.Tensor:
+    def repeat(self, inputs: np.ndarray) -> np.ndarray:
         return inputs[..., ::-1, :].copy() if self.flip else inputs
 
     def invert(self, output: np.ndarray) -> np.ndarray:
@@ -44,7 +45,7 @@ class HorizontalTransform:
 class VerticalTransform:
 
     def __init__(self, prob: float = 1):
-        self.prob = prob
+        self.prob = 1 - prob
 
     def __call__(self, inputs: np.ndarray) -> np.ndarray:
         self.flip = self.prob < np.random.rand()
@@ -52,7 +53,7 @@ class VerticalTransform:
         return inputs[..., ::-1].copy() if self.flip else inputs
         # ValueError: At least one stride in the given numpy array is negative, and tensors with negative strides are not currently supported. (You can probably work around this by making a copy of your array  with array.copy().)   problem: [::-1]
 
-    def repeat(self, inputs: np.ndarray) -> torch.Tensor:
+    def repeat(self, inputs: np.ndarray) -> np.ndarray:
         return inputs[..., ::-1].copy() if self.flip else inputs
 
     def invert(self, output: np.ndarray) -> np.ndarray:

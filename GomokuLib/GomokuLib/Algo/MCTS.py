@@ -76,13 +76,14 @@ class MCTS(AbstractAlgorithm):
         sa_n, sa_v = state_data[2]
 
         policy = sa_v / (sa_n + 1)
-        print("policy (rewards sum / visit count):\n", policy)
+        # print("policy (rewards sum / visit count):\n", policy)
 
         self.engine.update(game_engine)
         gAction = None
         while not (gAction and game_engine.is_valid_action(gAction)):
             gAction = self.selection(policy, state_data)
-            print("Ultimate __call__() selection:\n", gAction.action)
+            print(f"Ultimate __call__() selection:\n{gAction.action}")
+            # print(f"Ultimate __call__() selection:\n{gAction.action} with policy={policy[gAction.action]}")
 
         # if np.all(policy == 0):
         #     print("Be carefull / wtf policy")
@@ -103,9 +104,9 @@ class MCTS(AbstractAlgorithm):
 
             state_data = self.states[statehash]
 
-            if state_data is None:
-                print("UNEXPECTED STATE DATA")
-                breakpoint()
+            # if state_data is None:
+            #     print("UNEXPECTED STATE DATA")
+            #     breakpoint()
 
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
             bestGAction = self.selection(policy, state_data)
@@ -169,18 +170,10 @@ class MCTS(AbstractAlgorithm):
 
     def selection(self, policy: np.ndarray, state_data, *args) -> tuple:
 
-        policy *= state_data[3]
+        policy *= state_data[3]     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
         bestaction = bestactions[np.random.randint(len(bestactions))]
         return GomokuAction(*bestaction)
-        # coords = np.unravel_index(np.argsort(policy, axis=None)[::-1], policy.shape)
-        #
-        # for x, y in zip(*coords):
-        #     gAction = GomokuAction(x, y)
-        #     if self.engine.is_valid_action(gAction):
-        #         return gAction
-        #
-        # raise Exception("No valid action to select.")
 
     def expand(self):
         return [
@@ -190,7 +183,6 @@ class MCTS(AbstractAlgorithm):
             # None if self.end_game else np.zeros((2, self.brow, self.bcol)),
             self.get_actions()
         ]
-        # None if self.end_game else np.concatenate((np.zeros((1, self.brow, self.bcol)), -np.ones((1, self.brow, self.bcol)))),
 
     def new_memory(self, statehash, bestaction):
         return (0 if self.engine.player_idx == self.mcts_idx else 1, statehash, bestaction)
