@@ -58,7 +58,7 @@ class ModelInterface:
             policies[i] = compose.invert(policy)
             values[i] = float(value)
 
-        # print(f"Mean value = {np.mean(values)}\tvalues -> {values}")
+        print(f"Mean value = {np.mean(values)}\tvalues -> {values}")
         return np.mean(policies, axis=0), np.mean(values)
 
     def forward(self, inputs: np.ndarray) -> tuple:

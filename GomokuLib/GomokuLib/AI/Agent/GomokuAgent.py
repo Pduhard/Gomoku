@@ -74,7 +74,7 @@ class GomokuAgent(AbstractPlayer):
 
         # Put these config numbers in an agent_config file
         self.samples_per_epoch = 500
-        self.dataset_max_length = 2000
+        self.dataset_max_length = 1000
         self.self_play_n_games = 2
         self.epochs = 10
         self.evaluation_n_games = 5
@@ -157,8 +157,8 @@ class GomokuAgent(AbstractPlayer):
             self.RLengine.init_game()
             while not self.RLengine.isover():
 
-                # Comparaison pertinente ? Parce que self.mcts a enormement de data qui vient du self-play
-                # Alors
+                # Comparaison pertinente ? Parce que self.mcts a enormement de data (self.mcts.states) qui vient du self-play
+                # Reset les mcts avant ? Les games seraient équitable
                 mcts = self.mcts if self.RLengine.player_idx else self.best_model_mcts
                 mcts_policy, best_action = mcts(self.RLengine)
 
@@ -234,15 +234,16 @@ class GomokuAgent(AbstractPlayer):
             self.model_interface.model.train()
             # tk0 = tqdm(dataloader, total=int(len(dataloader)))
 
-            # samples = torch.utils.data.RandomSampler(self.dataset, num_samples=self.samples_per_epoch)
-            # batchs = torch.utils.data.BatchSampler(samples, self.batch_size)
+            # samples = torch.utils.data.RandomSampler(self.dataset, replacement=True, num_samples=self.samples_per_epoch)
+            # batchs = list(torch.utils.data.BatchSampler(samples, self.batch_size, drop_last=False))
             # batch_len = len(batchs)
             # for (batch_id, batch) in enumerate(batchs):
 
             batch_len = len(dataloader)
             for (batch_id, batch) in enumerate(dataloader):
 
-                print(f"\n\tBatch {batch_id}/{batch_len} | batch_size={dataloader.batch_size}")
+                print(f"\n\tBatch {batch_id}/{batch_len} | batch_size={self.batch_size}")
+                breakpoint()
 
                 self._train_batch(*batch)
                 self.samples_used_to_train += len(batch)
@@ -255,12 +256,12 @@ class GomokuAgent(AbstractPlayer):
 
     def _dataset_update(self):
 
-        print(f"Update Dataset, length={len(self.dataset)}")
         self.dataset.add(self.memory)
+        print(f"Update Dataset, length={len(self.dataset)}")
         # Keep only self.dataset_max_length last samples
         if len(self.dataset) > self.dataset_max_length:
-            self.dataset = torch.utils.data.Subset(self.dataset, [-i for i in range(self.dataset_max_length)])
-        print(f"New Dataset length={len(self.dataset)}")
+            self.dataset = torch.utils.data.Subset(self.dataset, [-i for i in range(1, self.dataset_max_length + 1)])
+            print(f"New SubsetDataset length={len(self.dataset)}")
         # breakpoint()
 
     def training_loop(self, n_loops: int = 1, tl_n_games: int = None, epochs: int = None, save_all_models: bool = False):
@@ -340,7 +341,7 @@ class GomokuAgent(AbstractPlayer):
             del cp['model_state_dict']
         if 'optimizer_state_dict' in cp:
             del cp['optimizer_state_dict']
-        print(cp)
+        print(f"Load model name '{cp.get('name', 'Unnamed')}' trainned with {cp.get('samples_used_to_train', None)} samples of {cp.get('self_play', None)} self-play games")
 
     def _load_dataset(self, dataset_path, erase_old_dataset=True):
 
@@ -355,9 +356,10 @@ class GomokuAgent(AbstractPlayer):
         else:
             self.dataset.add(cp.get('samples', []))
 
+        print(f"Load dataset of {cp.get('length', len(cp.get('samples', [])))} samples ->")
         if 'samples' in cp:
             del cp['samples']
-        print(f"Load dataset of {cp.get('length', '_')} samples -> {cp}")
+        print(cp)
 
     def load(self, agent_name: str,
              model_name: str = None, dataset_name: str = None,

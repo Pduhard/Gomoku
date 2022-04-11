@@ -29,25 +29,26 @@ import cProfile, pstats
         
     To talk:
     
+        Filtre de 5x5 dans le CNN ?
+
         Avant le premier coup de la game, un agent avec 100 iter mcts simule dejà une fin de game ? NOrmal ?    
             Va trop profondement, explore pas assez
     
         Besoin urgent de favoriser l'exploration !
     
-        GomokuGUI: utiliser le meme pour le ou les agents ainsi que celui dla game ? Conflict ? (bugs visuels observé)
-        Jcrois que le mcts à un gros problème pour empecher l'autre de gagner.
-            Il capte très bien les potentielles lose mais reste inactif. L'inverse est un peu vrai aussi
+        GomokuGUI: utiliser le meme pour le ou les agents ainsi que celui dla game ? Conflict ? (bugs visuels observé, ca a un rapport ?)
             
         Au début du train, se focus plus sur la fin de game ?
         Pertinence de l'entrainement de la value sur les premiers coups ?
-        Une stone n'est pas représentatif d'une value à 1 ou -1 
+            Une stone n'est pas représentatif d'une value à 1 ou -1 
         
         Lors du self-play:
             Pour chaque sample à inserer dans le dataset ->
-                Inserer toutes les versions possibles (Rotations + Symétries)
-                ainsi que d'autres sample généré à partir de celui-ci (Translations)
+                Inserer toutes les versions possibles (Rotations + Symétries) ?
+                ainsi que d'autres sample généré à partir de celui-ci (Translations) ?
         Lors d'un play_turn():
-            Pour un state, faire la moyenne des predictions de toutes les version possible du state
+            Pour un state, faire la moyenne des predictions de toutes les version possible du state.
+            Très utile si le model est déjà bien entrainé
 
         Limiter le dataset aux n derniers coups (big number) et train seulement avec une partie de ces n coups
         
@@ -101,13 +102,13 @@ def RLmain():
     rndPlayer = GomokuLib.Player.RandomPlayer()
     winners = [None] * 10
     while not all(winners[-10:]):
-        agent.training_loop(n_loops=2, tl_n_games=3, epochs=10, save_all_models=False)
+        agent.training_loop(n_loops=2, tl_n_games=1, epochs=10, save_all_models=False)
 
-        print("New engine run random game to test model until it won 10 times consecutively")
-        winner = test_engine.run([rndPlayer, agent])
-        print(f"History -> {winners}")
-        print(f"Winner between RandomPlayer and RLAgent -> {winner}")
-        winners.append(winner == agent)
+        # print("New engine run random game to test model until it won 10 times consecutively")
+        # winner = test_engine.run([rndPlayer, agent])
+        # print(f"History -> {winners}")
+        # print(f"Winner between RandomPlayer and RLAgent -> {winner}")
+        # winners.append(winner == agent)
 
     print(f"This new agent win 10 times consecutively ! -> {agent}")
 
@@ -150,23 +151,13 @@ def random_test():
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
 
-    model_interface = GomokuLib.AI.Model.ModelInterface(
-        GomokuLib.AI.Model.GomokuModel(17, 19, 19),
-        GomokuLib.AI.Dataset.Compose([
-            GomokuLib.AI.Dataset.ToTensorTransform(),
-            GomokuLib.AI.Dataset.AddBatchTransform()
-        ])
-    )
-
-    # mcts = GomokuLib.Algo.MCTSAI(model_interface, pruning=True, iter=1000)
     p1 = GomokuLib.AI.Agent.GomokuAgent(
         engine,
-        model_interface,
-        None,
-        mcts_iter=500,
-        mcts_pruning=True
+        GomokuLib.AI.Model.ModelInterface(mean_forward=True),
+        agent_name="agent_07:04:2022_16:49:51",
+        mcts_iter=100,
+        # mcts_pruning=True
     )
-    p1.load(model_name="model_05:04:2022_15:32:54.pt")
 
     p2 = GomokuLib.Player.RandomPlayer()
 
@@ -214,7 +205,7 @@ def agents_comparaison():
 
 if __name__ == '__main__':
     # duel()
-    # RLmain()
+    RLmain()
     # save_load_tests()
     # random_test()
-    agents_comparaison()
+    # agents_comparaison()
