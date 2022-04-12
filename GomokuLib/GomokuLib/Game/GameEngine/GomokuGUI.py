@@ -93,6 +93,7 @@ class GomokuGUI(Gomoku):
                     self.shutdown = True
                 
                 elif inpt['code'] == 'game-snapshot':
+                    breakpoint()
                     self.update_from_snapshot(inpt['data'])
         except:
             pass

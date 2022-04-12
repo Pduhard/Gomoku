@@ -116,10 +116,11 @@ class UIManager:
         if self.snapshot_idx_modified:
             self.engine.update_from_snapshot(self.game_snapshots[self.current_snapshot_idx])
             self.game_snapshots = self.game_snapshots[:self.current_snapshot_idx + 1]
-            self.outqueue.put({
-                'code': 'game-snapshot',
-                'data': self.game_snapshots[self.current_snapshot_idx]
-            })
+            # breakpoint()
+            # self.outqueue.put({
+            #     'code': 'game-snapshot',
+            #     'data': self.game_snapshots[self.current_snapshot_idx]
+            # })
             self.snapshot_idx_modified = False
 
 
