@@ -52,6 +52,10 @@ class GomokuGUI(Gomoku):
             'data': self.create_snapshot()
         }
 
+    def next_turn(self) -> None:
+        super().next_turn()
+        self.gui_outqueue.put(self.get_deep_copy())
+
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
         while not self.isover():
@@ -60,7 +64,6 @@ class GomokuGUI(Gomoku):
             # self.apply_events(events)
             if not self.pause:
                 self._run_turn(players)
-            self.gui_outqueue.put(self.get_deep_copy())
             # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
             # self.drawUI()
 

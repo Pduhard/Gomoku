@@ -94,7 +94,7 @@ def duel():
 def RLmain():
 
     RL_engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
-    test_engine = GomokuLib.Game.GameEngine.Gomoku(None)
+    # test_engine = GomokuLib.Game.GameEngine.Gomoku(None)
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
         RL_engine,
