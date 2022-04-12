@@ -36,6 +36,8 @@ class GomokuAgent(AbstractPlayer):
         self.engine = None
         self.RLengine = RLengine
         self.mcts_iter = mcts_iter
+        self.mcts_pruning = mcts_pruning
+        self.mcts_hard_pruning = mcts_hard_pruning
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.rnd_first_move = rnd_first_move
@@ -58,7 +60,12 @@ class GomokuAgent(AbstractPlayer):
                 load_model=not model_interface, load_dataset=not dataset
             )
 
-        self.mcts = MCTSAI(self.model_interface, iter=self.mcts_iter, pruning=mcts_pruning, hard_pruning=mcts_hard_pruning)
+        self.mcts = MCTSAI(
+            self.model_interface,
+            iter=self.mcts_iter,
+            pruning=mcts_pruning,
+            hard_pruning=mcts_hard_pruning
+        )
         self.best_model_interface = None
         self.best_model_mcts = None
 
@@ -75,10 +82,11 @@ class GomokuAgent(AbstractPlayer):
         # Put these config numbers in an agent_config file
         self.samples_per_epoch = 500
         self.dataset_max_length = 1000
+        self.last_n_indices = np.arange(-1, -self.dataset_max_length - 1, -1)
         self.self_play_n_games = 2
         self.epochs = 10
         self.evaluation_n_games = 5
-        self.model_comparison_mcts_iter = 10
+        self.model_comparison_mcts_iter = 20
 
     def __str__(self):
         return f"Agent '{self.name}' with model '{self.model_interface.name}' -> {super().__str__()}"
@@ -97,7 +105,7 @@ class GomokuAgent(AbstractPlayer):
         reward = 1.0 if self.RLengine.winner == self.current_memory[-1][0] else -1.0
         for mem in self.current_memory[::-1]:
             mem[3] = torch.FloatTensor([reward])
-            reward *= -1
+            reward *= -0.9
 
     def _self_play(self, tl_n_games):
 
@@ -111,12 +119,13 @@ class GomokuAgent(AbstractPlayer):
             print(f"- Agent start game n={game_i}/{tl_n_games}")
             self.current_memory = []
             self.RLengine.init_game()
+            self.mcts.reset()
 
             # First move could be random to stack diverse experiences
             if self.rnd_first_move:
                 self.RLengine.apply_action(GomokuAction(
-                    np.random.randint(0, self.RLengine.board_size[0]),
-                    np.random.randint(0, self.RLengine.board_size[1])
+                    np.random.randint(3, self.RLengine.board_size[0] - 3),
+                    np.random.randint(3, self.RLengine.board_size[1] - 3)
                 ))
                 self.RLengine.next_turn()
 
@@ -149,6 +158,8 @@ class GomokuAgent(AbstractPlayer):
 
         tmp_mcts_iter = self.mcts_iter
         self.set_mcts_iter(self.model_comparison_mcts_iter)
+        self.mcts.reset()
+        self.best_model_mcts.reset()
 
         new_model_wins = 0
         for i in range(self.evaluation_n_games):
@@ -177,7 +188,12 @@ class GomokuAgent(AbstractPlayer):
         if self.best_model_mcts is None:
             self.best_model_interface = self.model_interface.copy()
             # self.best_model_interface.model = copy.deepcopy(self.model_interface.model)
-            self.best_model_mcts = MCTSAI(self.best_model_interface, iter=self.mcts_iter)
+            self.best_model_mcts = MCTSAI(
+                self.best_model_interface,
+                iter=self.mcts_iter,
+                pruning=self.mcts_pruning,
+                hard_pruning=self.mcts_hard_pruning
+            )
             print(f"First evaluation. No comparison. Remember this model.")
 
         else:
@@ -222,8 +238,7 @@ class GomokuAgent(AbstractPlayer):
         self.optimizer.step()
 
     def _train(self, epochs):
-
-        dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+        # dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=self.shuffle)
 
         self.p_loss = 0
         self.v_loss = 0
@@ -234,7 +249,16 @@ class GomokuAgent(AbstractPlayer):
             self.model_interface.model.train()
             # tk0 = tqdm(dataloader, total=int(len(dataloader)))
 
-            # samples = torch.utils.data.RandomSampler(self.dataset, replacement=True, num_samples=self.samples_per_epoch)
+            # Keep only self.dataset_max_length last samples
+            if len(self.dataset) > self.dataset_max_length:
+                tmp_dataset = torch.utils.data.Subset(self.dataset, self.last_n_indices)
+            else:
+                tmp_dataset = self.dataset
+
+            # Fetch self.samples_per_epoch indices randomly & create DataLoader over self.dataset with samples
+            samples = torch.utils.data.RandomSampler(tmp_dataset, replacement=True, num_samples=self.samples_per_epoch)
+            dataloader = torch.utils.data.DataLoader(tmp_dataset, batch_size=self.batch_size, sampler=samples, drop_last=False)
+
             # batchs = list(torch.utils.data.BatchSampler(samples, self.batch_size, drop_last=False))
             # batch_len = len(batchs)
             # for (batch_id, batch) in enumerate(batchs):
@@ -243,7 +267,7 @@ class GomokuAgent(AbstractPlayer):
             for (batch_id, batch) in enumerate(dataloader):
 
                 print(f"\n\tBatch {batch_id}/{batch_len} | batch_size={self.batch_size}")
-                breakpoint()
+                # breakpoint()
 
                 self._train_batch(*batch)
                 self.samples_used_to_train += len(batch)
@@ -256,12 +280,14 @@ class GomokuAgent(AbstractPlayer):
 
     def _dataset_update(self):
 
+        # print(f"self.dataset: {self.dataset}")
+        # print(f"self.memory: {self.memory}")
         self.dataset.add(self.memory)
         print(f"Update Dataset, length={len(self.dataset)}")
-        # Keep only self.dataset_max_length last samples
-        if len(self.dataset) > self.dataset_max_length:
-            self.dataset = torch.utils.data.Subset(self.dataset, [-i for i in range(1, self.dataset_max_length + 1)])
-            print(f"New SubsetDataset length={len(self.dataset)}")
+        # # Keep only self.dataset_max_length last samples
+        # if len(self.dataset) > self.dataset_max_length:
+        #     self.dataset = torch.utils.data.Subset(self.dataset, [-i for i in range(1, self.dataset_max_length + 1)])
+        #     print(f"New SubsetDataset length={len(self.dataset)}")
         # breakpoint()
 
     def training_loop(self, n_loops: int = 1, tl_n_games: int = None, epochs: int = None, save_all_models: bool = False):
@@ -293,6 +319,7 @@ class GomokuAgent(AbstractPlayer):
         model_path = os.path.join(path, f"{date}_model.pt")
         dataset_path = os.path.join(path, f"{date}_dataset.pt")
 
+        # breakpoint()
         interface = self.best_model_interface or self.model_interface
         torch.save(
             {

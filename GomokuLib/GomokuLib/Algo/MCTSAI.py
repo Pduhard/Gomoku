@@ -103,7 +103,7 @@ class MCTSAI(MCTSAMAFLazy):
     def _get_exp_rate_pruned(self, state_data: list, **kwargs) -> np.ndarray:
         """
             exploration_rate(s, a) =
-                policy(s, a) * c * sqrt( visits(s) ) / (1 + visits(s, a))
+                pruning(s, a) * exploration_rate(s, a)
         """
         pruning = self._get_pruning()
         if np.all(pruning == 0):

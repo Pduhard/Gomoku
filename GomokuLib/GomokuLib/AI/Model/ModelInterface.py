@@ -13,7 +13,7 @@ class ModelInterface:
 
     def __init__(self, model: GomokuModel = None,
                  transforms: Compose = None,
-                 tts_lengths: tuple = None,
+                 # tts_lengths: tuple = None,
                  mean_forward: bool = False,
                  name: str = "Default ModelInterface name"):
 
@@ -21,7 +21,7 @@ class ModelInterface:
         # self.model = model.cuda()
         self.model = model or GomokuModel(17, 19, 19)
         self.channels, self.width, self.height = self.model.input_shape
-        self.tts_lengths = tts_lengths
+        # self.tts_lengths = tts_lengths
 
         self.data_transforms = transforms or Compose([
             HorizontalTransform(0.5),
@@ -90,8 +90,8 @@ class ModelInterface:
     def copy(self):
         return ModelInterface(
             copy.deepcopy(self.model),
-            self.transforms,
-            self.tts_lengths
+            self.data_transforms,
+            # self.tts_lengths
         )
 
 

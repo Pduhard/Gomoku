@@ -11,8 +11,7 @@ import cProfile, pstats
     TODO:
         Rename GameEngine -> Engine
 
-        GomokuDataset -> ToTensor transform à mettre 1 fois dans le add() ou à chaque fois dans le __getitem__() ??
-        mettre les captures ! Sinon une victoire avec capture n'a pas de sens
+        mettre les captures !
         
         Conflict between self.end_game and GameEndingCapture rule in expansion/ucb
 
@@ -26,15 +25,20 @@ import cProfile, pstats
             En effet si un coup random est jouer ailleurs le mcts n'aura plus du tout connaissance de ce path 
         
         Bouton pour switch entre la policy du model et les qualities du MCTS
-        
+
+        Graph du winrate OMG 
+
     To talk:
     
+        Backpropagation -> decresing reward !?
         Filtre de 5x5 dans le CNN ?
 
         Avant le premier coup de la game, un agent avec 100 iter mcts simule dejà une fin de game ? NOrmal ?    
             Va trop profondement, explore pas assez
     
         Besoin urgent de favoriser l'exploration !
+        Forcer le mcts à simuler toutes les actions possible à la depth=1 ?
+            Permettrait de louper moins de choses pour mieux entrainer le model
     
         GomokuGUI: utiliser le meme pour le ou les agents ainsi que celui dla game ? Conflict ? (bugs visuels observé, ca a un rapport ?)
             
@@ -94,15 +98,19 @@ def RLmain():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
         RL_engine,
-        agent_name="agent_07:04:2022_16:49:51",
-        mcts_iter=20,
+        agent_name="agent_12:04:2022_16:27:46",
+        mcts_iter=50,
         mcts_hard_pruning=True
     )
 
     rndPlayer = GomokuLib.Player.RandomPlayer()
     winners = [None] * 10
     while not all(winners[-10:]):
-        agent.training_loop(n_loops=2, tl_n_games=1, epochs=10, save_all_models=False)
+        try:
+            agent.training_loop(n_loops=1, tl_n_games=5, epochs=10, save_all_models=False)
+        except Exception as e:
+            print(f"[ERROR] -> {e}")
+            breakpoint()
 
         # print("New engine run random game to test model until it won 10 times consecutively")
         # winner = test_engine.run([rndPlayer, agent])

@@ -13,7 +13,7 @@ class GomokuDataset(torch.utils.data.Dataset):
         self.transforms = transforms or Compose([
             HorizontalTransform(0.5),
             VerticalTransform(0.5),
-            ToTensorTransform()
+            ToTensorTransform()         # Cannot apply sym transforms on Tensor
         ])
         self.data = data
 
@@ -23,11 +23,14 @@ class GomokuDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         _, inputs, policy, value = self.data[idx]
 
-        if self.transforms:
-            inputs = self.transforms(inputs)
-            policy = self.transforms.repeat(policy)
+        inputs = self.transforms(inputs)
+        policy = self.transforms.repeat(policy)
 
         return inputs, (policy, value)
 
     def add(self, samples: list):
         self.data.extend(samples)
+        # samples = [
+        #     (_, self.model_transforms(inputs), self.model_transforms.repeat(p), v)
+        #     for _, inputs, p, v in samples
+        # ]

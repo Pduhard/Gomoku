@@ -78,6 +78,10 @@ class MCTS(AbstractAlgorithm):
         policy = sa_v / (sa_n + 1)
         # print("policy (rewards sum / visit count):\n", policy)
 
+        print(f"MCTS  policy:\n{policy}")
+        print(f"Model policy:\n{state_data[5][0]}")
+        print(f"Model value :\n{state_data[5][1]}")
+
         self.engine.update(game_engine)
         gAction = None
         while not (gAction and game_engine.is_valid_action(gAction)):
@@ -219,6 +223,9 @@ class MCTS(AbstractAlgorithm):
         if self.draw:
             return [0.5, 0.5]
         return [1 if self.win else 0, 1 if not self.win else 0]
+
+    def reset(self):
+        self.states = {}
 
     def _evaluate_random_rollingout(self):
 
