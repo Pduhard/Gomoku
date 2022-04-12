@@ -36,7 +36,7 @@ from ..Game.GameEngine import Gomoku
 #     # print(bestactions)
 #     return bestactions[np.random.randint(len(bestactions))]
 
-class   MCTS(AbstractAlgorithm):
+class MCTS(AbstractAlgorithm):
 
     engine: Gomoku = None
 
@@ -73,21 +73,32 @@ class   MCTS(AbstractAlgorithm):
             self.mcts(i)
 
         state_data = self.states[game_engine.state.board.tobytes()]
-        _, _, (sa_n, sa_v) = state_data[:3]
+        sa_n, sa_v = state_data[2]
 
         policy = sa_v / (sa_n + 1)
-        print("policy (rewards sum / visit count):\n", policy)
+        # print("policy (rewards sum / visit count):\n", policy)
 
-        gAction = self.selection(policy, state_data)
-        print("best arg:\n", gAction.action)
+        print(f"MCTS  policy:\n{policy}")
+        print(f"Model policy:\n{state_data[5][0]}")
+        print(f"Model value :\n{state_data[5][1]}")
+
+        self.engine.update(game_engine)
+        gAction = None
+        while not (gAction and game_engine.is_valid_action(gAction)):
+            gAction = self.selection(policy, state_data)
+            print(f"Ultimate __call__() selection:\n{gAction.action}")
+            # print(f"Ultimate __call__() selection:\n{gAction.action} with policy={policy[gAction.action]}")
+
+        # if np.all(policy == 0):
+        #     print("Be carefull / wtf policy")
+        #     breakpoint()
 
         return policy, gAction
 
     def mcts(self, mcts_iter: int):
 
-        print(f"\n[MCTS function {mcts_iter}]\n")
+        # print(f"\n[MCTS function {mcts_iter}]\n")
 
-        # self.init_path()
         path = []
         self.mcts_idx = self.engine.player_idx
         self.current_board = self.engine.state.board
@@ -97,21 +108,25 @@ class   MCTS(AbstractAlgorithm):
 
             state_data = self.states[statehash]
 
+            # if state_data is None:
+            #     print("UNEXPECTED STATE DATA")
+            #     breakpoint()
+
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
             bestGAction = self.selection(policy, state_data)
 
-            print(f"selection {bestGAction.action}")
-            if not self.engine.is_valid_action(bestGAction):
-                print(f"Not a fucking valid action in mcts: {bestGAction.action}")
-                breakpoint()
-                raise Exception
+            # print(f"selection {bestGAction.action}")
+            # if not self.engine.is_valid_action(bestGAction):
+            #     print(f"Not a fucking valid action in mcts: {bestGAction.action}")
+            #     breakpoint()
+            #     raise Exception
 
             path.append(self.new_memory(statehash, bestGAction.action))
             self.engine.apply_action(bestGAction)
             self.engine.next_turn()
 
-            if self.engine.isover():
-                print('its over in mcts')
+            # if self.engine.isover():
+            #     print('its over in mcts')
                 # exit(0)
 
             self.current_board = self.engine.state.board
@@ -153,31 +168,25 @@ class   MCTS(AbstractAlgorithm):
             ucb(s, a) = (quality(s, a) + exp_rate(s, a)) * valid_action(s, a)
         """
         # return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
-        _, _, _, actions = state_data[:4]
+        # _, _, _, actions = state_data[:4]
         ucbs = self.get_quality(state_data, **kwargs) + self.get_exp_rate(state_data, **kwargs)
-        return ucbs * actions
+        return ucbs
 
-    def selection(self, policy: np.ndarray, *args) -> tuple:
+    def selection(self, policy: np.ndarray, state_data, *args) -> tuple:
 
+        policy *= state_data[3]     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
-        return bestactions[np.random.randint(len(bestactions))]
-        # coords = np.unravel_index(np.argsort(policy, axis=None)[::-1], policy.shape)
-        #
-        # for x, y in zip(*coords):
-        #     gAction = GomokuAction(x, y)
-        #     if self.engine.is_valid_action(gAction):
-        #         return gAction
-        #
-        # raise Exception("No valid action to select.")
+        bestaction = bestactions[np.random.randint(len(bestactions))]
+        return GomokuAction(*bestaction)
 
     def expand(self):
         return [
             1,
             0,
-            None if self.end_game else np.zeros((2, self.brow, self.bcol)),
+            np.zeros((2, self.brow, self.bcol)),
+            # None if self.end_game else np.zeros((2, self.brow, self.bcol)),
             self.get_actions()
         ]
-        # None if self.end_game else np.concatenate((np.zeros((1, self.brow, self.bcol)), -np.ones((1, self.brow, self.bcol)))),
 
     def new_memory(self, statehash, bestaction):
         return (0 if self.engine.player_idx == self.mcts_idx else 1, statehash, bestaction)
@@ -196,11 +205,12 @@ class   MCTS(AbstractAlgorithm):
 
         state_data[0] += 1                       # update n count
         state_data[1] += reward                  # update state value
+
         if bestaction is None:
             return
-
         r, c = bestaction
         state_data[2][..., r, c] += [1, reward]  # update state-action count / value
+        # print(f"Backprop reward {reward} within {rewards}")
 
 
     def evaluate(self):
@@ -213,6 +223,9 @@ class   MCTS(AbstractAlgorithm):
         if self.draw:
             return [0.5, 0.5]
         return [1 if self.win else 0, 1 if not self.win else 0]
+
+    def reset(self):
+        self.states = {}
 
     def _evaluate_random_rollingout(self):
 

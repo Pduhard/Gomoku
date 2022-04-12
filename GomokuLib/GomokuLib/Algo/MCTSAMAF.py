@@ -15,7 +15,14 @@ class MCTSAMAF(MCTS):
 
             AMAFQuality(s, a) = beta * AMAF(s, a) + (1 - beta) * quality(s, a)
         """
-        _, _, (sa_n, sa_v), _, (amaf_n, amaf_v) = state_data[:5]
+        try:
+            _, _, (sa_n, sa_v), _, (amaf_n, amaf_v) = state_data[:5]
+            # State_data: [2, 1, None, array([[1, 0, 0, 1, 1, 1, 0, 0, 1, ...]]), None, (array(), (r1, r2)) ]
+        except Exception as e:
+            print(e)
+            print(f"State_data: {state_data}")
+            breakpoint()
+            return 0
 
         sa = sa_v / (sa_n + 1)
         amaf = amaf_v / (amaf_n + 1)
@@ -25,7 +32,8 @@ class MCTSAMAF(MCTS):
     def expand(self):
         memory = super().expand()
 
-        amaf_values = None if self.end_game else np.zeros((2, self.brow, self.bcol))
+        amaf_values = np.zeros((2, self.brow, self.bcol))
+        # amaf_values = None if self.end_game else np.zeros((2, self.brow, self.bcol))
         memory.append(amaf_values)
         return memory
 
@@ -45,7 +53,6 @@ class MCTSAMAF(MCTS):
         if bestaction is None:
             return
 
-        # breakpoint()
         r, c = bestaction
         state_data[2][..., r, c] += [1, reward]  # update state-action count / value
         self.amaf_masks[player_idx, ..., r, c] += [1, reward]

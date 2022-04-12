@@ -39,10 +39,10 @@ class GomokuModel(torch.nn.Module):
         self.policy_head = build_policy_head_net(conv_filters, width, height)
         self.value_head = build_value_head_net(conv_filters, width, height)
 
-    def forward(self, x: np.ndarray) -> tuple:
+    def forward(self, x: torch.Tensor) -> tuple:
         x = self.conv_upscale(x)
         x = self.resnet(x)
-        value = self.value_head(x)
+        value = self.value_head(x).type(torch.FloatTensor)
         policy = self.policy_head(x).view(x.shape[0], self.width, self.height)
         return policy, value
 

@@ -17,7 +17,7 @@ class MCTSLazy(MCTS):
         rows, cols = np.unravel_index(np.argsort(policy, axis=None), policy.shape)
 
         for x, y in zip(rows[::-1], cols[::-1]):
-            print("policy ", x, y, policy[x, y], np.amax(policy))
+            # print("policy ", x, y, policy[x, y], np.amax(policy))
             gAction = GomokuAction(x, y)
             if self.engine.is_valid_action(gAction):
                 return gAction

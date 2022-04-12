@@ -133,12 +133,12 @@ class Gomoku(AbstractGameEngine):
                 self.winner = self.player_idx       # ?????????????????????????????
 
         except ForceWinPlayer as e:
-            print(f"Player {self.player_idx} win. Reason: {e.reason}")
+            # print(f"Player {self.player_idx} win. Reason: {e.reason}")
             self._isover = True
             self.winner = self.player_idx
 
         except ForceWinOpponent as e:
-            print(f"Player {self.player_idx ^ 1} win. Reason: {e.reason}")
+            # print(f"Player {self.player_idx ^ 1} win. Reason: {e.reason}")
             self._isover = True
             self.winner = self.player_idx ^ 1
 

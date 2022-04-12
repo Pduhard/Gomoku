@@ -1,85 +1,98 @@
+import copy
+
 import torch
 import numpy as np
+from typing import Union, TYPE_CHECKING
 
 from .GomokuModel import GomokuModel
 
-from ..Dataset.GomokuDataset import GomokuDataset
 from ..Dataset.DatasetTransforms import Compose, HorizontalTransform, VerticalTransform, ToTensorTransform, AddBatchTransform
 
 
 class ModelInterface:
 
-    def __init__(self, model: GomokuModel, transforms=None, tts_lengths: tuple = None):
-        # self.model = model.cuda()
-        self.model = model
-        self.channels, self.width, self.height = self.model.input_shape
-        self.tts_lengths = tts_lengths
-        self.history_size = self.channels - 1
+    def __init__(self, model: GomokuModel = None,
+                 transforms: Compose = None,
+                 # tts_lengths: tuple = None,
+                 mean_forward: bool = False,
+                 name: str = "Default ModelInterface name"):
 
-        self.transforms = transforms or Compose([
-            ToTensorTransform(),
+        self.name = name
+        # self.model = model.cuda()
+        self.model = model or GomokuModel(17, 19, 19)
+        self.channels, self.width, self.height = self.model.input_shape
+        # self.tts_lengths = tts_lengths
+
+        self.data_transforms = transforms or Compose([
             HorizontalTransform(0.5),
-            VerticalTransform(0.5),
+            VerticalTransform(0.5)
+        ])
+        self.model_transforms = Compose([
+            ToTensorTransform(),
             AddBatchTransform()
         ])
 
-        self.zero_fill = np.zeros((self.history_size, 2, self.width, self.height), dtype=int)
-        self.ones = np.ones((1, self.width, self.height), dtype=int)
-        self.zeros = np.zeros((1, self.width, self.height), dtype=int)
+        if mean_forward:
+            self.forward = self.mean_forward
+            self.mean_transforms = [
+                Compose([]),
+                Compose([VerticalTransform(1)]),
+                Compose([HorizontalTransform(1)]),
+                Compose([HorizontalTransform(1), VerticalTransform(1)]),
+            ]
 
-        self.loss_fn = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters())
+        self.history_size = self.channels - 1
+        self.zero_fill = np.zeros((self.history_size, 2, self.width, self.height), dtype=np.float)
+        self.ones = np.ones((1, self.width, self.height), dtype=np.float)
+        self.zeros = np.zeros((1, self.width, self.height), dtype=np.float)
 
+    def mean_forward(self, inputs: np.ndarray) -> tuple:
+
+        policies = np.ndarray((len(self.mean_transforms), self.width, self.height), dtype=np.float)
+        values = np.ndarray(len(self.mean_transforms), dtype=np.float)
+        for i, compose in enumerate(self.mean_transforms):
+            x = compose(inputs)
+            x = self.model_transforms(x)
+            policy, value = self.model.forward(x)
+            policy = self.model_transforms.invert(policy)
+            policies[i] = compose.invert(policy)
+            values[i] = float(value)
+
+        print(f"Mean value = {np.mean(values)}\tvalues -> {values}")
+        return np.mean(policies, axis=0), np.mean(values)
 
     def forward(self, inputs: np.ndarray) -> tuple:
 
-        inputs = self.transforms(inputs)
+        # breakpoint()
+        inputs = self.data_transforms(inputs)
+        inputs = self.model_transforms(inputs)
         policy, value = self.model.forward(inputs)
-        policy = self.transforms.invert(policy)
+        policy = self.model_transforms.invert(policy)
+        policy = self.data_transforms.invert(policy)
 
         return policy, float(value)
 
     def prepare(self, player_idx, history: np.ndarray) -> np.ndarray:
+
         history_length = len(history)
         if history_length < self.history_size:
             if history_length > 0:
                 history = np.concatenate((self.zero_fill[:self.history_size - history_length, ...], history))
             else:
                 history = self.zero_fill
-        p0 = history[-self.history_size + history_length % 2::2, 0, ...]
+        p0 = history[-self.history_size + history_length % 2::2, 0, ...]        # Step: 2 by 2
         p1 = history[-self.history_size + (history_length + 1) % 2::2, 1, ...]
 
         inputs = np.concatenate((p0, p1, self.ones if history_length % 2 == 0 else self.zeros))
         return inputs
+        # return inputs.astype(np.float)
 
-    def train(self, dataset: GomokuDataset):
-
-        if len(dataset) < 100:
-            tts_lengths = int(len(dataset) * 0.8), int(len(dataset) * 0.2)
-        else:
-            tts_lengths = self.tts_lengths if self.tts_lengths else (80, 20)
-
-        train_set, test_set = torch.utils.data.random_split(dataset, tts_lengths)
-
-        train_dataloader = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True)
-        test_dataloader = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True)
-
-
-
-    def save(self, path, cp_n, game_played):
-        torch.save({
-                'cp': cp_n,
-                'self-play': game_played,
-                'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
-            },
-            path
+    def copy(self):
+        return ModelInterface(
+            copy.deepcopy(self.model),
+            self.data_transforms,
+            # self.tts_lengths
         )
-
-    def load(self, path):
-        cp = torch.load(path)
-        self.model.load_state_dict(cp['model_state_dict'])
-        self.optimizer.load_state_dict(cp['optimizer_state_dict'])
 
 
 if __name__ == "__main__":
