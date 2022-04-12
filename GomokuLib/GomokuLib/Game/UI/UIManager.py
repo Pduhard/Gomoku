@@ -114,7 +114,7 @@ class UIManager:
                 })
         
         if self.snapshot_idx_modified:
-            self.engine.update_from_snapshot(self.game_snapshots[self.current_snapshot_idx])
+            self.engine.update_from_snapshot(self.game_snapshots[self.current_snapshot_idx]['snapshot'])
             self.game_snapshots = self.game_snapshots[:self.current_snapshot_idx + 1]
             # breakpoint()
             # self.outqueue.put({
@@ -125,7 +125,11 @@ class UIManager:
 
 
         for o in self.components:
-            o.draw(board=self.engine.state.board, player_idx=self.engine.player_idx)
+            o.draw(
+                board=self.engine.state.board,
+                player_idx=self.engine.player_idx,
+                **self.game_snapshots[self.current_snapshot_idx]
+            )
         pygame.display.flip()
 
         self.board_clicked_action = None

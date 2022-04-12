@@ -46,15 +46,12 @@ class GomokuGUI(Gomoku):
         # self.drawUI()
         print("END __init__() Gomokugui\n")
 
-    def get_deep_copy(self):
-        return {
+    def update_UI(self, **kwargs):
+        self.gui_outqueue.put({
             'code': 'game-snapshot',
-            'data': self.create_snapshot()
-        }
+            'data': kwargs.update({'snapshot': self.create_snapshot()}),
+        })
 
-    def next_turn(self) -> None:
-        super().next_turn()
-        self.gui_outqueue.put(self.get_deep_copy())
 
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 

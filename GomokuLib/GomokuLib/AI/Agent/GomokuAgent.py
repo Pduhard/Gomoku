@@ -142,8 +142,10 @@ class GomokuAgent(AbstractPlayer):
                 ])
                 self.RLengine.apply_action(best_action)
                 self.RLengine.next_turn()
-                # if hasattr(self.RLengine, 'drawUI'):
-                #     self.RLengine.drawUI()
+
+                if hasattr(self.RLengine, 'update_UI'):
+                    model_policy, model_value = self.model_interface.forward(model_inputs)
+                    self.RLengine.update_UI(mcts_policy=mcts_policy, model_policy=model_policy, model_value=model_value)
 
             self._rewarding()
 
