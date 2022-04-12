@@ -78,10 +78,10 @@ class Board:
 
         # Init grid coordinates
         axe = np.arange(1, 20)
-        grid = np.meshgrid(axe, axe)
-        self.cells_coord = grid * np.array(self.cell_size)[..., np.newaxis, np.newaxis]
+        self.grid = np.meshgrid(axe, axe)
+        self.cells_coord = self.grid * np.array(self.cell_size)[..., np.newaxis, np.newaxis]
 
-    def draw(self, board: np.ndarray, player_idx: int, **kwargs):
+    def draw(self, board: np.ndarray, player_idx: int, *args, **kwargs):
 
         self.win.blit(self.bg, (self.ox, self.oy))
         # print(self.cells_coord.shape,  self.state.board[np.newaxis, ...].shape)
@@ -90,6 +90,24 @@ class Board:
         stone_x = stone_x[empty_cells]
         stone_y = stone_y[empty_cells]
         stones = np.stack([stone_x, stone_y], axis=-1)
+
+        hint = False
+        if 'model_policy' in kwargs:
+            hint = True
+            policy = kwargs['model_policy']
+        if 'mcts_policy' in kwargs:
+            hint = True
+            policy = kwargs['mcts_policy']
+
+        if hint:
+            print("hints ...")
+            # xs = range(self.ox, self.ox + self.csx * self.board_size[0], self.csx)
+            # for i, x in enumerate(xs):
+            #     ys = range(self.oy, self.oy + self.csy * self.board_size[1], self.csy)
+            #     for j, y in enumerate(ys):
+            #         hint = pygame.Rect(self.origin, self.size)
+            #         # pygame.draw.rect(self.win, (50, 255, 50, 255 * (policy[i, j])), hint)
+
 
         for x, y in stones:
             self.win.blit(self.whitestone, (self.ox + x - self.csx, self.oy + y - self.csy))

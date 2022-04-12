@@ -6,7 +6,7 @@ class Button:
 
     def __init__(self, win: pygame.Surface,
                  origin: tuple, size: tuple,
-                 event_code: str, color: tuple[int, int, int]):
+                 event_code: str, color: tuple[int, int, int, [int]]):
 
         self.win = win
         self.origin = origin

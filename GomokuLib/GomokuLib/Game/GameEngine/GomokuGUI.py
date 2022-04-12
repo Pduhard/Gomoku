@@ -47,9 +47,10 @@ class GomokuGUI(Gomoku):
         print("END __init__() Gomokugui\n")
 
     def update_UI(self, **kwargs):
+        kwargs.update({'snapshot': self.create_snapshot()})
         self.gui_outqueue.put({
             'code': 'game-snapshot',
-            'data': kwargs.update({'snapshot': self.create_snapshot()}),
+            'data': kwargs,
         })
 
 

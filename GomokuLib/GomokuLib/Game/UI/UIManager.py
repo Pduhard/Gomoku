@@ -125,11 +125,14 @@ class UIManager:
 
 
         for o in self.components:
-            o.draw(
-                board=self.engine.state.board,
-                player_idx=self.engine.player_idx,
-                **self.game_snapshots[self.current_snapshot_idx]
-            )
+            if len(self.game_snapshots):
+                o.draw(
+                    board=self.engine.state.board,
+                    player_idx=self.engine.player_idx,
+                    **self.game_snapshots[-1]
+                )
+            else:
+                o.draw(board=self.engine.state.board, player_idx=self.engine.player_idx)
         pygame.display.flip()
 
         self.board_clicked_action = None
@@ -168,11 +171,12 @@ class UIManager:
         pygame.init()
 
         self.win = pygame.display.set_mode(win_size)
+        # self.win.convert_alpha()
         self.components = [
             Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size),
-            Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255)),
-            Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0)),
-            Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255)),
+            Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255, 250)),
+            Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0, 150)),
+            Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255, 10)),
         ]
         for c in self.components:
             c.init_event(self)
