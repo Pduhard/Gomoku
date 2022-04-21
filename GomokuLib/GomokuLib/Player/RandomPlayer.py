@@ -12,6 +12,9 @@ class RandomPlayer(AbstractPlayer):
     def __init__(self, verbose: dict = None) -> None:
         self.verbose = verbose or {}
 
+    def __str__(self):
+        return f"Random player"
+
     def play_turn(self) -> GomokuAction:
 
         actions = self.engine.get_actions()

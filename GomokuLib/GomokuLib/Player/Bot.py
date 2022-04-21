@@ -15,9 +15,13 @@ from GomokuLib.Player.AbstractPlayer import AbstractPlayer
 
 class Bot(AbstractPlayer):
 
-    def __init__(self, algorithm: AbstractAlgorithm, verbose: dict = None) -> None:
+    def __init__(self, algorithm: AbstractAlgorithm) -> None:
         self.algo = algorithm
-        self.verbose = verbose
+
+    def __str__(self):
+        return f"Bot with algo: {str(self.algo)}"
 
     def play_turn(self) -> AbstractAction:
+        # self.policy, self.action = self.algo(self.engine)
+        # return self.action
         return self.algo(self.engine)[1]

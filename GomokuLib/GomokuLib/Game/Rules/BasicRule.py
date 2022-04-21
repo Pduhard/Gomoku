@@ -11,8 +11,9 @@ from .AbstractRule import AbstractRule
 
 
 # @njit()
-def njit_winning(board, ar, ac, rmax, cmax):
+def njit_is_align(board, ar, ac, rmax, cmax, p_id: int = 0, n_align: int = 5):
 
+	branch_align = n_align - 1
 	ways = [
 		(-1, -1),
 		(-1, 0),
@@ -23,31 +24,30 @@ def njit_winning(board, ar, ac, rmax, cmax):
 	# 4 direction
 	for rway, cway in ways:
 
-
 		# Slide 4 times
 		r1, c1 = ar, ac
-		count1 = 4
+		count1 = branch_align
 		i = 0
-		while (i < 4 and count1 == 4):
+		while (i < branch_align and count1 == branch_align):
 
 			r1 += rway
 			c1 += cway
-			if (r1 < 0 or r1 >= rmax or c1 < 0 or c1 >= cmax or board[0, r1, c1] == 0):
+			if (r1 < 0 or r1 >= rmax or c1 < 0 or c1 >= cmax or board[p_id, r1, c1] == 0):
 				count1 = i
 			i += 1
 
 		r2, c2 = ar, ac
-		count2 = 4
+		count2 = branch_align
 		i = 0
-		while (i < 4 and count2 == 4):
+		while (i < branch_align and count2 == branch_align):
 			r2 -= rway
 			c2 -= cway
-			if (r2 < 0 or r2 >= rmax or c2 < 0 or c2 >= cmax or board[0, r2, c2] == 0):
+			if (r2 < 0 or r2 >= rmax or c2 < 0 or c2 >= cmax or board[p_id, r2, c2] == 0):
 				count2 = i
 			i += 1
 
 		# print(f"dir {rway} {cway}: {count1} + {count2} + 1")
-		if (count1 + count2 + 1 >= 5):
+		if (count1 + count2 + 1 >= n_align):
 			return True
 
 	return False
@@ -69,7 +69,7 @@ class BasicRule(AbstractRule):
 
 		ar, ac = action.action
 		rmax, cmax = self.engine.board_size
-		return njit_winning(self.engine.state.board, ar, ac, rmax, cmax)
+		return njit_is_align(self.engine.state.board, ar, ac, rmax, cmax)
 		# tic = perf_counter()
 
 
@@ -106,7 +106,7 @@ class BasicRule(AbstractRule):
 		return 4
 
 	def create_snapshot(self):
-		return { }
+		return {}
 
 	def update_from_snapshot(self, snapshot):
 		pass

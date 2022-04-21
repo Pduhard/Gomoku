@@ -12,20 +12,12 @@ from GomokuLib.Player.AbstractPlayer import AbstractPlayer
 
 class Human(AbstractPlayer):
 
-    def __init__(self, verbose: dict = None) -> None:
-        self.verbose = verbose or {}
-        # self.panel = HumanCtrlPanel()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    def __str__(self):
+        return f"Human"
 
     def play_turn(self) -> AbstractAction:
-
         return self.engine.wait_player_action()
 
-
-# class CtrlPanel(metaclass=ABCMeta):
-#     """
-#         Bot: Logs sur les algorithm du CtrlPanel
-#         Human: Hints apportes par les algo du CtrlPanel
-
-#     """
-#     def __init__(self, player: AbstractPlayer) -> None:
-#         pass

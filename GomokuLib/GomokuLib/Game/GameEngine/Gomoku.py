@@ -20,7 +20,7 @@ from .AbstractGameEngine import AbstractGameEngine
 
 class Gomoku(AbstractGameEngine):
 
-    def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]],
+    def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]] = None,
                  board_size: Union[int, tuple[int]] = 19,
                  rules: list[Union[str, AbstractRule]] = ['Capture', 'Game-Ending Capture', 'no double-threes'],
                  **kwargs) -> None:
@@ -56,7 +56,12 @@ class Gomoku(AbstractGameEngine):
         }
 
         rules.append(BasicRule(self))
-        self.rules = [tab[r.lower()](self) if isinstance(r, str) else r for r in rules]
+        self.rules = [
+            tab[r.lower()](self)    # Attention ! Si la str n'est pas dans tab !
+            if isinstance(r, str)
+            else r
+            for r in rules
+        ]
         self.set_rules_fn(self.rules)
         return self.rules_fn
 
@@ -102,6 +107,11 @@ class Gomoku(AbstractGameEngine):
         print('haled remove rule')
         self.rules_fn[operation].remove(obj)
 
+    def get_captures(self):
+        for r in self.rules:
+            if isinstance(r, Capture):
+                return r.player_count_capture
+        return [0, 0]
 
     def get_history(self) -> np.ndarray:
         return self.history[1:]
@@ -155,29 +165,26 @@ class Gomoku(AbstractGameEngine):
         # print(f"Gomoku(): isover() return {self._isover}")
         return self._isover
 
-    def _run_turn(self, players: AbstractPlayer):
-        player = players[self.player_idx]
-
-        player_action = player.play_turn()
-
-        self.apply_action(player_action)
-        self.next_turn()
-
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
         while not self.isover():
-            self._run_turn(players)
+            player = players[self.player_idx]
+            player_action = player.play_turn()
+
+            self.apply_action(player_action)
+            self.next_turn()
 
         print(f"Player {self.winner} win.")
 
     def run(self, players: list[AbstractPlayer]) -> AbstractPlayer:
-        self.init_game()
-        for p in players:
+
+        self.players = players
+        for p in self.players:
             p.init_engine(self)
 
-        self._run(players)
-
-        return players[self.winner] if self.winner >= 0 else self.winner
+        self.init_game()
+        self._run(self.players)
+        return self.players[self.winner] if self.winner >= 0 else self.winner
 
 
     def create_snapshot(self):
@@ -224,3 +231,7 @@ class Gomoku(AbstractGameEngine):
         # print(engine.rules_fn)
         # print(self.rules_fn)
 
+    def clone(self) -> Gomoku:
+        engine = Gomoku(self.players, self.board_size, self.rules_str)
+        engine.update(self)
+        return engine

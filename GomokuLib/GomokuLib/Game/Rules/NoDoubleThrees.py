@@ -33,6 +33,7 @@ def init_ft_ident():
 
 
 
+# @njit(parallel=True, fastmath=True)
 @njit()
 def njit_is_valid(rmax, cmax, ar, ac, board, FT_IDENT):
 

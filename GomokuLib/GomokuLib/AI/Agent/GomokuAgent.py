@@ -17,43 +17,52 @@ from ..Dataset.DatasetTransforms import Compose, HorizontalTransform, VerticalTr
 
 from  ...Player.Bot import Bot
 from  ...Algo.MCTSAI import MCTSAI
-from ...Player.AbstractPlayer import AbstractPlayer
+from  ...Algo.AbstractAlgorithm import AbstractAlgorithm
 
 
-class GomokuAgent(AbstractPlayer):
+class GomokuAgent(Bot):
 
-    def __init__(self, RLengine: Gomoku,
+    def __init__(self, RLengine: Gomoku = None,
                  model_interface: ModelInterface = None, dataset: GomokuDataset = None,
                  agent_name: str = None, model_name: str = None, dataset_name: str = None,
-                 mcts_iter: int = 500, mcts_pruning: bool = False, mcts_hard_pruning: bool = False,
+                 mcts_iter: int = 500, heuristic_boost: bool = False,
+                 mcts_pruning: bool = False, mcts_hard_pruning: bool = False,
                  batch_size: int = 64, shuffle: bool = True, mean_forward: bool = False,
-                 rnd_first_move: tuple = True,
+                 rnd_first_move: tuple = True, device: str = 'cpu',
                  *args, **kwargs
                  ) -> None:
 
-        super().__init__(*args, **kwargs)
         self.name = "Default Agent name"
-        self.engine = None
-        self.RLengine = RLengine
+        self.RLengine = RLengine or Gomoku()
+
+        self.heuristic_boost = heuristic_boost
         self.mcts_iter = mcts_iter
         self.mcts_pruning = mcts_pruning
         self.mcts_hard_pruning = mcts_hard_pruning
+
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.rnd_first_move = rnd_first_move
+
         self.model_interface = model_interface
+        self.mean_forward = mean_forward
         self.dataset = dataset
+
         self.optimizer = None
+        self.device = device
 
         self.instance_date = datetime.now().strftime('%d:%m:%Y_%H:%M:%S')
         self.saving_path = os.path.join(os.path.abspath("."), "GomokuLib/GomokuLib/Media/agent_saves")
         self.agent_saving_path = os.path.join(self.saving_path, f"agent_{self.instance_date}")
 
         if not self.model_interface:
-            self.model_interface = ModelInterface(mean_forward=mean_forward)
+            self.model_interface = ModelInterface(name=model_name, mean_forward=mean_forward, device=device)
         if not self.dataset:
             self.dataset = GomokuDataset()
 
+        self.model_name = model_name
+        self.agent_name = agent_name
+        self.dataset_name = dataset_name
         if agent_name:
             self.load(
                 agent_name, model_name, dataset_name,
@@ -61,13 +70,23 @@ class GomokuAgent(AbstractPlayer):
             )
 
         self.mcts = MCTSAI(
+            self.RLengine,
             self.model_interface,
             iter=self.mcts_iter,
-            pruning=mcts_pruning,
-            hard_pruning=mcts_hard_pruning
+            pruning=self.mcts_pruning,
+            hard_pruning=self.mcts_hard_pruning,
+            heuristic_boost = self.heuristic_boost
         )
-        self.best_model_interface = None
-        self.best_model_mcts = None
+        self.best_model_interface = ModelInterface(name=model_name, mean_forward=mean_forward, device=device)
+        self.best_model_mcts = MCTSAI(
+            self.RLengine,
+            self.best_model_interface,
+            iter=self.mcts_iter,
+            pruning=self.mcts_pruning,
+            hard_pruning=self.mcts_hard_pruning,
+            heuristic_boost=self.heuristic_boost
+        )
+        super().__init__(self.best_model_mcts)         # Assign algo to best model mcts
 
         self.training_loops = 0
         self.games_played = 0
@@ -80,34 +99,71 @@ class GomokuAgent(AbstractPlayer):
         self.v_loss = 0
 
         # Put these config numbers in an agent_config file
-        self.samples_per_epoch = 500
-        self.dataset_max_length = 1000
+        self.samples_per_epoch = 1000
+        self.dataset_max_length = 2000
         self.last_n_indices = np.arange(-1, -self.dataset_max_length - 1, -1)
-        self.self_play_n_games = 2
+        self.self_play_n_games = 10
         self.epochs = 10
-        self.evaluation_n_games = 5
-        self.model_comparison_mcts_iter = 20
+        self.evaluation_n_games = 6
+        self.model_comparison_mcts_iter = 100
 
     def __str__(self):
         return f"Agent '{self.name}' with model '{self.model_interface.name}' -> {super().__str__()}"
 
-    def set_mcts_iter(self, mcts_iter):
-        self.mcts_iter = mcts_iter
-        self.mcts.mcts_iter = mcts_iter
-        if self.best_model_mcts:
-            self.best_model_mcts.mcts_iter = mcts_iter
+    # def set_mcts_iter(self, mcts_iter):
+    #     self.mcts.mcts_iter = mcts_iter
+    #     self.best_model_mcts.mcts_iter = mcts_iter
 
-    def play_turn(self) -> AbstractAction:
-        mcts = self.best_model_mcts or self.mcts
-        return mcts(self.engine)[1]
+    # def set_mean_forward(self, mean_forward):
+    #     self.model_interface.set_mean_forward(mean_forward)
+    #     self.best_model_interface.set_mean_forward(mean_forward)
 
-    def _rewarding(self):
-        reward = 1.0 if self.RLengine.winner == self.current_memory[-1][0] else -1.0
-        for mem in self.current_memory[::-1]:
-            mem[3] = torch.FloatTensor([reward])
-            reward *= -0.9
+    def _init_model_comparaison_game(self):
+        self.RLengine.init_game(mode="self-play", p1=str(self), p2=str(self))
+
+        self.mcts.reset()
+        self.mcts.mcts_pruning = False
+        self.mcts.mcts_hard_pruning = False
+        self.mcts.heuristic_boost = False
+        self.mcts.mcts_iter = self.model_comparison_mcts_iter
+        self.model_interface.set_mean_forward(True)
+
+        self.best_model_mcts.reset()
+        self.best_model_mcts.mcts_pruning = False
+        self.best_model_mcts.mcts_hard_pruning = False
+        self.best_model_mcts.heuristic_boost = False
+        self.best_model_mcts.mcts_iter = self.model_comparison_mcts_iter
+        self.best_model_interface.set_mean_forward(True)
+
+    def _init_self_play_game(self):
+        self.current_memory = []
+        self.RLengine.init_game(mode="self-play", p1=str(self), p2=str(self))
+
+        self.mcts.reset()
+        self.mcts.mcts_iter = self.mcts_iter
+        self.mcts.mcts_pruning = self.mcts_pruning
+        self.mcts.mcts_hard_pruning = self.mcts_hard_pruning
+        self.mcts.heuristic_boost = self.heuristic_boost
+        self.model_interface.set_mean_forward(self.mean_forward)
+
+        # First move could be random to improve exploration
+        if self.rnd_first_move:
+            self.RLengine.apply_action(GomokuAction(  # On the center
+                np.random.randint(6, self.RLengine.board_size[0] - 6),
+                np.random.randint(6, self.RLengine.board_size[1] - 6)
+            ))
+            self.RLengine.next_turn(
+                self_play=self.games_played,
+                dataset_length=len(self.dataset)
+            )
 
     def _self_play(self, tl_n_games):
+
+        def __rewarding():
+            reward = 1.0 if self.RLengine.winner == self.current_memory[-1][0] else -1.0
+            for mem in self.current_memory[::-1]:
+                mem[3] = torch.FloatTensor([reward])
+                reward *= -0.9
 
         if tl_n_games is None:
             tl_n_games = self.self_play_n_games
@@ -117,21 +173,11 @@ class GomokuAgent(AbstractPlayer):
         while game_i < tl_n_games:
 
             print(f"- Agent start game n={game_i}/{tl_n_games}")
-            self.current_memory = []
-            self.RLengine.init_game()
-            self.mcts.reset()
-
-            # First move could be random to stack diverse experiences
-            if self.rnd_first_move:
-                self.RLengine.apply_action(GomokuAction(
-                    np.random.randint(3, self.RLengine.board_size[0] - 3),
-                    np.random.randint(3, self.RLengine.board_size[1] - 3)
-                ))
-                self.RLengine.next_turn()
+            self._init_self_play_game()
 
             while not self.RLengine.isover():
 
-                model_inputs = self.model_interface.prepare(self.RLengine.player_idx, self.RLengine.get_history())
+                model_inputs = self.model_interface.prepare(self.RLengine)
                 mcts_policy, best_action = self.mcts(self.RLengine)
 
                 self.current_memory.append([
@@ -140,14 +186,16 @@ class GomokuAgent(AbstractPlayer):
                     mcts_policy,
                     0
                 ])
+
+                turn_data = self.mcts.get_state_data(self.RLengine)
                 self.RLengine.apply_action(best_action)
-                self.RLengine.next_turn()
+                self.RLengine.next_turn(
+                    **turn_data,
+                    self_play=self.games_played,
+                    dataset_length=len(self.dataset)
+                )
 
-                if hasattr(self.RLengine, 'update_UI'):
-                    model_policy, model_value = self.model_interface.forward(model_inputs)
-                    self.RLengine.update_UI(mcts_policy=mcts_policy, model_policy=model_policy, model_value=model_value)
-
-            self._rewarding()
+            __rewarding()
 
             self.memory.extend(self.current_memory)
             self.games_played += 1
@@ -155,63 +203,46 @@ class GomokuAgent(AbstractPlayer):
 
     def _model_comparison(self) -> float:
 
-        if self.mcts_iter != self.mcts.mcts_iter and self.mcts.mcts_iter != self.best_model_mcts.mcts_iter:
-            breakpoint()
-
-        tmp_mcts_iter = self.mcts_iter
-        self.set_mcts_iter(self.model_comparison_mcts_iter)
-        self.mcts.reset()
-        self.best_model_mcts.reset()
-
         new_model_wins = 0
         for i in range(self.evaluation_n_games):
 
-            print("Agent start evaluation game n=", i)
-            self.RLengine.init_game()
+            print(f"Agent start evaluation game n={i}/{self.evaluation_n_games}")
+            self._init_model_comparaison_game()
+
             while not self.RLengine.isover():
 
-                # Comparaison pertinente ? Parce que self.mcts a enormement de data (self.mcts.states) qui vient du self-play
-                # Reset les mcts avant ? Les games seraient équitable
                 mcts = self.mcts if self.RLengine.player_idx else self.best_model_mcts
                 mcts_policy, best_action = mcts(self.RLengine)
 
+                mcts_state_data = mcts.get_state_data(self.RLengine)
                 self.RLengine.apply_action(best_action)
-                self.RLengine.next_turn()
+                self.RLengine.next_turn(
+                    **mcts_state_data,
+                    self_play=self.games_played,
+                    dataset_length=len(self.dataset)
+                )
 
             if self.RLengine.winner:
                 new_model_wins += 1
+            print(f"Agent end evaluation game n={i}/{self.evaluation_n_games}")
+            print(f"New model win: {self.RLengine.winner}")
 
-        self.set_mcts_iter(tmp_mcts_iter)
         print("Model comparison: New model win rate=", new_model_wins / self.evaluation_n_games)
         return new_model_wins / self.evaluation_n_games
 
-    def _model_inhibition(self, save_all_models: bool):
+    def _model_inhibition(self):
 
-        if self.best_model_mcts is None:
-            self.best_model_interface = self.model_interface.copy()
-            # self.best_model_interface.model = copy.deepcopy(self.model_interface.model)
-            self.best_model_mcts = MCTSAI(
-                self.best_model_interface,
-                iter=self.mcts_iter,
-                pruning=self.mcts_pruning,
-                hard_pruning=self.mcts_hard_pruning
-            )
-            print(f"First evaluation. No comparison. Remember this model.")
+        win_rate = self._model_comparison()
+
+        if win_rate >= 0.5:
+            print(f"New best model !")
+            # No need to copy ModelInterface, just the model
+            self.best_model_interface.model = copy.deepcopy(self.model_interface.model)
+            self.save()
 
         else:
-            win_rate = self._model_comparison()
-
-            if win_rate > 0.55:
-                print(f"New best model !")
-                self.best_model_interface.model = copy.deepcopy(self.model_interface.model)
-
-                if not save_all_models:
-                    self.save_agent()
-            else:
-                print(f"New model is worst...")
-
-        if save_all_models:
-            self.save_agent()
+            print(f"New model is worst...")
+            self.model_interface.model = copy.deepcopy(self.best_model_interface.model)
 
     def _train_batch(self, X: torch.Tensor, targets: list):
 
@@ -241,6 +272,8 @@ class GomokuAgent(AbstractPlayer):
 
     def _train(self, epochs):
         # dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=self.batch_size, shuffle=self.shuffle)
+
+        print(f"[TRAIN] with {self.samples_per_epoch} samples per epoch")
 
         self.p_loss = 0
         self.v_loss = 0
@@ -284,21 +317,25 @@ class GomokuAgent(AbstractPlayer):
 
         # print(f"self.dataset: {self.dataset}")
         # print(f"self.memory: {self.memory}")
+
         self.dataset.add(self.memory)
-        print(f"Update Dataset, length={len(self.dataset)}")
-        # # Keep only self.dataset_max_length last samples
+        print(f"Update Dataset, length={len(self.dataset)} (Max: {self.dataset_max_length})")
+
+        # Keep only self.dataset_max_length last samples
         # if len(self.dataset) > self.dataset_max_length:
         #     self.dataset = torch.utils.data.Subset(self.dataset, [-i for i in range(1, self.dataset_max_length + 1)])
         #     print(f"New SubsetDataset length={len(self.dataset)}")
         # breakpoint()
 
-    def training_loop(self, n_loops: int = 1, tl_n_games: int = None, epochs: int = None, save_all_models: bool = False):
+    def training_loop(self, n_loops: int = -1, tl_n_games: int = None, epochs: int = None):
 
+        if self.RLengine is None:
+            raise Exception("No engine pass to this agent")
         if epochs is None:
             epochs = self.epochs
 
         t_loop = 0
-        while t_loop < n_loops:
+        while n_loops == -1 or t_loop < n_loops:
 
             print(f"Agent start new training loop, t_loop={t_loop}/{n_loops} (Total={self.training_loops}) ->\n")
             self._self_play(tl_n_games)
@@ -308,9 +345,9 @@ class GomokuAgent(AbstractPlayer):
             self.training_loops += 1
             t_loop += 1
 
-            self._model_inhibition(save_all_models)
+            self._model_inhibition()
 
-    def save_agent(self, path: str = None):
+    def save(self, path: str = None):
 
         path = path or self.agent_saving_path
 
@@ -318,8 +355,8 @@ class GomokuAgent(AbstractPlayer):
             os.makedirs(path)
 
         date = datetime.now().strftime('%d:%m:%Y_%H:%M:%S')
-        model_path = os.path.join(path, f"{date}_model.pt")
-        dataset_path = os.path.join(path, f"{date}_dataset.pt")
+        model_path = os.path.join(path, f"{date}_{self.model_name or 'model'}.pt")
+        dataset_path = os.path.join(path, f"{date}_{self.dataset_name or 'dataset'}.pt")
 
         # breakpoint()
         interface = self.best_model_interface or self.model_interface
@@ -372,7 +409,7 @@ class GomokuAgent(AbstractPlayer):
             del cp['optimizer_state_dict']
         print(f"Load model name '{cp.get('name', 'Unnamed')}' trainned with {cp.get('samples_used_to_train', None)} samples of {cp.get('self_play', None)} self-play games")
 
-    def _load_dataset(self, dataset_path, erase_old_dataset=True):
+    def _load_dataset(self, dataset_path, erase_old_dataset=False):
 
         print(f"GomokuAgent._load_dataset() -> {dataset_path}")
         cp = torch.load(dataset_path)
@@ -380,15 +417,16 @@ class GomokuAgent(AbstractPlayer):
             self.dataset = GomokuDataset(
                 transforms=self.dataset.transforms if self.dataset else None,
                 data=cp.get('samples', []),
-                name=cp.get('name', 'Unnamed')
+                name=cp.get('name', 'Unnamed dataset')
             )
         else:
             self.dataset.add(cp.get('samples', []))
+            self.dataset.name = cp.get('name', 'Unnamed dataset')
 
         print(f"Load dataset of {cp.get('length', len(cp.get('samples', [])))} samples ->")
         if 'samples' in cp:
             del cp['samples']
-        print(cp)
+        # print(cp)
 
     def load(self, agent_name: str,
              model_name: str = None, dataset_name: str = None,

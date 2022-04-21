@@ -1,4 +1,7 @@
 from time import sleep
+
+import torch.cuda
+
 import GomokuLib
 
 import cProfile, pstats
@@ -11,18 +14,32 @@ import cProfile, pstats
     TODO:
         Rename GameEngine -> Engine
 
-        mettre les captures !
+        BOT :
+                self.policy, self.action = self.algo(self.engine)
+                return self.action
+            TO :    return self.algo(self.engine)[0]
+
+        Afficher une map 'statististique' sur les samples
+            Pour voir la répartition des games sur la map
+
+        Train sans les regles + verif que le train marche bien
+
+            mettre les captures !
+        Faire un config file avec toute les constantes du RL
+        coef sur la policy du network pour le debut
+        
+        afficher nbr de game + dataset size + nbr model/training loop + nbr de best model
         
         Conflict between self.end_game and GameEndingCapture rule in expansion/ucb
 
-        Save pruning masks in state_data
+        # Save pruning masks in state_data
         Passer le model loading dans le ModelInterface et pas dans l'Agent !
             Sinon on peut pas load un model pour le jouer avec un MCTSIA classique 
         
-        Pour améliorer le train du model:
-            Save le path du mcts lorsque le game engine certifie une victoire.
-            Pour qu'au tour suivant le mcts check si ce path est toujours valable.
-            En effet si un coup random est jouer ailleurs le mcts n'aura plus du tout connaissance de ce path 
+        # Pour améliorer le train du model:
+        #     Save le path du mcts lorsque le game engine certifie une victoire.
+        #     Pour qu'au tour suivant le mcts check si ce path est toujours valable.
+        #     En effet si un coup random est jouer ailleurs le mcts n'aura plus du tout connaissance de ce path 
         
         Bouton pour switch entre la policy du model et les qualities du MCTS
 
@@ -30,7 +47,6 @@ import cProfile, pstats
 
     To talk:
     
-        Backpropagation -> decresing reward !?
         Filtre de 5x5 dans le CNN ?
 
         Avant le premier coup de la game, un agent avec 100 iter mcts simule dejà une fin de game ? NOrmal ?    
@@ -59,66 +75,62 @@ import cProfile, pstats
 
 """
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Device selected: {device}")
+
 def duel():
 
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        engine,
-        agent_name="agent_07:04:2022_16:49:51",
-        mcts_iter=300,
-        mcts_hard_pruning=True
-    )
+    engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=[])
 
-    # p1 = GomokuLib.Player.RandomPlayer()
-    p1 = agent
+    # agent = GomokuLib.AI.Agent.GomokuAgent(
+    #     mcts_iter=100,
+    #     mcts_hard_pruning=True,
+    #     device=device
+    # )
+    #
+    # p1 = agent
+    p1 = GomokuLib.Player.RandomPlayer()
+    # p2 = GomokuLib.Player.RandomPlayer()
     p2 = GomokuLib.Player.Human()
 
     winner = engine.run([p2, p1])  # White: 0 / Black: 1
 
     print(f"Winner is {winner}")
 
-    # engine = Gomoku(None, 19)
-    # mcts = MCTS()
-    # mcts.mcts_iter = 1000
-    # action = mcts(engine, engine.state.board, engine.get_actions())
-    # profiler = cProfile.Profile()
-    # mcts.mcts_iter = 100
-    # profiler.enable()
-    # action = mcts(engine, engine.state.board, engine.get_actions())
-    # profiler.disable()
-    # stats = pstats.Stats(profiler).sort_stats('cumtime')
-    # stats.print_stats()
-    # stats.dump_stats('tmp_profile_from_script.prof')
-    # print(action)
+def RLtest():
+
+    agent = GomokuLib.AI.Agent.GomokuAgent(
+        GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
+        mcts_iter=10,
+        mcts_hard_pruning=True,
+        heuristic_boost=True,
+        device=device,
+    )
+    agent.model_comparison_mcts_iter = 10
+    agent.evaluation_n_games = 1
+    agent.training_loop(n_loops=2, tl_n_games=1, epochs=1)
 
 def RLmain():
 
-    RL_engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
-    # test_engine = GomokuLib.Game.GameEngine.Gomoku(None)
-
     agent = GomokuLib.AI.Agent.GomokuAgent(
-        RL_engine,
-        agent_name="agent_12:04:2022_16:27:46",
-        mcts_iter=50,
-        mcts_hard_pruning=True
+        GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
+        # agent_name="agent_20:04:2022_21:00:05",
+        mcts_iter=100,
+        # mcts_pruning=True,
+        mcts_hard_pruning=True,
+        heuristic_boost=True,
+        device=device,
     )
 
-    rndPlayer = GomokuLib.Player.RandomPlayer()
-    winners = [None] * 10
-    while not all(winners[-10:]):
-        try:
-            agent.training_loop(n_loops=1, tl_n_games=5, epochs=10, save_all_models=False)
-        except Exception as e:
-            print(f"[ERROR] -> {e}")
-            breakpoint()
+    profiler = cProfile.Profile()
+    profiler.enable()
 
-        # print("New engine run random game to test model until it won 10 times consecutively")
-        # winner = test_engine.run([rndPlayer, agent])
-        # print(f"History -> {winners}")
-        # print(f"Winner between RandomPlayer and RLAgent -> {winner}")
-        # winners.append(winner == agent)
+    agent.training_loop(n_loops=1, tl_n_games=10, epochs=10)
 
-    print(f"This new agent win 10 times consecutively ! -> {agent}")
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats('cumtime')
+    stats.print_stats()
+    stats.dump_stats('tmp_profile_from_script.prof')
 
 def save_load_tests():
     RL_engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
@@ -174,37 +186,31 @@ def random_test():
 
 def agents_comparaison():
 
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
+    gameEngine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
+    agentEngine = GomokuLib.Game.GameEngine.Gomoku(None, 19)
 
-    # model_interface = GomokuLib.AI.Model.ModelInterface(
-    #     GomokuLib.AI.Model.GomokuModel(17, 19, 19),
-    #     GomokuLib.AI.Dataset.Compose([
-    #         GomokuLib.AI.Dataset.ToTensorTransform(),
-    #         GomokuLib.AI.Dataset.AddBatchTransform()
-    #     ])
-    # )
     # mcts = GomokuLib.Algo.MCTSAI(model_interface, pruning=True, iter=1000)
     p1 = GomokuLib.AI.Agent.GomokuAgent(
-        engine,
-        mcts_iter=200,
+        agentEngine,
+        mcts_iter=100,
         # mcts_pruning=True,
         mcts_hard_pruning=True
     )
     # p1 = GomokuLib.Player.RandomPlayer()
 
     p2 = GomokuLib.AI.Agent.GomokuAgent(
-        engine,
-        agent_name="agent_07:04:2022_16:49:51",
-        mcts_iter=200,
+        agentEngine,
+        agent_name="agent_19:04:2022_17:15:09",
+        mcts_iter=100,
         # mcts_pruning=True,
         mcts_hard_pruning=True,
-        mean_forward=True
+        # mean_forward=True,
     )
 
     win_rate = 0
-    n_games = 2
+    n_games = 3
     for i in range(n_games):
-        winner = engine.run([p2, p1])  # White: 0 / Black: 1
+        winner = gameEngine.run([p2, p1])  # White: 0 / Black: 1
         print(f"Players ->\np1: {p1}\np2: {p2}")
         print(f"Game {i}: winner is\n -> {winner}")
         if winner == p2:
@@ -214,6 +220,7 @@ def agents_comparaison():
 if __name__ == '__main__':
     # duel()
     RLmain()
+    # RLtest()
     # save_load_tests()
     # random_test()
     # agents_comparaison()

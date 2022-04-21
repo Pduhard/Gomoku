@@ -13,9 +13,6 @@ from GomokuLib.Player import Human
 
 from GomokuLib.Game.Action import GomokuAction
 
-from GomokuLib.Game.State import GomokuState
-
-
 from .AbstractAlgorithm import AbstractAlgorithm
 from ..Game.GameEngine import GomokuGUI
 from ..Game.GameEngine import Gomoku
@@ -38,35 +35,42 @@ from ..Game.GameEngine import Gomoku
 
 class MCTS(AbstractAlgorithm):
 
-    engine: Gomoku = None
-
-    def __init__(self, c: float = np.sqrt(2), iter: int = 1000) -> None:
-        super().__init__()
+    def __init__(self,
+                 engine: Gomoku,
+                 c: float = np.sqrt(2),
+                 iter: int = 1000
+                 ) -> None:
         """
-            State ne
-            action / state ne
-            policy
-            heuristic (v ou random)
-
             self.states : 
                 Dict of List: 
                     State visit
                     State reward
-                    State/actions visit/reward for each cells (2*19*19)
-                    State/actions amaf visit/reward for each cells (2*19*19)
+                    State/actions: visit/reward for each cells (2*19*19)
                     Actions (1*19*19)
+
         """
+        super().__init__()
+
         self.states: dict = {}
+        if not engine:
+            raise Exception("[MCTS error] No engine passed")
+        self.engine = engine.clone()
         self.c = c
         self.mcts_iter = iter
 
-        self.engine = Gomoku(None, 19)
         self.board_size = self.engine.board_size
         self.brow, self.bcol = self.engine.board_size
         self.cells_count = self.brow * self.bcol
 
+    def __str__(self):
+        return f"Classic MCTS ({self.mcts_iter} iter)"
+
     def __call__(self, game_engine: Gomoku) -> tuple:
-        print("\n[MCTS Object __call__()]\n")
+        """
+            Reward in range [0, 1]
+            Policy in range [0, 1)
+        """
+        print(f"\n[MCTS Object __call__()] -> {self.mcts_iter}\n")
 
         for i in range(self.mcts_iter):
             self.engine.update(game_engine)
@@ -75,25 +79,39 @@ class MCTS(AbstractAlgorithm):
         state_data = self.states[game_engine.state.board.tobytes()]
         sa_n, sa_v = state_data[2]
 
-        policy = sa_v / (sa_n + 1)
-        # print("policy (rewards sum / visit count):\n", policy)
+        self.mcts_policy = sa_v / (sa_n + 1)
+        # print("self.mcts_policy (rewards sum / visit count):\n", self.mcts_policy)
 
-        print(f"MCTS  policy:\n{policy}")
-        print(f"Model policy:\n{state_data[5][0]}")
-        print(f"Model value :\n{state_data[5][1]}")
+        # print(f"MCTS  self.mcts_policy:\n{self.mcts_policy}")
+        # print(f"Model self.mcts_policy:\n{state_data[5][0]}")
+        # print(f"Model value :\n{state_data[5][1]}")
 
         self.engine.update(game_engine)
-        gAction = None
-        while not (gAction and game_engine.is_valid_action(gAction)):
-            gAction = self.selection(policy, state_data)
-            print(f"Ultimate __call__() selection:\n{gAction.action}")
-            # print(f"Ultimate __call__() selection:\n{gAction.action} with policy={policy[gAction.action]}")
+        self.gAction = None
+        while not (self.gAction and game_engine.is_valid_action(self.gAction)):
+            self.gAction = self.selection(self.mcts_policy, state_data)
+            print(f"Ultimate __call__() selection:\n{self.gAction.action}")
+            # print(f"Ultimate __call__() selection:\n{self.gAction.action} with self.mcts_policy={self.mcts_policy[self.gAction.action]}")
 
-        # if np.all(policy == 0):
-        #     print("Be carefull / wtf policy")
-        #     breakpoint()
+        return self.mcts_policy, self.gAction
 
-        return policy, gAction
+    # def get_specific_cell_data(self, action: GomokuAction):
+    #     pass
+
+    def get_state_data(self, engine):
+
+        model_inputs = self.model_interface.prepare(engine)
+        model_policy, model_value = self.model_interface.forward(model_inputs)
+
+        data = {
+            'mcts_state_data': self.states[engine.state.board.tobytes()],
+            'model_policy': model_policy,
+            'model_value': model_value
+        }
+        # if mcts_policy:
+        #     sa_n, sa_v = self.states[engine.state.board.tobytes()][2]
+        #     data['mcts_policy'] = sa_v / (sa_n + 1)
+        return data
 
     def mcts(self, mcts_iter: int):
 
@@ -103,6 +121,7 @@ class MCTS(AbstractAlgorithm):
         self.mcts_idx = self.engine.player_idx
         self.current_board = self.engine.state.board
         statehash = self.current_board.tobytes()
+        self.bestGAction = None
         # print(f"statehash: {statehash.hex()}")
         while statehash in self.states and not self.engine.isover():
 
@@ -113,16 +132,16 @@ class MCTS(AbstractAlgorithm):
             #     breakpoint()
 
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
-            bestGAction = self.selection(policy, state_data)
+            self.bestGAction = self.selection(policy, state_data)
 
-            # print(f"selection {bestGAction.action}")
-            # if not self.engine.is_valid_action(bestGAction):
-            #     print(f"Not a fucking valid action in mcts: {bestGAction.action}")
+            # print(f"selection {self.bestGAction.action}")
+            # if not self.engine.is_valid_action(self.bestGAction):
+            #     print(f"Not a fucking valid action in mcts: {self.bestGAction.action}")
             #     breakpoint()
             #     raise Exception
 
-            path.append(self.new_memory(statehash, bestGAction.action))
-            self.engine.apply_action(bestGAction)
+            path.append(self.new_memory(statehash, self.bestGAction.action))
+            self.engine.apply_action(self.bestGAction)
             self.engine.next_turn()
 
             # if self.engine.isover():
@@ -212,75 +231,38 @@ class MCTS(AbstractAlgorithm):
         state_data[2][..., r, c] += [1, reward]  # update state-action count / value
         # print(f"Backprop reward {reward} within {rewards}")
 
+    def reset(self):
+        self.states = {}
 
     def evaluate(self):
         return self.award_end_game() if self.end_game else self.award()
-
-    def award(self):
-        return self._evaluate_random_rollingout()
 
     def award_end_game(self):
         if self.draw:
             return [0.5, 0.5]
         return [1 if self.win else 0, 1 if not self.win else 0]
 
-    def reset(self):
-        self.states = {}
+    def award(self):
+        return self._evaluate_random_rollingout()
 
     def _evaluate_random_rollingout(self):
 
-        return [0, 0]
-        # actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
-        # actions = np.array(actions).T.reshape(self.cells_count, 2)
-        #
-        # self.mcts_idx = self.engine.player_idx
-        # while not self.engine.isover():
-        #
-        #     np.random.shuffle(actions)
-        #     i = 0
-        #     while not self.engine.is_valid_action(GomokuAction(*actions[i])):
-        #         i += 1
-        #
-        #     self.engine.apply_action(GomokuAction(*actions[i]))
-        #     self.engine.next_turn()
-        #
-        # self.end_game = self.engine.isover()
-        # self.win = self.mcts_idx == self.engine.winner
-        # self.draw = self.engine.winner == -1
-        # return self.award_end_game()
-
-
-
-
-    # def heuristic(self, board: np.ndarray):
-
-    #     # board = np.ones_like(board)
-    #     count = np.sum(board, axis=(1, 2))
-    #     # print(count.shape, count)
-    #     countscoef = np.nan_to_num(count / np.sum(count))
-
-    #     # coords = board[board != 0]
-    #     # coords = np.transpose(np.nonzero(board))
-    #     coords = (
-    #         np.argwhere(board[0]) - self.bs // 2,
-    #         np.argwhere(board[1]) - self.bs // 2
-    #     )
-    #     # coord = board[board.astype(np.bool)]
-    #     # print(board.shape, board)
-    #     # print("coords: ", coords)
-    #     # print("coord")
-
-    #     dists = np.nan_to_num([
-    #         np.mean(np.sum(np.abs(coords[0]), axis=-1)),
-    #         np.mean(np.sum(np.abs(coords[1]), axis=-1))
-    #     ])
-
-    #     # dists1 = np.sum(abs(coords[1]), axis=0)
-    #     # print("dists :", dists)
-
-    #     distscoef = np.nan_to_num(dists / np.sum(dists))
-    #     # print("distcoef: ", distscoef)
-    #     # print("countcoef: ", countscoef)
-    #     # exit(0)
-
-    #     return (countscoef + distscoef) / 2
+        return [0.5, 0.5]
+    #     actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
+    #     actions = np.array(actions).T.reshape(self.cells_count, 2)
+    #
+    #     self.mcts_idx = self.engine.player_idx
+    #     while not self.engine.isover():
+    #
+    #         np.random.shuffle(actions)
+    #         i = 0
+    #         while not self.engine.is_valid_action(GomokuAction(*actions[i])):
+    #             i += 1
+    #
+    #         self.engine.apply_action(GomokuAction(*actions[i]))
+    #         self.engine.next_turn()
+    #
+    #     self.end_game = self.engine.isover()
+    #     self.win = self.mcts_idx == self.engine.winner
+    #     self.draw = self.engine.winner == -1
+    #     return self.award_end_game()

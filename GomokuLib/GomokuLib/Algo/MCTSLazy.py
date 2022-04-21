@@ -8,6 +8,9 @@ class MCTSLazy(MCTS):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
+    def __str__(self):
+        return f"MCTS with: progressive/Lazy valid action checking ({self.mcts_iter} iter)"
+
     def get_actions(self) -> np.ndarray:
         return self.engine.state.full_board ^ 1
 

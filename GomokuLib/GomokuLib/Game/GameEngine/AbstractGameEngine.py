@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 class AbstractGameEngine(metaclass=ABCMeta):
 
     def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]], **kwargs) -> None:
+        self.players = players
         if players:
             for p in players:
                 p.init_engine(self)

@@ -5,7 +5,19 @@ from .MCTS import MCTS
 class MCTSAMAF(MCTS):
 
     def __init__(self, *args, **kwargs) -> None:
+        """
+            self.states :
+                Dict of List:
+                    State visit
+                    State reward
+                    State/actions visit/reward for each cells (2*19*19)
+                    Actions (1*19*19)
+                    State/actions amaf visit/reward for each cells (2*19*19)
+        """
         super().__init__(*args, **kwargs)
+
+    def __str__(self):
+        return f"MCTS with: Action-Move As First ({self.mcts_iter} iter)"
 
     def get_quality(self, state_data: list, mcts_iter: int, **kwargs) -> np.ndarray:
         """
@@ -39,7 +51,7 @@ class MCTSAMAF(MCTS):
 
     def backpropagation(self, path: list, rewards: list):
 
-        self.amaf_masks = np.zeros((2, 2, self.brow, self.bcol))
+        self.amaf_masks = np.zeros((2, 2, self.brow, self.bcol))    # sAMAF_v and sAMAF_n for 2 players
         super().backpropagation(path, rewards)
 
     def backprop_memory(self, memory: tuple, rewards: list):

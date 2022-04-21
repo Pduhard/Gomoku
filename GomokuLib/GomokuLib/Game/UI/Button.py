@@ -21,6 +21,7 @@ class Button:
         if (event.pos[0] < self.ox or event.pos[0] > self.ox + self.dx
             or event.pos[1] < self.oy or event.pos[1] > self.oy + self.dy):
             return None
+        print(f"Click ! Code: {self.event_code}")
         return {
             'code': self.event_code,
         }
@@ -33,6 +34,6 @@ class Button:
         pygame.draw.rect(self.win, self.color, button)
         # self.win.blit(self.button, (self.ox + x - self.csx, self.oy + y - self.csy))
 
-    def draw(self, *args, **kwargs):
+    def draw(self, **kwargs):
         pass
         # on_off_btn = pygame.Rect(self.panelx + marginx, self.panely + marginy, self.on_off_btn_width)

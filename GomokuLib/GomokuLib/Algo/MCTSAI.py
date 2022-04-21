@@ -5,6 +5,10 @@ from .MCTSAMAFLazy import MCTSAMAFLazy
 from .MCTSLazy import MCTSLazy
 from .MCTS import MCTS
 from ..AI.Model.ModelInterface import ModelInterface
+from GomokuLib.Game.GameEngine.Gomoku import Gomoku
+
+from GomokuLib.Game.Rules.Capture import Capture
+from GomokuLib.Game.Rules.BasicRule import njit_is_align
 
 
 def get_neighbors_mask(board):
@@ -55,28 +59,51 @@ def get_neighbors_mask(board):
 # 10  0
 # 11  0
 
+class MCTSAI(MCTSLazy):
 # class MCTSAI(MCTSAMAFLazy):
-class MCTSAI(MCTSAMAFLazy):
 
-    # def __init__(self, model) -> None:
-    def __init__(self, model_interface: ModelInterface,
+    def __init__(self, engine: Gomoku,
+                 model_interface: ModelInterface,
                  pruning=False, hard_pruning=False,
+                 model_boost=4, heuristic_boost=False,
                  *args, **kwargs) -> None:
-
-        super().__init__(*args, **kwargs)
+        """
+            self.states :
+                Dict of List:
+                    State visit
+                    State reward
+                    State/actions visit/reward for each cells (2*19*19)
+                    Actions (19*19)
+                    State/actions amaf visit/reward for each cells (2*19*19)
+                    model_policy/model_value [(19*19), (1,)]
+        """
+        super().__init__(engine=engine, *args, **kwargs)
         self.model_interface = model_interface
         self.get_exp_rate = self._get_exp_rate_pruned if pruning or hard_pruning else self._get_exp_rate
         self.hard_pruning = hard_pruning
 
+        self.model_boost = model_boost
+        self.heuristic_boost = heuristic_boost
+
+    def __str__(self):
+        return f"MCTS with: Action-Move As First | progressive/Lazy valid action checking | Deep Neural Network for policy and rewards ({self.mcts_iter} iter)"
+
+    # def __call__(self, game_engine: Gomoku, *args, **kwargs):
+    #     ret = super().__call__(game_engine, *args, **kwargs)
+    #
+    #     model_inputs = self.model_interface.prepare(game_engine.player_idx, game_engine.get_history())
+    #     self.model_policy, self.model_value = self.model_interface.forward(model_inputs)
+    #     return ret
+
     def _get_model_policies(self) -> tuple:
-        history = self.engine.get_history()
+        # history = self.engine.get_history()
 
         # Link history object to model interface in the constructor ? Always same address ?
-        inputs = self.model_interface.prepare(self.engine.player_idx, self.engine.get_history())
+        inputs = self.model_interface.prepare(self.engine)
         policy, value = self.model_interface.forward(inputs)
-        # breakpoint()
+
         value = (value + 1) / 2
-        return policy, (value, 1 - value)
+        return policy, [value, 1 - value]
 
     def _get_pruning(self):
 
@@ -97,7 +124,9 @@ class MCTSAI(MCTSAMAFLazy):
             exploration_rate(s, a) =
                 policy(s, a) * c * sqrt( visits(s) ) / (1 + visits(s, a))
         """
-        policy, _ = state_data[5]
+        policy, _ = state_data[len(state_data) - 1]
+        # policy, _ = state_data[4]
+        # policy, _ = state_data[5]
         return policy * super().get_exp_rate(state_data)
 
     def _get_exp_rate_pruned(self, state_data: list, **kwargs) -> np.ndarray:
@@ -112,10 +141,29 @@ class MCTSAI(MCTSAMAFLazy):
 
     def expand(self):
         memory = super().expand()
-        memory.append(self._get_model_policies())
+        p, v = self._get_model_policies()
+
+        if self.heuristic_boost:
+            v[0] = self.heuristic(v[0])
+            v[1] = 1 - v[0]
+
+        memory.append((p, v))
         return memory
 
     def award(self) -> tuple:
-        return self.states[self.current_board.tobytes()][5][1]
-        # breakpoint()
-        # return self.states[self.current_board.tobytes()][4][1]
+        state_data = self.states[self.current_board.tobytes()]
+        id = len(state_data) - 1
+        return state_data[id][1]
+
+    def heuristic(self, value):
+        """
+            Prévenir à 1 coup de la victoire
+                Si 4 captures
+                Si 5 aligné
+        """
+
+        if self.bestGAction and njit_is_align(self.engine.state.board, *self.bestGAction.action, *self.engine.board_size, p_id=0, n_align=5):
+            return 1
+        # if self.engine.get_captures()[0] == 4:
+        #     return 0.75
+        return value
