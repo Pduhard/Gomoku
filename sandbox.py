@@ -114,11 +114,12 @@ def RLmain():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
         GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
-        # agent_name="agent_20:04:2022_21:00:05",
+        agent_name="agent_21:04:2022_18:19:35",
         mcts_iter=100,
         # mcts_pruning=True,
         mcts_hard_pruning=True,
         heuristic_boost=True,
+        mean_forward=True,
         device=device,
     )
 
@@ -200,7 +201,7 @@ def agents_comparaison():
 
     p2 = GomokuLib.AI.Agent.GomokuAgent(
         agentEngine,
-        agent_name="agent_19:04:2022_17:15:09",
+        agent_name="agent_21:04:2022_18:19:35",
         mcts_iter=100,
         # mcts_pruning=True,
         mcts_hard_pruning=True,

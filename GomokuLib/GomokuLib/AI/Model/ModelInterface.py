@@ -56,7 +56,7 @@ class ModelInterface:
         else:
             self.forward = self._forward
 
-    def _mean_forward(self, inputs: np.ndarray) -> tuple:
+    def _old_mean_forward(self, inputs: np.ndarray) -> tuple:
 
         policies = np.ndarray((len(self.mean_transforms), self.width, self.height), dtype=np.float)
         values = np.ndarray(len(self.mean_transforms), dtype=np.float)
@@ -72,6 +72,30 @@ class ModelInterface:
 
         # print(f"Mean value = {np.mean(values)}\tvalues -> {values}")
         return np.mean(policies, axis=0), np.mean(values)
+
+    def _mean_forward(self, inputs: np.ndarray) -> tuple:
+
+        all_transforms = []
+        for i, compose in enumerate(self.mean_transforms):
+            x = compose(inputs)
+            all_transforms.append(self.model_transforms(x))
+        #
+        # all_transforms = [
+        #     self.model_transforms(compose(inputs))
+        #     for compose in self.mean_transforms
+        # ]
+
+        x = torch.cat(all_transforms, 0)
+        policies, values = self.model.forward(x)
+
+        policy = torch.mean(policies, 0, keepdim=True)
+        value = torch.mean(values, 0)
+
+        policy = self.model_transforms.invert(policy)
+        policy = compose.invert(policy)
+
+        # print(f"Mean value = {np.mean(values)}\tvalues -> {values}")
+        return policy, float(value)
 
     def _forward(self, inputs: np.ndarray) -> tuple:
 

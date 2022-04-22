@@ -63,7 +63,7 @@ class UIManager:
         self.main_board = Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size)
         self.components = [
             self.main_board,
-            Display(self.win, origin=(1000, 400), size=(300, 300)),
+            Display(self.win, origin=(1000, 400), size=(450, 300)),
             Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255)),
             Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0)),
             Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255)),

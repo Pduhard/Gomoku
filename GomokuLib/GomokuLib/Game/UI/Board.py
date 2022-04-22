@@ -39,6 +39,10 @@ class Board:
             return None
         # mouse_pos -= np.ndarray(self.ox, self.oy)
         x, y = (np.array(mouse_pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
+        if x > self.board_size[0]:
+            x = self.board_size[0] - 1
+        if y > self.board_size[1]:
+            y = self.board_size[1] - 1
         return x, y
 
     def mouse_click(self, event):
@@ -116,8 +120,8 @@ class Board:
         for x, y in stones:
             self.win.blit(self.blackstone, (self.ox + x - self.csx, self.oy + y - self.csy))
 
-        # if hints_data:
-        #     self.draw_hints(board, hints_data)
+        if hints_data and 'mcts_state_data' in hints_data:
+            self.draw_stats(board, hints_data)
 
     def switch_hint(self):
         self.hint_type += 1
@@ -127,8 +131,7 @@ class Board:
     def draw_hints(self, board: np.ndarray, hints_data: dict):
 
         # print(f"Board.draw() -> hints_data: {hints_data}")
-        s_n, s_v, (sa_n, sa_v), actions = hints_data['mcts_state_data'][:4]
-        mcts_value = np.nan_to_num(s_v / s_n)
+        (sa_n, sa_v), actions = hints_data['mcts_state_data'][2:4]
 
         if self.hint_type == 0:
             self.draw_model_hints(hints_data['model_policy'])
@@ -136,6 +139,11 @@ class Board:
             self.draw_mcts_hints(np.nan_to_num(sa_v / sa_n))
         else:
             self.draw_actions(actions)
+
+    def draw_stats(self, board: np.ndarray, hints_data: dict):
+
+        s_n, s_v, (sa_n, sa_v) = hints_data['mcts_state_data'][:3]
+        mcts_value = np.nan_to_num(s_v / s_n)
 
         i = 0
         y = 0

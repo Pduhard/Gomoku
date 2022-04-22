@@ -315,7 +315,7 @@ class GomokuAgent(Bot):
 
     def _dataset_update(self):
 
-        # print(f"self.dataset: {self.dataset}")
+        print(f"Nbr new samples: {len(self.memory)}")
         # print(f"self.memory: {self.memory}")
 
         self.dataset.add(self.memory)
@@ -423,7 +423,7 @@ class GomokuAgent(Bot):
             self.dataset.add(cp.get('samples', []))
             self.dataset.name = cp.get('name', 'Unnamed dataset')
 
-        print(f"Load dataset of {cp.get('length', len(cp.get('samples', [])))} samples ->")
+        print(f"Load dataset of {len(self.dataset)} samples ->")
         if 'samples' in cp:
             del cp['samples']
         # print(cp)
