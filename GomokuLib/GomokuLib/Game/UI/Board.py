@@ -39,9 +39,9 @@ class Board:
             return None
         # mouse_pos -= np.ndarray(self.ox, self.oy)
         x, y = (np.array(mouse_pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
-        if x > self.board_size[0]:
+        if x >= self.board_size[0]:
             x = self.board_size[0] - 1
-        if y > self.board_size[1]:
+        if y >= self.board_size[1]:
             y = self.board_size[1] - 1
         return x, y
 

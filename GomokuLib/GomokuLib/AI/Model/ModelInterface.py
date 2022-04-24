@@ -21,7 +21,8 @@ class ModelInterface:
 
         self.name = name
         self.device = device
-        self.model = model or GomokuModel(5, 19, 19, resnet_depth=2, device=self.device) # Attention un kernel_size différent casse tout !
+        # Attention un kernel_size différent casse tout !
+        self.model = model or GomokuModel(5, 19, 19, resnet_depth=2, device=self.device)
         self.model.to(self.device)
 
         self.channels, self.width, self.height = self.model.input_shape
@@ -56,43 +57,44 @@ class ModelInterface:
         else:
             self.forward = self._forward
 
-    def _old_mean_forward(self, inputs: np.ndarray) -> tuple:
-
-        policies = np.ndarray((len(self.mean_transforms), self.width, self.height), dtype=np.float)
-        values = np.ndarray(len(self.mean_transforms), dtype=np.float)
-        for i, compose in enumerate(self.mean_transforms):
-            x = compose(inputs)
-            x = self.model_transforms(x)
-
-            policy, value = self.model.forward(x)
-
-            policy = self.model_transforms.invert(policy)
-            policies[i] = compose.invert(policy)
-            values[i] = float(value)
-
-        # print(f"Mean value = {np.mean(values)}\tvalues -> {values}")
-        return np.mean(policies, axis=0), np.mean(values)
+    # def _old_mean_forward(self, inputs: np.ndarray) -> tuple:
+    #
+    #     policies = np.ndarray((len(self.mean_transforms), self.width, self.height), dtype=np.float)
+    #     values = np.ndarray(len(self.mean_transforms), dtype=np.float)
+    #     for i, compose in enumerate(self.mean_transforms):
+    #         x = compose(inputs)
+    #         x = self.model_transforms(x)
+    #
+    #         policy, value = self.model.forward(x)
+    #
+    #         policy = self.model_transforms.invert(policy)
+    #         policies[i] = compose.invert(policy)
+    #         values[i] = float(value)
+    #
+    #     # print(f"Mean value = {np.mean(values)}\tvalues -> {values}")
+    #     return np.mean(policies, axis=0), np.mean(values)
 
     def _mean_forward(self, inputs: np.ndarray) -> tuple:
 
-        all_transforms = []
-        for i, compose in enumerate(self.mean_transforms):
-            x = compose(inputs)
-            all_transforms.append(self.model_transforms(x))
-        #
-        # all_transforms = [
-        #     self.model_transforms(compose(inputs))
-        #     for compose in self.mean_transforms
-        # ]
+        # all_transforms = []
+        # for i, compose in enumerate(self.mean_transforms):
+        #     x = compose(inputs)
+        #     all_transforms.append(self.model_transforms(x))
+        all_transforms = [
+            self.model_transforms(compose(inputs))
+            for compose in self.mean_transforms
+        ]
 
         x = torch.cat(all_transforms, 0)
         policies, values = self.model.forward(x)
+        policies = torch.split(policies, 1)
 
-        policy = torch.mean(policies, 0, keepdim=True)
-        value = torch.mean(values, 0)
-
-        policy = self.model_transforms.invert(policy)
-        policy = compose.invert(policy)
+        policies = [
+            compose.invert(self.model_transforms.invert(policy))
+            for compose, policy in zip(self.mean_transforms, policies)
+        ]
+        policy = np.mean(policies, 0)
+        value = torch.mean(values)
 
         # print(f"Mean value = {np.mean(values)}\tvalues -> {values}")
         return policy, float(value)

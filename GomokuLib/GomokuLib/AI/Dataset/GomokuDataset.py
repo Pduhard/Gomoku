@@ -1,4 +1,6 @@
 import os
+
+import numpy as np
 import torch
 from datetime import datetime
 
@@ -7,7 +9,9 @@ from ..Dataset.DatasetTransforms import Compose, HorizontalTransform, VerticalTr
 
 class GomokuDataset(torch.utils.data.Dataset):
 
-    def __init__(self, transforms: Compose = None, data: list = [], name: str = "Default GomokuDataset name"):
+    def __init__(self, transforms: Compose = None,
+                 data: list = [],
+                 name: str = "Default GomokuDataset name"):
 
         self.name = name
         self.transforms = transforms or Compose([
@@ -36,9 +40,16 @@ class GomokuDataset(torch.utils.data.Dataset):
 
     def add(self, samples: list):
         # self.data.extend(samples)
+
         # Add all samples we can create with ?
         for s in samples:
             self.data.extend([  # Add new samples made with each sample
                 (s[0], t(s[1]), t.repeat(s[2]), s[3]) # Create new sample with this Compose
                 for t in self.all_data_transforms
             ])
+
+    def bounded_add(self, samples: list, max_length: int):
+
+        self.add(samples)
+        if len(self.data) > max_length:
+            self.data = self.data[len(self.data) - max_length:]

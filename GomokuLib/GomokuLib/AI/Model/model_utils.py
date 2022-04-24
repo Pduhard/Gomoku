@@ -19,7 +19,8 @@ class ModelUtils:
             nn.Conv2d(int(in_channels), int(out_channels), int(kernel_size), stride=int(stride), padding=int(padding)),
             nn.BatchNorm2d(int(out_channels)),
             nn.ReLU()
-        ).to(device)
+        )
+        # ).to(device)
 
     @staticmethod
     def build_residual_layer(channels, kernel_size, device='cpu'):
@@ -34,7 +35,8 @@ class ModelUtils:
     @staticmethod
     def build_resnet(depth, channels, kernel_size, device='cpu'):
         res_seq = [
-            ModelUtils.build_residual_layer(channels, kernel_size, device) for _ in range(depth)
+            ModelUtils.build_residual_layer(channels, kernel_size, device)
+            for _ in range(depth)
         ]
 
         def forward(x):

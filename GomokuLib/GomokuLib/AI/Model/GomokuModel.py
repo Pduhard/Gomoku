@@ -10,7 +10,8 @@ def build_policy_head_net(channels, width, height, device='cpu'):
         torch.nn.ReLU(),
         torch.nn.Flatten(),
         torch.nn.Linear(2 * width * height, width * height)
-    ).to(device)
+    )
+    # ).to(device)
 
 
 def build_value_head_net(channels, width, height, device='cpu'):
@@ -23,7 +24,8 @@ def build_value_head_net(channels, width, height, device='cpu'):
         torch.nn.ReLU(),
         torch.nn.Linear(256, 1),
         torch.nn.Tanh(),
-    ).to(device)
+    )
+    # ).to(device)
 
 
 class GomokuModel(torch.nn.Module):
