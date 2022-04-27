@@ -108,9 +108,6 @@ class MCTS(AbstractAlgorithm):
             'model_policy': model_policy,
             'model_value': model_value
         }
-        # if mcts_policy:
-        #     sa_n, sa_v = self.states[engine.state.board.tobytes()][2]
-        #     data['mcts_policy'] = sa_v / (sa_n + 1)
         return data
 
     def mcts(self, mcts_iter: int):
@@ -127,10 +124,6 @@ class MCTS(AbstractAlgorithm):
 
             state_data = self.states[statehash]
 
-            # if state_data is None:
-            #     print("UNEXPECTED STATE DATA")
-            #     breakpoint()
-
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
             self.bestGAction = self.selection(policy, state_data)
 
@@ -143,10 +136,6 @@ class MCTS(AbstractAlgorithm):
             path.append(self.new_memory(statehash, self.bestGAction.action))
             self.engine.apply_action(self.bestGAction)
             self.engine.next_turn()
-
-            # if self.engine.isover():
-            #     print('its over in mcts')
-                # exit(0)
 
             self.current_board = self.engine.state.board
             statehash = self.current_board.tobytes()
@@ -172,14 +161,14 @@ class MCTS(AbstractAlgorithm):
         """
             quality(s, a) = rewards(s, a) / (visits(s, a) + 1)
         """
-        _, _, (sa_n, sa_v), _ = state_data[:4]
+        _, _, (sa_n, sa_v) = state_data[:3]
         return sa_v / (sa_n + 1)
 
     def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
         """
             exploration_rate(s, a) = c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
         """
-        s_n, _, (sa_n, _), _ = state_data[:4]
+        s_n, _, (sa_n, _) = state_data[:3]
         return self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
 
     def get_policy(self, state_data: list, **kwargs) -> np.ndarray:

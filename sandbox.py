@@ -9,13 +9,30 @@ import cProfile, pstats
 """
 
     TODO (Important):
+
+        Nbr de best agents
+        Ajouter le 1er coup random dans la comparaison
+            Sinon à peut près les même game se font
+
+        Lazy vraiment opti ? verif avec le dtime
+            Si c'est possible is_valid_action est appelle a chaque fois !
+            1 seule fois si jamais l'action est impossible
+            Essayer de mettre 3 valeurs differentes ?
+            Ne pas regenerer les gomokuAction à chaque fois !
         
-        Enlever les captures du réseau
+        # Enlever les captures du réseau
         Save pruning masks in state_data
         
         .to(device) -> Ou les mettre ?
+        Essayer de forcer lexploration en prenant au moins une fois chaque actions 
 
     TODO (Pas très important):
+
+        UI
+            'mode' -> Ajouter le i/n
+            Ajouter 'Total time'
+            'dtime' -> 'turn time'
+            'Total smples' ajouter le nbr total genéré depuis le debut
 
         Faire un config file avec toute les constantes du RL
         afficher le nbr de train / epochs effectué / nbr de best model
@@ -29,7 +46,12 @@ import cProfile, pstats
 
 
     A faire/essayer ?:
-        
+    
+        Cancel les games avec plus de n coups ?
+    
+        Les 'last_samples' sont reset à chaque nouveau model ?
+            (Deja plus ou moins le cas en fonctions des parm de l'agent)
+    
         Uniformiser les petites policy du réseau:
             Si pas pertinent return 0 sinon la policy
 
@@ -42,6 +64,7 @@ import cProfile, pstats
         coef sur la policy du network pour le debut ?
         Filtre de 5x5 dans le CNN ?
 
+        Heuristic ne sert à rien sans les regles !
 
     Bug:        
         
@@ -56,6 +79,7 @@ import cProfile, pstats
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Device selected: {device}")
+# device = 'cpu'
 
 def duel():
 
@@ -84,7 +108,7 @@ def RLtest():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
         GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
-        mcts_iter=10,
+        mcts_iter=50,
         mcts_hard_pruning=True,
         heuristic_boost=True,
         mean_forward=True,
@@ -94,26 +118,37 @@ def RLtest():
     agent.model_comparison_mcts_iter = 10
     agent.samples_per_epoch = 50
     agent.dataset_max_length = 100
-    agent.training_loop(n_loops=2, tl_n_games=2, epochs=1)
+    agent.training_loop(
+        nbr_tl=2,
+        nbr_tl_before_cmp=1,
+        nbr_games_per_tl=2,
+        epochs=10
+    )
 
 def RLmain():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
+        # GomokuLib.Game.GameEngine.Gomoku(rules=[]),
         GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
         # agent_name="agent_23:04:2022_18:14:01",
         mcts_iter=50,
         # mcts_pruning=True,
         mcts_hard_pruning=True,
         heuristic_boost=True,
-        mean_forward=True,
+        mean_forward=False,
         device=device,
     )
 
     # profiler = cProfile.Profile()
     # profiler.enable()
 
-    agent.training_loop(n_loops=-1, tl_n_games=5, epochs=10)
-
+    agent.training_loop(
+        nbr_tl=-1,
+        nbr_tl_before_cmp=4,
+        nbr_games_per_tl=5,
+        epochs=10
+    )
+    #
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('cumtime')
     # stats.print_stats()
@@ -205,8 +240,8 @@ def agents_comparaison():
     print(f"last version win rate: {win_rate / n_games}")
 
 if __name__ == '__main__':
-    duel()
-    # RLmain()
+    # duel()
+    RLmain()
     # RLtest()
     # save_load_tests()
     # random_test()

@@ -4,6 +4,7 @@ from typing import Union
 from time import sleep
 import numpy as np
 import pygame
+import time
 
 from ..GameEngine.Gomoku import Gomoku
 
@@ -63,7 +64,7 @@ class UIManager:
         self.main_board = Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size)
         self.components = [
             self.main_board,
-            Display(self.win, origin=(1000, 400), size=(450, 300)),
+            Display(self.win, origin=(1000, 350), size=(450, 400)),
             Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255)),
             Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0)),
             Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255)),
@@ -122,8 +123,16 @@ class UIManager:
                 print(input, x, y, self.board_clicked_action)
 
             elif code == 'game-snapshot':
+
+                input['data']['time'] = time.time()
+                if len(self.game_snapshots):
+                    prev_sp_time = self.game_snapshots[-1]['time']
+                else:
+                    prev_sp_time = time.time()
+                input['data']['dtime'] = input['data']['time'] - prev_sp_time
+
                 self.game_snapshots.append(input['data'])
-                print(f"New snapshot receive, pause={self.pause}")
+                print(f"New snapshot receive, pause={self.pause}\t, dtime={input['data']['dtime']}")
                 if not self.pause and self.current_snapshot_idx < len(self.game_snapshots) - 1:
                     self.current_snapshot_idx += 1
 
@@ -164,14 +173,18 @@ class UIManager:
                     'data': self.board_clicked_action,
                 })
 
-        hints_data = self.game_snapshots[self.current_snapshot_idx]['hints_data'] if len(self.game_snapshots) else None
-        for o in self.components:
-            o.draw(
-                **self.game_data,
-                board=self.engine.state.board,
-                player_idx=self.engine.player_idx,
-                hints_data=hints_data
-            )
+        if len(self.game_snapshots):
+            sp = self.game_snapshots[self.current_snapshot_idx]
+            hints_data = sp['hints_data']
+            dtime = sp['dtime']
+            for o in self.components:
+                o.draw(
+                    **self.game_data,
+                    board=self.engine.state.board,
+                    player_idx=self.engine.player_idx,
+                    hints_data=hints_data,
+                    dtime=dtime
+                )
 
         pygame.display.flip()
 

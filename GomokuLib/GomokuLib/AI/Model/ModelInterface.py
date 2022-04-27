@@ -44,10 +44,14 @@ class ModelInterface:
             Compose([HorizontalTransform(1), VerticalTransform(1)]),
         ]
 
-        self.history_size = self.channels - 3
+        self.history_size = self.channels - 1       # Without captures
+        # self.history_size = self.channels - 3     # With capture
         self.zero_fill = np.zeros((self.history_size, 2, self.width, self.height), dtype=np.float)
         self.ones = np.ones((1, self.width, self.height), dtype=np.float)
         self.zeros = np.zeros((1, self.width, self.height), dtype=np.float)
+
+    def __str__(self):
+        return self.name
 
     def set_mean_forward(self, activation):
 
@@ -76,10 +80,6 @@ class ModelInterface:
 
     def _mean_forward(self, inputs: np.ndarray) -> tuple:
 
-        # all_transforms = []
-        # for i, compose in enumerate(self.mean_transforms):
-        #     x = compose(inputs)
-        #     all_transforms.append(self.model_transforms(x))
         all_transforms = [
             self.model_transforms(compose(inputs))
             for compose in self.mean_transforms
@@ -115,7 +115,7 @@ class ModelInterface:
     def prepare(self, engine: Gomoku) -> np.ndarray:
 
         history = engine.get_history()
-        captures = engine.get_captures()
+        # captures = engine.get_captures()
 
         history_length = len(history)
         if history_length < self.history_size:
@@ -130,9 +130,14 @@ class ModelInterface:
             p0,
             p1,
             self.ones if history_length % 2 == 0 else self.zeros,
-            np.full(p0.shape, captures[0]),
-            np.full(p1.shape, captures[1])
         ))
+        # inputs = np.concatenate((
+        #     p0,
+        #     p1,
+        #     self.ones if history_length % 2 == 0 else self.zeros,
+        #     np.full(p0.shape, captures[0]),
+        #     np.full(p1.shape, captures[1])
+        # ))
         return inputs
         # return inputs.astype(np.float)
 

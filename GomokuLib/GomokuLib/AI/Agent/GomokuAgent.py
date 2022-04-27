@@ -88,7 +88,7 @@ class GomokuAgent(Bot):
         )
         super().__init__(self.best_model_mcts)         # Assign algo to best model mcts
 
-        self.training_loops = 0
+        self.training_loops = 0 # useless ?
         self.games_played = 0
         self.samples_used_to_train = 0
         self.memory = []
@@ -99,11 +99,11 @@ class GomokuAgent(Bot):
         self.v_loss = 0
 
         # Put these config numbers in an agent_config file
-        self.samples_per_epoch = 1000
+        self.samples_per_epoch = 1500
         self.dataset_max_length = 4000
         self.last_n_indices = np.arange(-1, -self.dataset_max_length - 1, -1)
-        self.self_play_n_games = 10
-        self.epochs = 10
+        # self.self_play_n_games = 10
+        # self.epochs = 10
         self.evaluation_n_games = 6
         self.model_comparison_mcts_iter = 100
 
@@ -119,7 +119,11 @@ class GomokuAgent(Bot):
     #     self.best_model_interface.set_mean_forward(mean_forward)
 
     def _init_model_comparaison_game(self):
-        self.RLengine.init_game(mode="Model evaluation", p1=str(self.best_model_interface), p2=str(self.model_interface))
+        self.RLengine.init_game(
+            mode="Model evaluation",
+            p1="Old one | " + str(self.best_model_interface),
+            p2="New one | " + str(self.model_interface)
+        )
 
         self.mcts.reset()
         self.mcts.mcts_pruning = True
@@ -165,8 +169,8 @@ class GomokuAgent(Bot):
                 mem[3] = torch.FloatTensor([reward])
                 reward *= -0.95
 
-        if tl_n_games is None:
-            tl_n_games = self.self_play_n_games
+        # if tl_n_games is None:
+        #     tl_n_games = self.self_play_n_games
 
         game_i = 0
         self.memory = []
@@ -319,26 +323,27 @@ class GomokuAgent(Bot):
         self.dataset.bounded_add(self.memory, self.dataset_max_length)
         print(f"Update Dataset, length={len(self.dataset)} (Max: {self.dataset_max_length})")
 
-    def training_loop(self, n_loops: int = -1, tl_n_games: int = None, epochs: int = None):
+    def training_loop(self, nbr_tl: int = -1, nbr_tl_before_cmp: int = 4, nbr_games_per_tl: int = 5, epochs: int = 10):
+    # def training_loop(self, n_loops: int = -1, tl_n_games: int = None, epochs: int = None):
 
         if self.RLengine is None:
             raise Exception("No engine pass to this agent")
-        if epochs is None:
-            epochs = self.epochs
+        # if epochs is None:
+        #     epochs = self.epochs
 
-        t_loop = 0
-        while n_loops == -1 or t_loop < n_loops:
+        i_tl = 0
+        while nbr_tl == -1 or i_tl < nbr_tl:
 
-            print(f"Agent start new training loop, t_loop={t_loop}/{n_loops} (Total={self.training_loops}) ->\n")
-            self._self_play(tl_n_games)
+            print(f"Agent start new training loop, training loop={i_tl}/{nbr_tl} (Total={self.training_loops}) ->\n")
+            self._self_play(nbr_games_per_tl)
             self._dataset_update()
 
             self._train(epochs)
             self.training_loops += 1
 
-            if t_loop and t_loop % 4 == 0:
+            i_tl += 1
+            if i_tl % nbr_tl_before_cmp == 0:
                 self._model_inhibition()
-            t_loop += 1
 
     def save(self, path: str = None):
 

@@ -1,6 +1,8 @@
+import datetime
+
 import pygame
 import numpy as np
-
+import time
 
 class Display:
 
@@ -21,7 +23,7 @@ class Display:
         screen = pygame.Rect(self.origin, self.size)
         pygame.draw.rect(self.win, (200, 200, 200), screen)
 
-    def draw(self, player_idx: int, hints_data: dict, mode: str = '_', p1: str = '_', p2: str = '_', **kwargs):
+    def draw(self, player_idx: int, hints_data: dict, dtime: time.time, mode: str = '_', p1: str = '_', p2: str = '_', **kwargs):
 
         pygame.draw.rect(self.win, (200, 200, 200), self.square)
 
@@ -36,6 +38,7 @@ class Display:
                 'Black': p2,
                 'Waiting': 'Black' if player_idx else 'White',
                 'Turn': hints_data.get('turn', '_'),
+                'dtime (s)': dtime,
                 'Winner': winner,
                 'Total self-play': hints_data.get('self_play', '_'),
                 'Total samples': hints_data.get('dataset_length', '_')

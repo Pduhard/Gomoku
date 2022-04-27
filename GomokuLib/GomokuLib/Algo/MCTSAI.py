@@ -88,13 +88,6 @@ class MCTSAI(MCTSLazy):
     def __str__(self):
         return f"MCTS with: Action-Move As First | progressive/Lazy valid action checking | Deep Neural Network for policy and rewards ({self.mcts_iter} iter)"
 
-    # def __call__(self, game_engine: Gomoku, *args, **kwargs):
-    #     ret = super().__call__(game_engine, *args, **kwargs)
-    #
-    #     model_inputs = self.model_interface.prepare(game_engine.player_idx, game_engine.get_history())
-    #     self.model_policy, self.model_value = self.model_interface.forward(model_inputs)
-    #     return ret
-
     def _get_model_policies(self) -> tuple:
         # history = self.engine.get_history()
 
