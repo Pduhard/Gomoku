@@ -10,6 +10,15 @@ import cProfile, pstats
 
     TODO (Important):
 
+        Model à vriller à cause de la modif de l'historique ? -> OUI
+
+        Pruning with 0 and 0.5 to replace policy
+        Heuristics to replace value
+            Test Human vs MCTS
+            Create dataset with MCTS
+
+        Test AMAF
+
         Nbr de best agents
         Ajouter le 1er coup random dans la comparaison
             Sinon à peut près les même game se font
@@ -29,7 +38,6 @@ import cProfile, pstats
     TODO (Pas très important):
 
         UI
-            'mode' -> Ajouter le i/n
             Ajouter 'Total time'
             'dtime' -> 'turn time'
             'Total smples' ajouter le nbr total genéré depuis le debut
@@ -46,8 +54,8 @@ import cProfile, pstats
 
 
     A faire/essayer ?:
-    
-        Cancel les games avec plus de n coups ?
+
+        Cancel les games avec plus de n coups ? boff...
     
         Les 'last_samples' sont reset à chaque nouveau model ?
             (Deja plus ou moins le cas en fonctions des parm de l'agent)
@@ -108,51 +116,52 @@ def RLtest():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
         GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
-        mcts_iter=50,
+        agent_name="agent_28:04:2022_20:39:46",
+        mcts_iter=100,
         mcts_hard_pruning=True,
-        heuristic_boost=True,
+        heuristic_boost=False,
         mean_forward=True,
         device=device,
     )
-    agent.evaluation_n_games = 1
-    agent.model_comparison_mcts_iter = 10
-    agent.samples_per_epoch = 50
-    agent.dataset_max_length = 100
+    agent.evaluation_n_games = 0
+    agent.model_comparison_mcts_iter = 50
+    # agent.samples_per_epoch = 50
+    # agent.dataset_max_length = 100
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     agent.training_loop(
-        nbr_tl=2,
+        nbr_tl=1,
         nbr_tl_before_cmp=1,
-        nbr_games_per_tl=2,
+        nbr_games_per_tl=1,
         epochs=10
     )
+
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats('cumtime')
+    stats.print_stats()
+    stats.dump_stats('tmp_profile_from_script.prof')
 
 def RLmain():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
-        # GomokuLib.Game.GameEngine.Gomoku(rules=[]),
         GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
-        # agent_name="agent_23:04:2022_18:14:01",
-        mcts_iter=50,
-        # mcts_pruning=True,
+        agent_name="agent_28:04:2022_20:39:46",
+        mcts_iter=200,
         mcts_hard_pruning=True,
-        heuristic_boost=True,
-        mean_forward=False,
+        heuristic_boost=False,
+        mean_forward=True,
         device=device,
     )
-
-    # profiler = cProfile.Profile()
-    # profiler.enable()
 
     agent.training_loop(
         nbr_tl=-1,
         nbr_tl_before_cmp=4,
         nbr_games_per_tl=5,
-        epochs=10
+        epochs=10,
+        save=False
     )
-    #
-    # profiler.disable()
-    # stats = pstats.Stats(profiler).sort_stats('cumtime')
-    # stats.print_stats()
-    # stats.dump_stats('tmp_profile_from_script.prof')
 
 def save_load_tests():
     RL_engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)

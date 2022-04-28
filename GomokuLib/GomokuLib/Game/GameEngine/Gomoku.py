@@ -30,7 +30,7 @@ class Gomoku(AbstractGameEngine):
         self.rules_str = rules
         self.init_game()
 
-    def init_game(self):
+    def init_game(self, **kwargs):
         self.turn = 0
         self.last_action = None
         self._isover = False
@@ -116,11 +116,11 @@ class Gomoku(AbstractGameEngine):
     def get_history(self) -> np.ndarray:
         return self.history[1:]
 
-
     def next_turn(self) -> None:
 
         board = self.state.board if self.player_idx == 0 else self.state.board[::-1, ...]
-        self.history = np.insert(self.history, len(self.history), board, axis=0)
+        # self.history = np.insert(self.history, len(self.history), board, axis=0)
+        np.append(self.history, board[np.newaxis, ...], axis=0)
 
         if np.all(self.state.full_board != 0):
             print("DRAW")

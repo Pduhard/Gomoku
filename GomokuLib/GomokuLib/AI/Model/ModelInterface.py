@@ -17,9 +17,9 @@ class ModelInterface:
                  # tts_lengths: tuple = None,
                  mean_forward: bool = False,
                  device: str = 'cpu',
-                 name: str = "Default ModelInterface name"):
+                 name: str = None):
 
-        self.name = name
+        self.name = name or "Default ModelInterface name"
         self.device = device
         # Attention un kernel_size différent casse tout !
         self.model = model or GomokuModel(5, 19, 19, resnet_depth=2, device=self.device)

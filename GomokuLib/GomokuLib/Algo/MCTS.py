@@ -95,20 +95,10 @@ class MCTS(AbstractAlgorithm):
 
         return self.mcts_policy, self.gAction
 
-    # def get_specific_cell_data(self, action: GomokuAction):
-    #     pass
-
     def get_state_data(self, engine):
-
-        model_inputs = self.model_interface.prepare(engine)
-        model_policy, model_value = self.model_interface.forward(model_inputs)
-
-        data = {
+        return {
             'mcts_state_data': self.states[engine.state.board.tobytes()],
-            'model_policy': model_policy,
-            'model_value': model_value
         }
-        return data
 
     def mcts(self, mcts_iter: int):
 

@@ -85,8 +85,31 @@ class MCTSAI(MCTSLazy):
         self.model_boost = model_boost
         self.heuristic_boost = heuristic_boost
 
+        self.model_confidence = 0
+        self.model_confidence_inv = 1
+        self.neutral_p, self.neutral_v = np.ones_like(self.engine.state.full_board), 0.5
+
     def __str__(self):
         return f"MCTS with: Action-Move As First | progressive/Lazy valid action checking | Deep Neural Network for policy and rewards ({self.mcts_iter} iter)"
+
+    def get_state_data(self, engine):
+
+        model_inputs = self.model_interface.prepare(engine)
+        model_policy, model_value = self.model_interface.forward(model_inputs)
+
+        # state_data = self.states[self.current_board.tobytes()]
+        # model_policy, model_value = state_data[len(state_data) - 1]
+
+        data = super().get_state_data(engine)
+        data.update({
+            'model_policy': model_policy,
+            'model_value': model_value
+        })
+        return data
+
+    def set_model_confidence(self, beta):
+        self.model_confidence = beta
+        self.model_confidence_inv = 1 - beta
 
     def _get_model_policies(self) -> tuple:
         # history = self.engine.get_history()
@@ -95,7 +118,11 @@ class MCTSAI(MCTSLazy):
         inputs = self.model_interface.prepare(self.engine)
         policy, value = self.model_interface.forward(inputs)
 
-        value = (value + 1) / 2
+        value = (value + 1) / 2 # Convert [-1, 1] to [0, 1]
+
+        policy = self.model_confidence * policy + self.model_confidence_inv * self.neutral_p
+        value = self.model_confidence * value + self.model_confidence_inv * self.neutral_v
+
         return policy, [value, 1 - value]
 
     def _get_pruning(self):
@@ -135,18 +162,18 @@ class MCTSAI(MCTSLazy):
     def expand(self):
         memory = super().expand()
         p, v = self._get_model_policies()
+        # p, v = self.neutral_p, [self.neutral_v, 1 - self.neutral_v]
 
-        if self.heuristic_boost:
-            v[0] = self.heuristic(v[0])
-            v[1] = 1 - v[0]
+        # if self.heuristic_boost:
+        #     v[0] = self.heuristic(v[0])
+        #     v[1] = 1 - v[0]
 
         memory.append((p, v))
         return memory
 
     def award(self) -> tuple:
         state_data = self.states[self.current_board.tobytes()]
-        id = len(state_data) - 1
-        return state_data[id][1]
+        return state_data[len(state_data) - 1][1]
 
     def heuristic(self, value):
         """

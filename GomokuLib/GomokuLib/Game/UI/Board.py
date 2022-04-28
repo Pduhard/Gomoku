@@ -96,12 +96,14 @@ class Board:
         hint_rect = pygame.Rect((0, 0), (self.csx, self.csy))
         self.hint_surface = pygame.Surface(pygame.Rect(hint_rect).size, pygame.SRCALPHA)
 
-    def draw(self, board: np.ndarray, player_idx: int, hints_data: dict, **kwargs):
+    def draw(self, ss_data: dict, **kwargs):
 
+        board = ss_data['board']
+        player_idx = ss_data['player_idx']
         self.win.blit(self.bg, (self.ox, self.oy))
 
-        if hints_data and 'mcts_state_data' in hints_data:
-            self.draw_hints(board, hints_data)
+        if ss_data and 'mcts_state_data' in ss_data:
+            self.draw_hints(board, ss_data)
 
         # print(self.cells_coord.shape,  self.state.board[np.newaxis, ...].shape)
         stone_x, stone_y = self.cells_coord * board[player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
@@ -120,8 +122,8 @@ class Board:
         for x, y in stones:
             self.win.blit(self.blackstone, (self.ox + x - self.csx, self.oy + y - self.csy))
 
-        if hints_data and 'mcts_state_data' in hints_data:
-            self.draw_stats(board, hints_data)
+        if ss_data and 'mcts_state_data' in ss_data:
+            self.draw_stats(board, ss_data)
 
     def switch_hint(self):
         self.hint_type += 1

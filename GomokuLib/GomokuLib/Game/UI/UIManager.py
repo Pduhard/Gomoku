@@ -111,10 +111,7 @@ class UIManager:
         for input in self.inputs:
             code = input['code']
 
-            if code == 'new-game':
-                self.game_data = input['data']
-
-            elif code == 'request-player-action':
+            if code == 'request-player-action':
                 self.request_player_action = True
 
             elif code == 'board-click':
@@ -124,12 +121,11 @@ class UIManager:
 
             elif code == 'game-snapshot':
 
-                input['data']['time'] = time.time()
                 if len(self.game_snapshots):
                     prev_sp_time = self.game_snapshots[-1]['time']
                 else:
                     prev_sp_time = time.time()
-                input['data']['dtime'] = input['data']['time'] - prev_sp_time
+                input['data']['dtime'] = round(input['data']['time'] - prev_sp_time, 3)
 
                 self.game_snapshots.append(input['data'])
                 print(f"New snapshot receive, pause={self.pause}\t, dtime={input['data']['dtime']}")
@@ -174,17 +170,11 @@ class UIManager:
                 })
 
         if len(self.game_snapshots):
-            sp = self.game_snapshots[self.current_snapshot_idx]
-            hints_data = sp['hints_data']
-            dtime = sp['dtime']
+            ss = self.game_snapshots[self.current_snapshot_idx]
+            ss_data = ss['ss_data']
+            dtime = ss['dtime']
             for o in self.components:
-                o.draw(
-                    **self.game_data,
-                    board=self.engine.state.board,
-                    player_idx=self.engine.player_idx,
-                    hints_data=hints_data,
-                    dtime=dtime
-                )
+                o.draw(ss_data=ss_data, dtime=dtime)
 
         pygame.display.flip()
 

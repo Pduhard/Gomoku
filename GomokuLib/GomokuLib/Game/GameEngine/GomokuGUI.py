@@ -7,6 +7,7 @@ import numpy as np
 # import pygame
 import multiprocessing as mp
 import threading
+import time
 
 from GomokuLib.Game.Action.GomokuAction import GomokuAction
 from GomokuLib.Game.UI.UIManager import UIManager
@@ -32,39 +33,29 @@ class GomokuGUI(Gomoku):
         self.gui_proc = Process(target=self.gui, args=(self.gui_outqueue, self.gui_inqueue))
         self.gui_proc.start()
 
-        # self.pause = False
         self.player_action = None
 
-        # self.processes = [
-        #     self.gui_proc,
-        # ]
-        # threading.Thread(target=self.gui, args=(self.get_turn_data,))
-
-        # self.UI.drawUI(board=self.state.board, player_idx=self.player_idx)
-
-        # self.initUI(win_size)
-        # self.drawUI()
         print("END __init__() Gomokugui\n")
 
-
-    def init_game(self, mode: str = "GomokuGUI.run()", p1: str = '_', p2: str = '_'):
-        super().init_game()
-
-        if self.players:
-            if p1 == '_':
-                p1 = str(self.players[0])
-            if p2 == '_':
-                p2 = str(self.players[1])
-
-        print(f"New game info created")
-        self.gui_outqueue.put({
-            'code': 'new-game',
-            'data': {
-                'mode': mode,
-                'p1': p1,
-                'p2': p2,
-            },
-        })
+    # def init_game(self, mode: str = "GomokuGUI.run()", p1: str = '_', p2: str = '_', **kwargs):
+    #     super().init_game()
+    #
+    #     if self.players:
+    #         if p1 == '_':
+    #             p1 = str(self.players[0])
+    #         if p2 == '_':
+    #             p2 = str(self.players[1])
+    #
+    #     kwargs.update({
+    #         'mode': mode,
+    #         'p1': p1,
+    #         'p2': p2,
+    #     })
+    #     print(f"New game info created -> {kwargs}")
+    #     self.gui_outqueue.put({
+    #         'code': 'new-game',
+    #         'data': kwargs,
+    #     })
 
     def update_UI(self, **kwargs):
         """
@@ -75,17 +66,30 @@ class GomokuGUI(Gomoku):
         self.gui_outqueue.put({
             'code': 'game-snapshot',
             'data': {
+                'time': time.time(),
                 'snapshot': self.create_snapshot(),
-                'hints_data': kwargs
+                'ss_data': kwargs
             },
         })
 
-    def next_turn(self, **kwargs) -> None:
+    def next_turn(self, mode: str = "GomokuGUI.run()", **kwargs) -> None:
         """
             All kwargs information will be sent to UIManager
         """
         super().next_turn()
-        self.update_UI(**kwargs, turn=self.turn, winner=self.winner)
+
+        kwargs['mode'] = mode
+        if mode == "GomokuGUI.run()":
+            kwargs['p1'] = str(self.players[0])
+            kwargs['p2'] = str(self.players[1])
+
+        self.update_UI(
+            **kwargs,
+            board=self.state.board,
+            turn=self.turn,
+            player_idx=self.player_idx,
+            winner=self.winner
+        )
 
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 

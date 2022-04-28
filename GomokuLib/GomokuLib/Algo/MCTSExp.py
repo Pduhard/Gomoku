@@ -29,6 +29,9 @@ def get_neighbors_mask(board):
 
 
 class MCTSExp(MCTSLazy):
+    """
+        All MCTS modifications/optimizations
+    """
 
     def __init__(self,
                  pruning=False, hard_pruning=False,
@@ -63,18 +66,6 @@ class MCTSExp(MCTSLazy):
         if np.all(pruning == 0):
             return super().get_exp_rate(state_data)
         return super().get_exp_rate(state_data) * pruning
-
-    def selection(self, policy: np.ndarray, state_data: list) -> GomokuAction:
-        actions = state_data[3]
-        rows, cols = np.unravel_index(
-            np.argsort(policy, axis=None),
-            policy.shape
-        )
-
-        for x, y in zip(rows[::-1], cols[::-1]):
-            if
-
-        return super().selection()
 
     def award(self):
         return self.heuristic()

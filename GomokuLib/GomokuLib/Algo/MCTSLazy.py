@@ -22,16 +22,13 @@ class MCTSLazy(MCTS):
             policy.shape
         )
 
-        # for x, y in zip(rows[::-1], cols[::-1]):
-        #     gAction = GomokuAction(x, y)
-        #     if self.engine.is_valid_action(gAction):
-        #         return gAction
-        #     actions[x, y] = 0
-
         for x, y in zip(rows[::-1], cols[::-1]):
             if actions[x, y]:
                 gAction = GomokuAction(x, y)
+                if actions[x, y] == 2:
+                    return gAction
                 if self.engine.is_valid_action(gAction):
+                    actions[x, y] = 2
                     return gAction
                 actions[x, y] = 0
 

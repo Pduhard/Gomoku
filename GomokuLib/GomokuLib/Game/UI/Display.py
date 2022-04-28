@@ -23,25 +23,26 @@ class Display:
         screen = pygame.Rect(self.origin, self.size)
         pygame.draw.rect(self.win, (200, 200, 200), screen)
 
-    def draw(self, player_idx: int, hints_data: dict, dtime: time.time, mode: str = '_', p1: str = '_', p2: str = '_', **kwargs):
+    def draw(self, ss_data: dict, dtime: time.time):
 
         pygame.draw.rect(self.win, (200, 200, 200), self.square)
 
-        if hints_data:
-            winner = hints_data.get('winner', -1)
+        if ss_data:
+            winner = ss_data.get('winner', -1)
             if winner != -1:
                 winner = 'Black' if winner else 'White'
 
             elem = {
-                'Mode': mode,
-                'White': p1,
-                'Black': p2,
-                'Waiting': 'Black' if player_idx else 'White',
-                'Turn': hints_data.get('turn', '_'),
-                'dtime (s)': dtime,
+                'Mode': ss_data.get('mode', '_'),
+                'White': ss_data.get('p1', '_'),
+                'Black': ss_data.get('p2', '_'),
+                'Waiting': 'Black' if ss_data.get('player_idx', '_') else 'White',
+                'Turn': ss_data.get('turn', '_'),
+                'dtime': f"{dtime} s",
                 'Winner': winner,
-                'Total self-play': hints_data.get('self_play', '_'),
-                'Total samples': hints_data.get('dataset_length', '_')
+                'Total self-play': ss_data.get('self_play', '_'),
+                'Total samples': ss_data.get('dataset_length', '_'),
+                'Model confidence': ss_data.get('model_confidence', '_')
             }
             elem = {k: v for k, v in elem.items() if v != '_'}
             items = elem.items()

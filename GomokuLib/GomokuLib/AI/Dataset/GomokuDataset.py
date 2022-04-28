@@ -25,7 +25,12 @@ class GomokuDataset(torch.utils.data.Dataset):
             Compose([HorizontalTransform(1)]),
             Compose([HorizontalTransform(1), VerticalTransform(1)]),
         ]
+
         self.data = data
+        self.samples_generated = len(data)
+
+    def __str__(self):
+        return self.name
 
     def __len__(self):
         return len(self.data)
@@ -38,15 +43,19 @@ class GomokuDataset(torch.utils.data.Dataset):
 
         return inputs, (policy, value)
 
+    def extend(self, lst: list):
+        self.data.extend(lst)
+        self.samples_generated += len(lst)
+
     def add(self, samples: list):
-        # self.data.extend(samples)
+        self.extend(samples)
 
         # Add all samples we can create with ?
-        for s in samples:
-            self.data.extend([  # Add new samples made with each sample
-                (s[0], t(s[1]), t.repeat(s[2]), s[3]) # Create new sample with this Compose
-                for t in self.all_data_transforms
-            ])
+        # for s in samples:
+        #     self.extend([  # Add new samples made with each sample
+        #         (s[0], t(s[1]), t.repeat(s[2]), s[3]) # Create new sample with this Compose
+        #         for t in self.all_data_transforms
+        #     ])
 
     def bounded_add(self, samples: list, max_length: int):
 
