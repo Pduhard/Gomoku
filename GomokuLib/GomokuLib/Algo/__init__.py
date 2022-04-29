@@ -2,6 +2,8 @@ from .MCTS import MCTS
 from .MCTSLazy import MCTSLazy
 from .MCTSAMAF import MCTSAMAF
 from .MCTSAMAFLazy import MCTSAMAFLazy
+from .MCTSEval import MCTSEval
+from .MCTSEvalLazy import MCTSEvalLazy
 from .MCTSAI import MCTSAI
 
 __all__ = [
@@ -9,5 +11,7 @@ __all__ = [
     'MCTSLazy',
     'MCTSAMAF',
     'MCTSAMAFLazy',
+    'MCTSEval',
+    'MCTSEvalLazy',
     'MCTSAI'
 ]

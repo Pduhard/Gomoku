@@ -17,7 +17,7 @@ class MCTSAMAF(MCTS):
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        return f"MCTS with: Action-Move As First ({self.mcts_iter} iter)"
+        return f"MCTSAMAF with: Action-Move As First ({self.mcts_iter} iter)"
 
     def get_quality(self, state_data: list, mcts_iter: int, **kwargs) -> np.ndarray:
         """

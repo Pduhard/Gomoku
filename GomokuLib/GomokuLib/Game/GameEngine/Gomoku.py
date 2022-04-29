@@ -38,8 +38,9 @@ class Gomoku(AbstractGameEngine):
         self.player_idx = 0
         self.state = self.init_board()
         self.C, self.H, self.W = self.state.board.shape
-        self.history = np.zeros((1, self.C, self.H, self.W), dtype=int)
         self.rules_fn = self.init_rules_fn(self.rules_str.copy())
+        # self.history = np.zeros((1, self.C, self.H, self.W), dtype=int)
+        self.history = []
 
     def set_rules_fn(self, rules):
         self.rules_fn = {
@@ -114,13 +115,16 @@ class Gomoku(AbstractGameEngine):
         return [0, 0]
 
     def get_history(self) -> np.ndarray:
-        return self.history[1:]
+        # return self.history[1:]
+        return np.array(self.history)
 
     def next_turn(self) -> None:
 
         board = self.state.board if self.player_idx == 0 else self.state.board[::-1, ...]
         # self.history = np.insert(self.history, len(self.history), board, axis=0)
-        np.append(self.history, board[np.newaxis, ...], axis=0)
+        # np.append(self.history, board[np.newaxis, ...], axis=0)
+        # self.history = np.concatenate((self.history, board[np.newaxis, ...]))
+        self.history.append(board)
 
         if np.all(self.state.full_board != 0):
             print("DRAW")
@@ -136,8 +140,13 @@ class Gomoku(AbstractGameEngine):
                 rule.endturn(self.last_action)
 
             # print(self.rules_fn['winning'])
-            if (any([rule.winning(self.last_action) for rule in self.rules_fn['winning']])
-                    and not any([rule.nowinning(self.last_action) for rule in self.rules_fn['nowinning']])):
+            if (any([
+                    rule.winning(self.last_action)
+                    for rule in self.rules_fn['winning']
+                ]) and not any([
+                    rule.nowinning(self.last_action)
+                    for rule in self.rules_fn['nowinning']
+                ])):
 
                 self._isover = True
                 self.winner = self.player_idx       # ?????????????????????????????

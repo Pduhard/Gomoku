@@ -36,13 +36,14 @@ class Display:
                 'Mode': ss_data.get('mode', '_'),
                 'White': ss_data.get('p1', '_'),
                 'Black': ss_data.get('p2', '_'),
-                'Waiting': 'Black' if ss_data.get('player_idx', '_') else 'White',
                 'Turn': ss_data.get('turn', '_'),
                 'dtime': f"{dtime} s",
+                'Waiting': 'Black' if ss_data.get('player_idx', '_') else 'White',
                 'Winner': winner,
+                'Model confidence': ss_data.get('model_confidence', '_'),
+                'Heuristic': ss_data.get('heuristic', '_'),
                 'Total self-play': ss_data.get('self_play', '_'),
-                'Total samples': ss_data.get('dataset_length', '_'),
-                'Model confidence': ss_data.get('model_confidence', '_')
+                'Total samples': ss_data.get('dataset_length', '_')
             }
             elem = {k: v for k, v in elem.items() if v != '_'}
             items = elem.items()

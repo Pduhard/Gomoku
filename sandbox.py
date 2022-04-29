@@ -91,24 +91,47 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=[])
+    engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
 
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        agent_name="agent_23:04:2022_18:14:01",
-        mcts_iter=200,
-        mcts_hard_pruning=True,
-        mean_forward=True,
-        heuristic_boost=True,
-        device=device
-    )
+    # agent = GomokuLib.AI.Agent.GomokuAgent(
+    #     agent_name="agent_23:04:2022_18:14:01",
+    #     mcts_iter=200,
+    #     mcts_hard_pruning=True,
+    #     mean_forward=True,
+    #     heuristic_boost=True,
+    #     device=device
+    # )
 
-    p1 = agent
+    # p1 = agent
     # p1 = GomokuLib.Player.RandomPlayer()
-    p2 = GomokuLib.Player.RandomPlayer()
-    # p1 = GomokuLib.Player.Human()
-    # p2 = GomokuLib.Player.Human()
+    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+        iter=5000,
+        pruning=False,
+        hard_pruning=True
+    )
+    p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    winner = engine.run([p2, p1])  # White: 0 / Black: 1
+    # p2 = GomokuLib.Player.Human()
+    # p2 = GomokuLib.Player.RandomPlayer()
+
+    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+        iter=5000,
+        pruning=False,
+        hard_pruning=True
+    )
+    p2 = GomokuLib.Player.Bot(mcts_p2)
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+
+    winner = engine.run([p1, p2])  # White: 0 / Black: 1
+
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats('cumtime')
+    stats.print_stats()
+    stats.dump_stats('tmp_profile_from_script.prof')
 
     print(f"Winner is {winner}")
 
@@ -249,8 +272,8 @@ def agents_comparaison():
     print(f"last version win rate: {win_rate / n_games}")
 
 if __name__ == '__main__':
-    # duel()
-    RLmain()
+    duel()
+    # RLmain()
     # RLtest()
     # save_load_tests()
     # random_test()

@@ -38,7 +38,8 @@ class MCTS(AbstractAlgorithm):
     def __init__(self,
                  engine: Gomoku,
                  c: float = np.sqrt(2),
-                 iter: int = 1000
+                 iter: int = 1000,
+                 *args, **kwargs
                  ) -> None:
         """
             self.states : 

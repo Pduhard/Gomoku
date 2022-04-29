@@ -65,7 +65,7 @@ def njit_is_valid(rmax, cmax, ar, ac, board, FT_IDENT):
 			
 			start_in_bound = r >= 0 and r < rmax and c >=0 and c < cmax
 			end_in_bound = rend >= 0 and rend < rmax and cend >=0 and cend < cmax
-			if (start_in_bound and end_in_bound):
+			if start_in_bound and end_in_bound:
 			
 				three = np.full(4, 1, dtype=np.uint8)
 				l = 0

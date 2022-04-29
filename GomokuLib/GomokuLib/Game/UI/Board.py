@@ -103,7 +103,7 @@ class Board:
         self.win.blit(self.bg, (self.ox, self.oy))
 
         if ss_data and 'mcts_state_data' in ss_data:
-            self.draw_hints(board, ss_data)
+            self.draw_hints(ss_data)
 
         # print(self.cells_coord.shape,  self.state.board[np.newaxis, ...].shape)
         stone_x, stone_y = self.cells_coord * board[player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
@@ -130,12 +130,12 @@ class Board:
         if self.hint_type == 3:
             self.hint_type = 0
 
-    def draw_hints(self, board: np.ndarray, hints_data: dict):
+    def draw_hints(self, hints_data: dict):
 
         # print(f"Board.draw() -> hints_data: {hints_data}")
         (sa_n, sa_v), actions = hints_data['mcts_state_data'][2:4]
 
-        if self.hint_type == 0:
+        if self.hint_type == 0 and 'model_policy' in hints_data:
             self.draw_model_hints(hints_data['model_policy'])
         elif self.hint_type == 1:
             self.draw_mcts_hints(np.nan_to_num(sa_v / sa_n))
@@ -155,11 +155,12 @@ class Board:
         if i == self.board_size[0]:
             y = 0
 
-        self.blit_text(
-            "P(s)[-1,1]= " + str(round(hints_data['model_value'], 3)),
-            1,
-            y
-        )
+        if 'model_value' in hints_data:
+            self.blit_text(
+                "P(s)[-1,1]= " + str(round(hints_data['model_value'], 3)),
+                1,
+                y
+            )
         self.blit_text(
             "Q(s)[-1,1]= " + str(round(mcts_value * 2 - 1, 3)),
             self.dx / 4,
