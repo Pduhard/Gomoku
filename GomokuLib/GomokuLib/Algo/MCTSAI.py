@@ -34,6 +34,7 @@ class MCTSAI(MCTSEvalLazy):
 
     def __init__(self, engine: Gomoku,
                  model_interface: ModelInterface,
+                 model_confidence: float = 1,
                  # pruning=False, hard_pruning=False,
                  # model_boost=4, heuristic_boost=False,
                  *args, **kwargs) -> None:
@@ -49,10 +50,13 @@ class MCTSAI(MCTSEvalLazy):
         """
         super().__init__(engine=engine, *args, **kwargs)
 
+        # self.policy_idx = None
+        # self.value_idx = None
+
         self.model_interface = model_interface
-        self.model_confidence = 1
-        self.model_confidence_inv = 0
-        self.neutral_p, self.neutral_v = np.ones_like(self.engine.state.full_board), 0.5
+        self.model_confidence = model_confidence
+        self.model_confidence_inv = 1 - model_confidence
+        # self.neutral_p, self.neutral_v = np.ones_like(self.engine.state.full_board), 0.5
 
     def __str__(self):
         return f"MCTSAI with: Pruning / Heuristics | Action-Move As First | Progressive/Lazy valid action checking | Deep Neural Network for policy and rewards ({self.mcts_iter} iter)"
@@ -66,12 +70,12 @@ class MCTSAI(MCTSEvalLazy):
         # model_inputs = self.model_interface.prepare(engine)
         # model_policy, model_value = self.model_interface.forward(model_inputs)
 
-        model_policy, model_value = self.states[self.current_board.tobytes()][self.policies_idx]
+        state_data = self.states[self.current_board.tobytes()]
 
         data = super().get_state_data(engine)
         data.update({
-            'model_policy': model_policy,
-            'model_value': model_value[0]
+            'model_policy': state_data['Policy'],
+            'model_value': state_data['Value'][0]
         })
         return data
 
@@ -82,36 +86,28 @@ class MCTSAI(MCTSEvalLazy):
 
         value = (value + 1) / 2 # Convert [-1, 1] to [0, 1]
 
-        policy = self.model_confidence * policy + self.model_confidence_inv * self.neutral_p
-        value = self.model_confidence * value + self.model_confidence_inv * self.neutral_v
-
-        return policy, [value, 1 - value]
+        return policy, value
 
     def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
         """
             exploration_rate(s, a) =
                 policy(s, a) * c * sqrt( visits(s) ) / (1 + visits(s, a))
         """
-        policy, _ = state_data[self.policies_idx]
-        return policy * super().get_exp_rate(state_data)
-
-    def _expand(self):
-        memory = super().expand()
-        memory.append(self._get_model_policies())
-        return memory
+        return state_data['Policy'] * super().get_exp_rate(state_data)
 
     def expand(self):
-        """
-            Call only ones, to save model policies idx in state_data
-            Next calls will be redirect to self._expand()
-        """
         memory = super().expand()
 
-        self.policies_idx = len(memory)
-        self.expand = self._expand
+        policy, value = self._get_model_policies()
 
-        memory.append(self._get_model_policies())
+        policy = self.model_confidence * policy + self.model_confidence_inv * memory['Pruning']
+        value = self.model_confidence * value + self.model_confidence_inv * memory['Heuristic'][0]
+
+        memory.update({
+            'Policy': policy,
+            'Value': [value, 1 - value]
+        })
         return memory
 
     def award(self) -> tuple:
-        return self.states[self.current_board.tobytes()][self.policies_idx][1]
+        return self.states[self.current_board.tobytes()]['Value']

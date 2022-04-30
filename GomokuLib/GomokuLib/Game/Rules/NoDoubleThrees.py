@@ -11,7 +11,7 @@ from GomokuLib.Game.GameEngine import Gomoku
 from .AbstractRule import AbstractRule
 
 def init_ft_ident():
-	FT_IDENT = np.zeros((4, 6, 2), dtype=np.uint8)
+	FT_IDENT = np.zeros((4, 6, 2), dtype=np.bool8)
 
 	FT_IDENT[0, 1, 0] = 1
 	FT_IDENT[0, 2, 0] = 1

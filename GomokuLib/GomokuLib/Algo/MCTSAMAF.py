@@ -27,14 +27,8 @@ class MCTSAMAF(MCTS):
 
             AMAFQuality(s, a) = beta * AMAF(s, a) + (1 - beta) * quality(s, a)
         """
-        try:
-            _, _, (sa_n, sa_v), _, (amaf_n, amaf_v) = state_data[:5]
-            # State_data: [2, 1, None, array([[1, 0, 0, 1, 1, 1, 0, 0, 1, ...]]), None, (array(), (r1, r2)) ]
-        except Exception as e:
-            print(e)
-            print(f"State_data: {state_data}")
-            breakpoint()
-            return 0
+        sa_n, sa_v = state_data['StateAction']
+        amaf_n, amaf_v = state_data['AMAF']
 
         sa = sa_v / (sa_n + 1)
         amaf = amaf_v / (amaf_n + 1)
@@ -43,10 +37,9 @@ class MCTSAMAF(MCTS):
 
     def expand(self):
         memory = super().expand()
-
-        amaf_values = np.zeros((2, self.brow, self.bcol))
-        # amaf_values = None if self.end_game else np.zeros((2, self.brow, self.bcol))
-        memory.append(amaf_values)
+        memory.update({
+            'AMAF': np.zeros((2, self.brow, self.bcol))
+        })
         return memory
 
     def backpropagation(self, path: list, rewards: list):
@@ -60,12 +53,13 @@ class MCTSAMAF(MCTS):
         reward = rewards[player_idx]
         state_data = self.states[statehash]
 
-        state_data[0] += 1  # update n count
-        state_data[1] += reward  # update state value
+        state_data['Visits'] += 1  # update n count
+        state_data['Rewards'] += reward  # update state value
         if bestaction is None:
             return
 
         r, c = bestaction
-        state_data[2][..., r, c] += [1, reward]  # update state-action count / value
+        state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
+
         self.amaf_masks[player_idx, ..., r, c] += [1, reward]
-        state_data[4] += self.amaf_masks[player_idx]    # update amaf count / value
+        state_data['AMAF'] += self.amaf_masks[player_idx]    # update amaf count / value

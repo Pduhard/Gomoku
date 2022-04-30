@@ -25,7 +25,7 @@ class GomokuAgent(Bot):
     def __init__(self, RLengine: Gomoku,
                  model_interface: ModelInterface = None, dataset: GomokuDataset = None,
                  agent_to_load: str = None, model_name: str = None, dataset_name: str = None,
-                 mcts_iter: int = 500, heuristic_boost: bool = False,
+                 mcts_iter: int = 500,
                  mcts_pruning: bool = False, mcts_hard_pruning: bool = False,
                  batch_size: int = 64, shuffle: bool = True, mean_forward: bool = False,
                  rnd_first_turn: tuple = True, device: str = 'cpu',
@@ -34,7 +34,6 @@ class GomokuAgent(Bot):
         self.name = "Default Agent name"
         self.RLengine = RLengine
 
-        self.heuristic_boost = heuristic_boost
         self.mcts_iter = mcts_iter
         self.mcts_pruning = mcts_pruning
         self.mcts_hard_pruning = mcts_hard_pruning
@@ -77,7 +76,6 @@ class GomokuAgent(Bot):
             iter=self.mcts_iter,
             pruning=self.mcts_pruning,
             hard_pruning=self.mcts_hard_pruning,
-            heuristic_boost = self.heuristic_boost
         )
 
         self.best_model_interface = ModelInterface(
@@ -91,7 +89,6 @@ class GomokuAgent(Bot):
             iter=self.mcts_iter,
             pruning=self.mcts_pruning,
             hard_pruning=self.mcts_hard_pruning,
-            heuristic_boost=self.heuristic_boost
         )
         super().__init__(self.best_model_mcts)         # Assign algo to best model mcts
 
@@ -142,7 +139,6 @@ class GomokuAgent(Bot):
         self.mcts.reset()
         self.mcts.mcts_pruning = False
         self.mcts.mcts_hard_pruning = True
-        self.mcts.heuristic_boost = True
         self.mcts.mcts_iter = self.model_comparison_mcts_iter
         self.mcts.set_model_confidence(self.model_confidence)
         self.model_interface.set_mean_forward(True)
@@ -150,7 +146,6 @@ class GomokuAgent(Bot):
         self.best_model_mcts.reset()
         self.best_model_mcts.mcts_pruning = False
         self.best_model_mcts.mcts_hard_pruning = True
-        self.best_model_mcts.heuristic_boost = True
         self.best_model_mcts.mcts_iter = self.model_comparison_mcts_iter
         self.best_model_mcts.set_model_confidence(self.model_confidence)
         self.best_model_interface.set_mean_forward(True)
@@ -175,7 +170,6 @@ class GomokuAgent(Bot):
         self.mcts.mcts_iter = self.mcts_iter
         self.mcts.mcts_pruning = self.mcts_pruning
         self.mcts.mcts_hard_pruning = self.mcts_hard_pruning
-        self.mcts.heuristic_boost = self.heuristic_boost
         self.mcts.set_model_confidence(self.model_confidence)
         self.model_interface.set_mean_forward(self.mean_forward)
 

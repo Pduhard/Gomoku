@@ -78,7 +78,8 @@ class MCTS(AbstractAlgorithm):
             self.mcts(i)
 
         state_data = self.states[game_engine.state.board.tobytes()]
-        sa_n, sa_v = state_data[2]
+        sa_n, sa_v = state_data['StateAction']
+        # sa_n, sa_v = state_data[2]
 
         self.mcts_policy = sa_v / (sa_n + 1)
         # print("self.mcts_policy (rewards sum / visit count):\n", self.mcts_policy)
@@ -152,43 +153,50 @@ class MCTS(AbstractAlgorithm):
         """
             quality(s, a) = rewards(s, a) / (visits(s, a) + 1)
         """
-        _, _, (sa_n, sa_v) = state_data[:3]
+        sa_n, sa_v = state_data['StateAction']
+        # _, _, (sa_n, sa_v) = state_data[:3]
         return sa_v / (sa_n + 1)
 
     def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
         """
             exploration_rate(s, a) = c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
         """
-        s_n, _, (sa_n, _) = state_data[:3]
-        return self.c * np.sqrt(np.log(s_n) / (sa_n + 1))
+        # s_n, _, (sa_n, _) = state_data[:3]
+        return self.c * np.sqrt(np.log(state_data['Visits']) / (state_data['StateAction'][0] + 1))
 
     def get_policy(self, state_data: list, **kwargs) -> np.ndarray:
         """
             ucb(s, a) = (quality(s, a) + exp_rate(s, a)) * valid_action(s, a)
         """
-        # return njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, self.c, mcts_iter, actions)
-        # _, _, _, actions = state_data[:4]
         ucbs = self.get_quality(state_data, **kwargs) + self.get_exp_rate(state_data, **kwargs)
         return ucbs
 
     def selection(self, policy: np.ndarray, state_data, *args) -> tuple:
 
-        policy *= state_data[3]     # Avaible actions
+        policy *= state_data['Actions']     # Avaible actions
+        # policy *= state_data[3]     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
         bestaction = bestactions[np.random.randint(len(bestactions))]
         return GomokuAction(*bestaction)
 
     def expand(self):
-        return [
-            1,
-            0,
-            np.zeros((2, self.brow, self.bcol)),
-            # None if self.end_game else np.zeros((2, self.brow, self.bcol)),
-            self.get_actions()
-        ]
+        return {
+            'Visits': 1,
+            'Rewards': 0,
+            'StateAction': np.zeros((2, self.brow, self.bcol)),
+            'Actions': self.get_actions()
+        }
+    # def expand(self):
+    #     return [
+    #         1,
+    #         0,
+    #         np.zeros((2, self.brow, self.bcol)),
+    #         # None if self.end_game else np.zeros((2, self.brow, self.bcol)),
+    #         self.get_actions()
+    #     ]
 
     def new_memory(self, statehash, bestaction):
-        return (0 if self.engine.player_idx == self.mcts_idx else 1, statehash, bestaction)
+        return 0 if self.engine.player_idx == self.mcts_idx else 1, statehash, bestaction
 
     def backpropagation(self, path: list, rewards: list):
 
@@ -202,14 +210,13 @@ class MCTS(AbstractAlgorithm):
         reward = rewards[player_idx]
         state_data = self.states[statehash]
 
-        state_data[0] += 1                       # update n count
-        state_data[1] += reward                  # update state value
-
+        state_data['Visits'] += 1                           # update n count
+        state_data['Rewards'] += reward                     # update state value
         if bestaction is None:
             return
+
         r, c = bestaction
-        state_data[2][..., r, c] += [1, reward]  # update state-action count / value
-        # print(f"Backprop reward {reward} within {rewards}")
+        state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
     def reset(self):
         self.states = {}
@@ -226,7 +233,6 @@ class MCTS(AbstractAlgorithm):
         return self._evaluate_random_rollingout()
 
     def _evaluate_random_rollingout(self):
-
         return [0.5, 0.5]
     #     actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
     #     actions = np.array(actions).T.reshape(self.cells_count, 2)

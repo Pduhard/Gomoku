@@ -133,7 +133,9 @@ class Board:
     def draw_hints(self, hints_data: dict):
 
         # print(f"Board.draw() -> hints_data: {hints_data}")
-        (sa_n, sa_v), actions = hints_data['mcts_state_data'][2:4]
+        # (sa_n, sa_v), actions = hints_data['mcts_state_data'][2:4]
+        state_data = hints_data['mcts_state_data']
+        (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
 
         if self.hint_type == 0 and 'model_policy' in hints_data:
             self.draw_model_hints(hints_data['model_policy'])
@@ -144,7 +146,10 @@ class Board:
 
     def draw_stats(self, board: np.ndarray, hints_data: dict):
 
-        s_n, s_v, (sa_n, sa_v) = hints_data['mcts_state_data'][:3]
+        # s_n, s_v, (sa_n, sa_v) = hints_data['mcts_state_data'][:3]
+        state_data = hints_data['mcts_state_data']
+        s_n, s_v, (sa_n, sa_v) = state_data['Visits'], state_data['Rewards'], state_data['StateAction']
+
         mcts_value = np.nan_to_num(s_v / s_n)
 
         i = 0
@@ -155,6 +160,13 @@ class Board:
         if i == self.board_size[0]:
             y = 0
 
+        if self.hint_mouse:
+            rsa = round(sa_v[self.hint_mouse[0], self.hint_mouse[1]], 3)
+            nsa = sa_n[self.hint_mouse[0], self.hint_mouse[1]]
+            qsa = round(np.nan_to_num(sa_v[self.hint_mouse[0], self.hint_mouse[1]] / nsa), 3)
+        else:
+            rsa, nsa, qsa = '_', '_', '_'
+
         if 'model_value' in hints_data:
             self.blit_text(
                 "P(s)[-1,1]= " + str(round(hints_data['model_value'], 3)),
@@ -163,17 +175,22 @@ class Board:
             )
         self.blit_text(
             "Q(s)[-1,1]= " + str(round(mcts_value * 2 - 1, 3)),
-            self.dx / 4,
+            1 * self.dx / 5,
             y
         )
         self.blit_text(
-            f"N(s,a)= {str(int(sa_n[self.hint_mouse[0], self.hint_mouse[1]])) if self.hint_mouse else '_'}/{s_n}",
-            self.dx / 2,
+            f"Q(s,a)[0,1]= {qsa}",
+            2 * self.dx / 5,
             y
         )
         self.blit_text(
-            f"R(s,a)= {str(round(sa_v[self.hint_mouse[0], self.hint_mouse[1]], 3)) if self.hint_mouse else '_'}/{s_v}",
-            3 * self.dx / 4,
+            f"N(s,a)= {nsa}/{s_n}",
+            3 * self.dx / 5,
+            y
+        )
+        self.blit_text(
+            f"R(s,a)= {rsa}/{round(s_v, 3)}",
+            4 * self.dx / 5,
             y
         )
         # print(f"hint_mouse -> {self.hint_mouse}")

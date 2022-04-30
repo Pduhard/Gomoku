@@ -10,9 +10,6 @@ import cProfile, pstats
 
     TODO (Important):
 
-        Model à vriller à cause de la modif de l'historique ? -> OUI
-
-        Pruning with 0 and 0.5 to replace policy
         Heuristics to replace value
             Test Human vs MCTS
             Create dataset with MCTS
@@ -93,35 +90,39 @@ def duel():
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
 
-    # agent = GomokuLib.AI.Agent.GomokuAgent(
-    #     agent_name="agent_23:04:2022_18:14:01",
-    #     mcts_iter=200,
-    #     mcts_hard_pruning=True,
-    #     mean_forward=True,
-    #     heuristic_boost=True,
-    #     device=device
-    # )
-
-    # p1 = agent
-    # p1 = GomokuLib.Player.RandomPlayer()
-    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=5000,
-        pruning=False,
-        hard_pruning=True
+    agent = GomokuLib.AI.Agent.GomokuAgent(
+        RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+        agent_name="agent_23:04:2022_18:14:01",
+        mcts_iter=300,
+        mcts_hard_pruning=True,
+        mean_forward=True,
+        model_confidence=0.1,
+        device=device
     )
-    p1 = GomokuLib.Player.Bot(mcts_p1)
+    p1 = agent
+
+    agent = GomokuLib.AI.Agent.GomokuAgent(
+        RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+        agent_name="agent_23:04:2022_18:14:01",
+        mcts_iter=300,
+        mcts_hard_pruning=True,
+        mean_forward=True,
+        model_confidence=0.9,
+        device=device
+    )
+    p2 = agent
+
+    # p1 = GomokuLib.Player.RandomPlayer()
+    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+    #     engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+    #     iter=1000,
+    #     pruning=False,
+    #     hard_pruning=True
+    # )
+    # p1 = GomokuLib.Player.Bot(mcts_p1)
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
-
-    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=5000,
-        pruning=False,
-        hard_pruning=True
-    )
-    p2 = GomokuLib.Player.Bot(mcts_p2)
 
     profiler = cProfile.Profile()
     profiler.enable()
@@ -186,58 +187,6 @@ def RLmain():
         save=False
     )
 
-def save_load_tests():
-    RL_engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
-
-    dataset = GomokuLib.AI.Dataset.GomokuDataset(
-        GomokuLib.AI.Dataset.Compose([
-            GomokuLib.AI.Dataset.HorizontalTransform(0.5),
-            GomokuLib.AI.Dataset.VerticalTransform(0.5),
-            GomokuLib.AI.Dataset.ToTensorTransform(),
-        ])
-    )
-
-    rndPlayer = GomokuLib.Player.RandomPlayer()
-    agent_save = GomokuLib.AI.Agent.GomokuAgent(
-        RL_engine,
-        GomokuLib.AI.Model.ModelInterface(
-            GomokuLib.AI.Model.GomokuModel(17, 19, 19)
-        ),
-        dataset,
-        mcts_iter=2
-    )
-
-    agent_save.training_loop(tl_n_games=1, epochs=5)
-    agent_save.save_best_model(name="save_load_test_model.pt")
-
-    agent_load = GomokuLib.AI.Agent.GomokuAgent(
-        RL_engine,
-        GomokuLib.AI.Model.ModelInterface(
-            GomokuLib.AI.Model.GomokuModel(17, 19, 19)
-        ),
-        dataset,
-        mcts_iter=50
-    )
-    agent_load.load(model_name="save_load_test_model.pt")
-    print(f"Winner: {RL_engine.run([rndPlayer, agent_load])}")
-
-def random_test():
-
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
-
-    p1 = GomokuLib.AI.Agent.GomokuAgent(
-        engine,
-        GomokuLib.AI.Model.ModelInterface(mean_forward=True),
-        agent_name="agent_07:04:2022_16:49:51",
-        mcts_iter=100,
-        # mcts_pruning=True
-    )
-
-    p2 = GomokuLib.Player.RandomPlayer()
-
-    winner = engine.run([p2, p1])  # White: 0 / Black: 1
-    print(f"winner is: {winner}")
-
 def agents_comparaison():
 
     gameEngine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
@@ -272,9 +221,7 @@ def agents_comparaison():
     print(f"last version win rate: {win_rate / n_games}")
 
 if __name__ == '__main__':
-    duel()
-    # RLmain()
+    # duel()
+    RLmain()
     # RLtest()
-    # save_load_tests()
-    # random_test()
     # agents_comparaison()

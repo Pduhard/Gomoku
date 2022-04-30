@@ -11,26 +11,38 @@ from GomokuLib.Game.Rules.Capture import Capture
 from GomokuLib.Game.Rules.BasicRule import njit_is_align
 
 
-def init_meaning_aligns():
-	ALIGNS = np.zeros((4, 6, 2), dtype=np.uint8)
-
-	ALIGNS[0, 1, 0] = 1
-	ALIGNS[0, 2, 0] = 1
-	ALIGNS[0, 4, 0] = 1
-
-	ALIGNS[1, 1, 0] = 1
-	ALIGNS[1, 3, 0] = 1
-	ALIGNS[1, 4, 0] = 1
-
-	ALIGNS[2, 1, 0] = 1
-	ALIGNS[2, 2, 0] = 1
-	ALIGNS[2, 3, 0] = 1
-
-	ALIGNS[3, 2, 0] = 1
-	ALIGNS[3, 3, 0] = 1
-	ALIGNS[3, 4, 0] = 1
-
-	return ALIGNS
+# def init_meaning_aligns():
+#     ALIGNS = np.zeros((4, 11, 11), dtype=np.bool8)
+#
+#     ALIGNS[0, 5, 5] = 1
+#     ALIGNS[0, 4, 6] = 1
+#     ALIGNS[0, 3, 7] = 1
+#     ALIGNS[0, 2, 8] = 1
+#     ALIGNS[0, 1, 9] = 1
+#     ALIGNS[0, 0, 10] = 1
+#
+#     ALIGNS[1, 5, 5] = 1
+#     ALIGNS[1, 5, 6] = 1
+#     ALIGNS[1, 5, 7] = 1
+#     ALIGNS[1, 5, 8] = 1
+#     ALIGNS[1, 5, 9] = 1
+#     ALIGNS[1, 5, 10] = 1
+#
+#     ALIGNS[0, 5, 5] = 1
+#     ALIGNS[0, 6, 6] = 1
+#     ALIGNS[0, 7, 7] = 1
+#     ALIGNS[0, 8, 8] = 1
+#     ALIGNS[0, 9, 9] = 1
+#     ALIGNS[0, 10, 10] = 1
+#
+#     ALIGNS[1, 5, 5] = 1
+#     ALIGNS[1, 6, 5] = 1
+#     ALIGNS[1, 7, 5] = 1
+#     ALIGNS[1, 8, 5] = 1
+#     ALIGNS[1, 9, 5] = 1
+#     ALIGNS[1, 10, 5] = 1
+#
+#     return ALIGNS
 
 
 def get_neighbors_mask(board):
@@ -46,7 +58,6 @@ def get_neighbors_mask(board):
     neigh[:-1, 1:] += board[1:, :-1]   # Roll cells to the left-bottom corner
     neigh[:-1, :-1] += board[1:, 1:]   # Roll cells to the left-upper corner
     # breakpoint()
-
     return neigh
 
 
@@ -65,11 +76,8 @@ class MCTSEval(MCTS):
         self.hard_pruning = hard_pruning
         self.get_exp_rate = self._get_exp_rate_pruned if self.pruning or self.hard_pruning else super().get_exp_rate()
 
-        self.sigmoid = torch.nn.Sigmoid()
-        self.pruning_idx = None
-        # self.last_board = None
-        # self.game_aligns = [0, 0]
-        # self.aligns = [0, 0]
+        # self.pruning_idx = None
+        # self.heuristic_idx = None
 
     def __str__(self):
         return f"MCTSEval with: Pruning / Heuristics ({self.mcts_iter} iter)"
@@ -77,19 +85,9 @@ class MCTSEval(MCTS):
     def get_state_data(self, engine):
         data = super().get_state_data(engine)
         data.update({
-            'heuristic': self.heuristic(engine.state.board)
+            'heuristic': self.states[engine.state.board.tobytes()]['Heuristic'][0]
         })
         return data
-
-    # def __call__(self, game_engine: Gomoku):
-    #
-    #     # Fetch diff between last board and game_engine board
-    #     # Fetch new 3, 4 and 5 aligns on these diff -> Save in game_aligns
-    #
-    #     super().__call__(game_engine)
-    #
-    #     # Update last_board with bestGaction
-    #     # Update game_aligns with bestGaction
 
     def _get_pruning(self):
 
@@ -110,37 +108,24 @@ class MCTSEval(MCTS):
             exploration_rate(s, a) =
                 pruning(s, a) * exploration_rate(s, a)
         """
-        # if np.all(self.engine.state.full_board == 0):   # Useless ???
-        #     return super().get_exp_rate(state_data)
-        return super().get_exp_rate(state_data) * state_data[self.pruning_idx]
-
-    def _expand(self):
-        memory = super().expand()
-        memory.append(self._get_pruning())
-        return memory
+        return state_data['Pruning'] * super().get_exp_rate(state_data)
 
     def expand(self):
-        """
-            Call only ones, to save pruning idx in state_data
-            Next calls will be redirect to self._expand()
-        """
         memory = super().expand()
 
-        self.pruning_idx = len(memory)
-        self.expand = self._expand
-
-        memory.append(self._get_pruning())
+        h = self.heuristic(self.current_board)
+        memory.update({
+            'Pruning': self._get_pruning(),
+            'Heuristic': [h, 1 - h]
+        })
         return memory
 
     def award(self):
-        h = self.heuristic(self.current_board)
-        return [h, 1 - h]
+        return self.states[self.current_board.tobytes()]['Heuristic']
 
     def heuristic(self, board):
         """
-            Prévenir à 1 coup de la victoire
-                Si 4 captures
-                Si 5 aligné -> GameEndingCapture
+            Si 5 aligné -> GameEndingCapture
         """
         aligns = [
             {
@@ -169,6 +154,6 @@ class MCTSEval(MCTS):
         d5 = (aligns[0]['5'] - aligns[1]['5']) / 5
 
         x = dcapture + d3 * 0.125 + d4 * 0.5 + d5 * 2
-        h = 1 / (1 + np.exp(-0.3 * x))
+        h = 1 / (1 + np.exp(-0.4 * x))
 
         return h
