@@ -22,3 +22,24 @@ int     mcts_lazy_selection(float *policy, int *best_actions)
     }
     return best_action_count;
 }
+
+void    init_random_buffer(int *random_buffer, int size)
+{
+    for (int i = 0; i < size; ++i)
+        random_buffer[i] = i;
+    
+    // shuffle size times
+    int a, b;
+    if (size < 2)
+        return;
+    for (int i = 0; i < size; ++i)
+    {
+        a = rand() % size;
+        b = rand() % size;
+        while (b == a) 
+            b = rand() % size;
+        random_buffer[a] ^= random_buffer[b];
+        random_buffer[b] ^= random_buffer[a];
+        random_buffer[a] ^= random_buffer[b];
+    }
+}
