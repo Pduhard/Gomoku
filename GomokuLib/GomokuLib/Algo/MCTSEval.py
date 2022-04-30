@@ -1,5 +1,7 @@
+import fastcore
 import torch.nn.functional
 import numpy as np
+from fastcore._algo import ffi
 
 from .MCTSAMAFLazy import MCTSAMAFLazy
 from .MCTSLazy import MCTSLazy
@@ -122,6 +124,16 @@ class MCTSEval(MCTS):
 
     def award(self):
         return self.states[self.current_board.tobytes()]['Heuristic']
+
+    # def heuristic(self, board):
+    #
+    #     board = board.astype(np.float32)
+    #     c_board = ffi.cast("float *", board.ctypes.data)
+    #
+    #     self.align_count = [[0, 0, 0], [0, 0, 0]]
+    #     self.c_align_count = ffi.cast("int *", self.align_count.ctypes.data)
+    #
+    #     fastcore.mcts_eval_heuristic(c_board, self.c_align_count)
 
     def heuristic(self, board):
         """
