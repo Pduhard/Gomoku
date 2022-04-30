@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Dict, Tuple, Union
 
 
 import numpy as np
-from numba import njit
+# from numba import njit
 
 from GomokuLib.Player import Human
 

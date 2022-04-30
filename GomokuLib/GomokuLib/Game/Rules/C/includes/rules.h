@@ -1,0 +1,1 @@
+int basic_rule_winning(char *board, int ar, int ac, int rmax, int cmax);

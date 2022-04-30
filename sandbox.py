@@ -90,36 +90,44 @@ def duel():
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
 
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        agent_name="agent_23:04:2022_18:14:01",
-        mcts_iter=300,
-        mcts_hard_pruning=True,
-        mean_forward=True,
-        model_confidence=0.1,
-        device=device
-    )
-    p1 = agent
+    # agent = GomokuLib.AI.Agent.GomokuAgent(
+    #     RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+    #     agent_name="agent_23:04:2022_18:14:01",
+    #     mcts_iter=300,
+    #     mcts_hard_pruning=True,
+    #     mean_forward=True,
+    #     model_confidence=0.1,
+    #     device=device
+    # )
+    # p1 = agent
 
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        agent_name="agent_23:04:2022_18:14:01",
-        mcts_iter=300,
-        mcts_hard_pruning=True,
-        mean_forward=True,
-        model_confidence=0.9,
-        device=device
-    )
-    p2 = agent
+    # agent = GomokuLib.AI.Agent.GomokuAgent(
+    #     RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+    #     agent_name="agent_23:04:2022_18:14:01",
+    #     mcts_iter=300,
+    #     mcts_hard_pruning=True,
+    #     mean_forward=True,
+    #     model_confidence=0.9,
+    #     device=device
+    # )
+    # p2 = agent
 
     # p1 = GomokuLib.Player.RandomPlayer()
-    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-    #     engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-    #     iter=1000,
-    #     pruning=False,
-    #     hard_pruning=True
-    # )
-    # p1 = GomokuLib.Player.Bot(mcts_p1)
+    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+        iter=2000,
+        pruning=False,
+        hard_pruning=True
+    )
+    p1 = GomokuLib.Player.Bot(mcts_p1)
+
+    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+        iter=2000,
+        pruning=False,
+        hard_pruning=True
+    )
+    p2 = GomokuLib.Player.Bot(mcts_p1)
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
@@ -127,6 +135,8 @@ def duel():
     profiler = cProfile.Profile()
     profiler.enable()
 
+    # p1 = GomokuLib.Player.Human()
+    # p2 = GomokuLib.Player.Human()
     winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
     profiler.disable()
@@ -221,7 +231,7 @@ def agents_comparaison():
     print(f"last version win rate: {win_rate / n_games}")
 
 if __name__ == '__main__':
-    # duel()
-    RLmain()
+    duel()
+    # RLmain()
     # RLtest()
     # agents_comparaison()

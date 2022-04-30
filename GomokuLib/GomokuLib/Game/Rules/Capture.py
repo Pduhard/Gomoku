@@ -2,7 +2,7 @@ from time import perf_counter
 from typing import Any
 from GomokuLib.Game.Action import GomokuAction
 import numpy as np
-from numba import njit
+# from numba import njit
 
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -46,7 +46,7 @@ def init_capture_mask():
 
 	return CAPTURE_MASK
 
-@njit()
+# @njit()
 def njit_endturn(board, action, board_size, CAPTURE_MASK):
 
 	ar, ac = action

@@ -2,7 +2,7 @@ from pickletools import uint8
 from time import perf_counter
 from typing import Any
 from GomokuLib.Game.State import GomokuState
-from numba import njit
+# from numba import njit
 import numpy as np
 
 from GomokuLib.Game.Action import GomokuAction
@@ -34,7 +34,7 @@ def init_ft_ident():
 
 
 # @njit(parallel=True, fastmath=True)
-@njit()
+# @njit()
 def njit_is_valid(rmax, cmax, ar, ac, board, FT_IDENT):
 
 	n_free_threes = 0

@@ -9,8 +9,8 @@ from .MCTS import MCTS
 from ..AI.Model.ModelInterface import ModelInterface
 from GomokuLib.Game.GameEngine.Gomoku import Gomoku
 
-from GomokuLib.Game.Rules.Capture import Capture
-from GomokuLib.Game.Rules.BasicRule import njit_is_align
+# from GomokuLib.Game.Rules.Capture import Capture
+# from GomokuLib.Game.Rules.BasicRule import njit_is_align
 
 #
 # def get_neighbors_mask(board):
