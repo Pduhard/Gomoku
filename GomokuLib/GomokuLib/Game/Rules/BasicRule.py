@@ -2,13 +2,15 @@ from pickle import FALSE
 import re
 from time import perf_counter
 from GomokuLib.Game.State.GomokuState import GomokuState
+import cffi
 from numba import njit
 import numpy as np
 from GomokuLib.Game.Action import GomokuAction
 
 from GomokuLib.Game.GameEngine import Gomoku
 from .AbstractRule import AbstractRule
-
+from fastcore._rules import ffi, lib as fastcore
+# from fastcore._basic_rules2 import ffi2, lib2
 
 # @njit()
 def njit_is_align(board, ar, ac, rmax, cmax, p_id: int = 0, n_align: int = 5):
@@ -58,6 +60,12 @@ class BasicRule(AbstractRule):
 	name = 'BasicRule'
 	restricting = True  # Imply existing methods get_valid() and is_valid()
 
+	def __init__(self, engine):
+		super().__init__(engine)
+		# self.ffi = cffi.FFI()
+		# self.ffi.cdef("int winning(float *board, int ar, int ac, int rmax, int cmax);")
+		# self._c = self.ffi.dlopen("./GomokuLib/GomokuLib/Game/Rules/C/libbasic_rules.so")
+	
 	def get_valid(self):
 		return self.engine.state.full_board ^ 1
 	
@@ -69,6 +77,8 @@ class BasicRule(AbstractRule):
 
 		ar, ac = action.action
 		rmax, cmax = self.engine.board_size
+		return True if fastcore.basic_rule_winning(ffi.cast("char *", self.engine.state.board.ctypes.data), ar, ac, rmax, cmax) else False
+		print("fastcore said", fastcore.basic_rule_winning(ffi.cast("char *", self.engine.state.board.ctypes.data), ar, ac, rmax, cmax))
 		return njit_is_align(self.engine.state.board, ar, ac, rmax, cmax)
 		# tic = perf_counter()
 

@@ -14,26 +14,6 @@ class MCTSLazy(MCTS):
     def get_actions(self) -> np.ndarray:
         return self.engine.state.full_board ^ 1
 
-    # def selection(self, policy: np.ndarray, state_data: list) -> GomokuAction:
-    #
-    #     actions = state_data[3]
-    #     rows, cols = np.unravel_index(
-    #         np.argsort(policy, axis=None),
-    #         policy.shape
-    #     )
-    #
-    #     for x, y in zip(rows[::-1], cols[::-1]):
-    #         if actions[x, y]:
-    #             gAction = GomokuAction(x, y)
-    #             if actions[x, y] == 2:
-    #                 return gAction
-    #             if self.engine.is_valid_action(gAction):
-    #                 actions[x, y] = 2
-    #                 return gAction
-    #             actions[x, y] = 0
-    #
-    #     raise Exception("No valid action to select.")
-
     def selection(self, policy: np.ndarray, state_data: list) -> GomokuAction:
 
         actions = state_data[3]

@@ -22,6 +22,10 @@ setup(
         'GomokuLib.Media',
         'GomokuLib.Player'
     ],
+    cffi_modules=[
+        "./GomokuLib/Game/Rules/C/_build.py:ffibuilder",
+        "./GomokuLib/Algo/C/_build.py:ffibuilder",
+    ],
 
     # long_description=open('README.md').read(),
     install_requires=[
