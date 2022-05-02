@@ -1,10 +1,14 @@
 from time import sleep
 
+import numpy as np
 import torch.cuda
 
 import GomokuLib
 
 import cProfile, pstats
+
+import fastcore
+from fastcore._rules import ffi, lib as fastcore
 
 """
 
@@ -100,14 +104,15 @@ def duel():
     #     device=device
     # )
     # p1 = agent
-
+    #
     # agent = GomokuLib.AI.Agent.GomokuAgent(
     #     RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-    #     agent_name="agent_23:04:2022_18:14:01",
+    #     # agent_name="agent_23:04:2022_18:14:01",
+    #     agent_name="agent_28:04:2022_20:39:46",
     #     mcts_iter=300,
     #     mcts_hard_pruning=True,
     #     mean_forward=True,
-    #     model_confidence=0.9,
+    #     model_confidence=0.1,
     #     device=device
     # )
     # p2 = agent
@@ -115,19 +120,20 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=2000,
+        iter=500,
         pruning=False,
         hard_pruning=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
+    p2 = p1
 
-    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=2000,
-        pruning=False,
-        hard_pruning=True
-    )
-    p2 = GomokuLib.Player.Bot(mcts_p1)
+    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+    #     engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+    #     iter=1000,
+    #     pruning=False,
+    #     hard_pruning=True
+    # )
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
@@ -230,8 +236,61 @@ def agents_comparaison():
             win_rate += 1
     print(f"last version win rate: {win_rate / n_games}")
 
+def c_tests():
+
+    board = np.zeros((2, 19, 19), dtype=np.int8)
+    board[0, 5, 5] = 1
+
+    board[0, 2, 2] = 1
+    board[1, 3, 3] = 1
+    board[1, 4, 4] = 1
+    board[1, 6, 6] = 1
+    board[1, 7, 7] = 1
+    board[0, 8, 8] = 1
+
+    board[0, 8, 2] = 1
+    board[1, 7, 3] = 1
+    board[1, 6, 4] = 1
+    board[1, 4, 6] = 1
+    board[1, 3, 7] = 1
+    board[0, 2, 8] = 1
+
+    board[0, 5, 2] = 1
+    board[1, 5, 3] = 1
+    board[1, 5, 4] = 1
+    board[1, 5, 6] = 1
+    board[1, 5, 7] = 1
+    board[0, 5, 8] = 1
+
+    board[0, 2, 5] = 1
+    board[1, 3, 5] = 1
+    board[1, 4, 5] = 1
+    board[1, 6, 5] = 1
+    board[1, 7, 5] = 1
+    board[0, 8, 5] = 1
+
+    c_board = ffi.cast("char *", board.ctypes.data)
+    count = fastcore.count_captures(c_board, 5, 5)
+    print(f"Capture: {count}")
+
+    # board = np.zeros((2, 19, 19), dtype=np.bool8)
+    # board[1, 5, 4] = 1
+    # # board[1, 5, 5] = 1
+    # board[0, 5, 6] = 1
+    # board[0, 5, 7] = 1
+    # board[0, 5, 8] = 1
+    # # board[0, 5, 9] = 1
+    # board[1, 5, 10] = 1
+    # c_board = ffi.cast("char *", board.ctypes.data)
+    #
+    # x = fastcore.mcts_eval_heuristic(c_board, 0, 0)
+    # h = 1 / (1 + np.exp(-0.4 * x))
+    # print(f"h = sigmoid0.4(x)")
+    # print(f"{h} = sigmoid0.4({x})")
+
 if __name__ == '__main__':
     duel()
     # RLmain()
     # RLtest()
     # agents_comparaison()
+    # c_tests()

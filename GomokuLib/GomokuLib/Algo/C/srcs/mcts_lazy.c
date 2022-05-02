@@ -32,7 +32,7 @@ void    init_random_buffer(int *random_buffer, int size)
     int a, b;
     if (size < 2)
         return;
-    for (int i = 0; i < size; ++i)
+    for (int i = 0; i < size / 2; ++i)
     {
         a = rand() % size;
         b = rand() % size;

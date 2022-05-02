@@ -186,14 +186,6 @@ class MCTS(AbstractAlgorithm):
             'StateAction': np.zeros((2, self.brow, self.bcol)),
             'Actions': self.get_actions()
         }
-    # def expand(self):
-    #     return [
-    #         1,
-    #         0,
-    #         np.zeros((2, self.brow, self.bcol)),
-    #         # None if self.end_game else np.zeros((2, self.brow, self.bcol)),
-    #         self.get_actions()
-    #     ]
 
     def new_memory(self, statehash, bestaction):
         return 0 if self.engine.player_idx == self.mcts_idx else 1, statehash, bestaction

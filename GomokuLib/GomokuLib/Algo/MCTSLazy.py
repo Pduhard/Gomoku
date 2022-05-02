@@ -24,16 +24,19 @@ class MCTSLazy(MCTS):
 
     def selection(self, policy: np.ndarray, state_data: list) -> GomokuAction:
 
-        # actions = state_data[3]
+        actions = state_data['Actions']
+
+        policy *= actions
         policy = policy.astype(np.float32)
         c_policy = ffi.cast("float *", policy.ctypes.data)
-        actions = state_data['Actions']
-        i = 0
 
         while True:
             best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
-            fastcore.init_random_buffer(self.c_random_buffer, best_action_count)
-            for e in self.random_buffer[:best_action_count]:
+            # fastcore.init_random_buffer(self.c_random_buffer, best_action_count)
+            self.random_buffer = np.arange(best_action_count)
+            np.random.shuffle(self.random_buffer)
+
+            for e in self.random_buffer:
                 x, y = self.best_actions_buffer[e]
                 if actions[x, y]:
                     gAction = GomokuAction(x, y)

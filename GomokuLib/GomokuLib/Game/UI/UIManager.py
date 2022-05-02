@@ -64,11 +64,11 @@ class UIManager:
         self.main_board = Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size)
         self.components = [
             self.main_board,
-            Display(self.win, origin=(1000, 350), size=(450, 400)),
+            Display(self.win, origin=(1000, 350), size=(450, 450)),
             Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255)),
             Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0)),
             Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255)),
-            Button(self.win, origin=(1200, 800), size=(100, 100), event_code='switch-hint', color=(50, 50, 200)),
+            Button(self.win, origin=(1200, 850), size=(100, 100), event_code='switch-hint', color=(50, 50, 200)),
             Button(self.win, origin=(1350, 225), size=(100, 100), event_code='step-uptodate', color=(50, 200, 200)),
         ]
         for c in self.components:
