@@ -29,6 +29,7 @@ class Gomoku(AbstractGameEngine):
         self.board_size = (board_size, board_size) if type(board_size) == int else board_size
         self.rules_str = rules
         self.init_game()
+        self.capture_rule = None
 
     def init_game(self, **kwargs):
         self.turn = 0
@@ -72,8 +73,6 @@ class Gomoku(AbstractGameEngine):
         """
         return GomokuState(self.board_size)
 
-
-
     def get_actions(self) -> np.ndarray:
 
         # actions = self.rules_fn['restricting'][0].get_valid(self.state)
@@ -108,11 +107,21 @@ class Gomoku(AbstractGameEngine):
         print('haled remove rule')
         self.rules_fn[operation].remove(obj)
 
+    def _get_captures_success(self):
+        return self.capture_rule.player_count_capture
+
+    def _get_captures_failed(self):
+        return [0, 0]
+
     def get_captures(self):
         for r in self.rules:
             if isinstance(r, Capture):
-                return r.player_count_capture
-        return [0, 0]
+                self.capture_rule = r
+        if self.capture_rule:
+            self.get_captures = self._get_captures_success
+        else:
+            self.get_captures = self._get_captures_failed
+        return self.get_captures()
 
     def get_history(self) -> np.ndarray:
         # return self.history[1:]
@@ -166,9 +175,11 @@ class Gomoku(AbstractGameEngine):
             exit(0)
 
         finally:
+            self.turn += 1
             self.player_idx ^= 1
             self.state.board = self.state.board[::-1, ...]
-            self.turn += 1
+            if not self.state.board.flags['C_CONTIGUOUS']:
+                self.state.board = np.ascontiguousarray(self.state.board)
 
     def isover(self):
         # print(f"Gomoku(): isover() return {self._isover}")

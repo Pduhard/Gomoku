@@ -28,26 +28,31 @@ class Display:
         pygame.draw.rect(self.win, (200, 200, 200), self.square)
 
         if ss_data:
-            winner = ss_data.get('winner', -1)
-            if winner != -1:
-                winner = 'Black' if winner else 'White'
+            winner = ss_data.get('winner', '_')
+            if winner != '_':
+                ss_data['Winner'] = 'Black' if winner else 'White'
+            else:
+                ss_data['Winner'] = 'Draw'
 
-            elem = {
-                'Mode': ss_data.get('mode', '_'),
-                'White': ss_data.get('p1', '_'),
-                'Black': ss_data.get('p2', '_'),
-                'Turn': ss_data.get('turn', '_'),
-                'dtime': f"{dtime} s",
-                'Waiting': 'Black' if ss_data.get('player_idx', '_') else 'White',
-                'Winner': winner,
-                'Model confidence': ss_data.get('model_confidence', '_'),
-                'Heuristic': ss_data.get('heuristic', '_'),
-                'Total self-play': ss_data.get('self_play', '_'),
-                'Total samples': ss_data.get('dataset_length', '_')
-            }
-            elem = {k: v for k, v in elem.items() if v != '_'}
-            items = elem.items()
+            ss_data['dtime'] = f"{dtime} s"
+            ss_data['Waiting'] = 'Black' if ss_data.get('player_idx', '_') else 'White'
 
+            # elem = {
+            #     'Mode': ss_data.get('mode', '_'),
+            #     'White': ss_data.get('p1', '_'),
+            #     'Black': ss_data.get('p2', '_'),
+            #     'Turn': ss_data.get('turn', '_'),
+            #     'dtime': f"{dtime} s",
+            #     'Waiting': 'Black' if ss_data.get('player_idx', '_') else 'White',
+            #     'Winner': winner,
+            #     'Model confidence': ss_data.get('model_confidence', '_'),
+            #     'Heuristic': ss_data.get('heuristic', '_'),
+            #     'Total self-play': ss_data.get('self_play', '_'),
+            #     'Total samples': ss_data.get('dataset_length', '_')
+            # }
+            # elem = {k: v for k, v in elem.items() if v != '_'}
+
+            items = ss_data.items()
             dy = self.dy / (len(items) + 1)
             y = dy
             for k, v in items:

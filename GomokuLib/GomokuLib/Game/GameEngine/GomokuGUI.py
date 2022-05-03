@@ -37,26 +37,6 @@ class GomokuGUI(Gomoku):
 
         print("END __init__() Gomokugui\n")
 
-    # def init_game(self, mode: str = "GomokuGUI.run()", p1: str = '_', p2: str = '_', **kwargs):
-    #     super().init_game()
-    #
-    #     if self.players:
-    #         if p1 == '_':
-    #             p1 = str(self.players[0])
-    #         if p2 == '_':
-    #             p2 = str(self.players[1])
-    #
-    #     kwargs.update({
-    #         'mode': mode,
-    #         'p1': p1,
-    #         'p2': p2,
-    #     })
-    #     print(f"New game info created -> {kwargs}")
-    #     self.gui_outqueue.put({
-    #         'code': 'new-game',
-    #         'data': kwargs,
-    #     })
-
     def update_UI(self, **kwargs):
         """
             All kwargs information will be sent to UIManager with new snapshot
@@ -78,10 +58,11 @@ class GomokuGUI(Gomoku):
         """
         super().next_turn()
 
-        kwargs['mode'] = mode
+        kwargs['Mode'] = mode
+        kwargs['Captures'] = self.get_captures()
         if mode == "GomokuGUI.run()":
-            kwargs['p1'] = str(self.players[0])
-            kwargs['p2'] = str(self.players[1])
+            kwargs['White'] = str(self.players[0])
+            kwargs['Black'] = str(self.players[1])
 
         self.update_UI(
             **kwargs,

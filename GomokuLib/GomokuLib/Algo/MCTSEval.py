@@ -1,5 +1,7 @@
+import fastcore
 import torch.nn.functional
 import numpy as np
+from fastcore._algo import ffi, lib as fastcore
 
 from .MCTSAMAFLazy import MCTSAMAFLazy
 from .MCTSLazy import MCTSLazy
@@ -89,7 +91,7 @@ class MCTSEval(MCTS):
         })
         return data
 
-    def _get_pruning(self):
+    def _pruning(self):
 
         board = self.engine.state.full_board
         n1 = get_neighbors_mask(board)                      # Get neightbors, depth=1
@@ -115,7 +117,7 @@ class MCTSEval(MCTS):
 
         h = self.heuristic(self.current_board)
         memory.update({
-            'Pruning': self._get_pruning(),
+            'Pruning': self._pruning(),
             'Heuristic': [h, 1 - h]
         })
         return memory
@@ -124,6 +126,7 @@ class MCTSEval(MCTS):
         return self.states[self.current_board.tobytes()]['Heuristic']
 
     def heuristic(self, board):
+<<<<<<< HEAD
         return 0.5
         """
             Si 5 aligné -> GameEndingCapture
@@ -149,12 +152,48 @@ class MCTSEval(MCTS):
 
         captures = self.engine.get_captures()
         dcapture = (captures[0] * captures[0] - captures[1] * captures[1]) / 10
+=======
+>>>>>>> 8bc7fdb58dbecddbedecc82de4f615266ed1a2ed
 
-        d3 = (aligns[0]['3'] - aligns[1]['3']) / 3
-        d4 = (aligns[0]['4'] - aligns[1]['4']) / 4
-        d5 = (aligns[0]['5'] - aligns[1]['5']) / 5
+        board = board.astype(np.float32)
+        c_board = ffi.cast("char *", board.ctypes.data)
 
-        x = dcapture + d3 * 0.125 + d4 * 0.5 + d5 * 2
+        captures = self.engine.get_captures()
+        x = fastcore.mcts_eval_heuristic(c_board, captures[0], captures[1])
         h = 1 / (1 + np.exp(-0.4 * x))
-
         return h
+
+    # def heuristic(self, board):
+    #     """
+    #         Si 5 aligné -> GameEndingCapture
+    #     """
+    #     aligns = [
+    #         {
+    #             '3': 0,
+    #             '4': 0,
+    #             '5': 0
+    #         },
+    #         {
+    #             '3': 0,
+    #             '4': 0,
+    #             '5': 0
+    #         }
+    #     ]
+    #     coords = np.argwhere(board == 1)
+    #     for id, y, x in coords:
+    #         for align in [5, 4, 3]:
+    #             if njit_is_align(board, y, x, *self.engine.board_size, p_id=id, n_align=align):
+    #                 aligns[id][str(align)] += 1
+    #                 break
+    #
+    #     captures = self.engine.get_captures()
+    #     dcapture = (captures[0] * captures[0] - captures[1] * captures[1]) / 10
+    #
+    #     d3 = (aligns[0]['3'] - aligns[1]['3']) / 3
+    #     d4 = (aligns[0]['4'] - aligns[1]['4']) / 4
+    #     d5 = (aligns[0]['5'] - aligns[1]['5']) / 5
+    #
+    #     x = dcapture + d3 * 0.125 + d4 * 0.5 + d5 * 2
+    #     h = 1 / (1 + np.exp(-0.4 * x))
+    #
+    #     return h

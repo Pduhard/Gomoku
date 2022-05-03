@@ -60,12 +60,6 @@ class BasicRule(AbstractRule):
 	name = 'BasicRule'
 	restricting = True  # Imply existing methods get_valid() and is_valid()
 
-	def __init__(self, engine):
-		super().__init__(engine)
-		# self.ffi = cffi.FFI()
-		# self.ffi.cdef("int winning(float *board, int ar, int ac, int rmax, int cmax);")
-		# self._c = self.ffi.dlopen("./GomokuLib/GomokuLib/Game/Rules/C/libbasic_rules.so")
-	
 	def get_valid(self):
 		return self.engine.state.full_board ^ 1
 	

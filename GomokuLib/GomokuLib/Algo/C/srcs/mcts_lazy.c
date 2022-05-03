@@ -2,7 +2,7 @@
 
 int     mcts_lazy_selection(float *policy, int *best_actions)
 {
-    int     i_end = 19 * 19;
+    int     i_end = 361;
     float   best_policy = -1;
     int     *best_action_start = best_actions;
 
