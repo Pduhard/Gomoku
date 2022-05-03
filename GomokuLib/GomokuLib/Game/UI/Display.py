@@ -44,9 +44,10 @@ class Display:
                 'Winner': winner,
                 'Captures': ss_data.get('captures', '_'),
                 'Model confidence': ss_data.get('model_confidence', '_'),
-                'Heuristic': ss_data.get('heuristic', '_'),
+                'Best models': ss_data.get('nbr_best_models', '_'),
                 'Total self-play': ss_data.get('self_play', '_'),
-                'Total samples': ss_data.get('dataset_length', '_')
+                'Total samples': ss_data.get('dataset_length', '_'),
+                'Heuristic': ss_data.get('heuristic', '_')
             }
             elem = {k: v for k, v in elem.items() if v != '_'}
 

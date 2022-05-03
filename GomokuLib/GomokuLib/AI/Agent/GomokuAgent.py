@@ -103,6 +103,7 @@ class GomokuAgent(Bot):
         self.v_loss = 0
 
         # Put these config numbers in an agent_config file
+        self.n_model_inhibition = 0
         self.n_best_models = 0
         self.model_confidence = 0
         self.samples_per_epoch = 1500
@@ -142,14 +143,14 @@ class GomokuAgent(Bot):
         self.mcts.mcts_pruning = False
         self.mcts.mcts_hard_pruning = True
         self.mcts.mcts_iter = self.model_comparison_mcts_iter
-        self.mcts.set_model_confidence(self.model_confidence)
+        self.mcts.set_model_confidence(1)
         self.model_interface.set_mean_forward(True)
 
         self.best_model_mcts.reset()
         self.best_model_mcts.mcts_pruning = False
         self.best_model_mcts.mcts_hard_pruning = True
         self.best_model_mcts.mcts_iter = self.model_comparison_mcts_iter
-        self.best_model_mcts.set_model_confidence(self.model_confidence)
+        self.best_model_mcts.set_model_confidence(1)
         self.best_model_interface.set_mean_forward(True)
 
         if self.rnd_first_turn:

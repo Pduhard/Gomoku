@@ -14,6 +14,7 @@ from fastcore._rules import ffi, lib as fastcore
 
     TODO (Important):
 
+        Heuristics ajouter embeter ladversaire
         Heuristics to replace value
             Test Human vs MCTS
             Create dataset with MCTS
@@ -92,8 +93,8 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # engine = GomokuLib.Game.GameEngine.GomokuGUI()
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
+    engine = GomokuLib.Game.GameEngine.GomokuGUI()
+    # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
 
     # agent = GomokuLib.AI.Agent.GomokuAgent(
     #     RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
@@ -111,7 +112,7 @@ def duel():
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
         # engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=1000,
+        iter=2000,
         hard_pruning=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
@@ -123,7 +124,8 @@ def duel():
     profiler = cProfile.Profile()
     profiler.enable()
 
-    winner = engine.run([p1, p2])  # White: 0 / Black: 1
+    for i in range(1):
+        winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('tottime')
@@ -167,7 +169,7 @@ def RLmain():
     agent = GomokuLib.AI.Agent.GomokuAgent(
         GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
         # agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=500,
+        mcts_iter=1000,
         mcts_hard_pruning=True,
         mean_forward=False,
         device=device,
@@ -217,40 +219,17 @@ def agents_comparaison():
 def c_tests():
 
     board = np.zeros((2, 19, 19), dtype=np.int8)
-    board[0, 5, 5] = 1
+    full_board = np.zeros((19, 19), dtype=np.int8)
 
-    board[0, 2, 2] = 1
-    board[1, 3, 3] = 1
-    board[1, 4, 4] = 1
-    board[1, 6, 6] = 1
-    board[1, 7, 7] = 1
-    board[0, 8, 8] = 1
-
-    board[0, 8, 2] = 1
-    board[1, 7, 3] = 1
-    board[1, 6, 4] = 1
-    board[1, 4, 6] = 1
-    board[1, 3, 7] = 1
-    board[0, 2, 8] = 1
-
-    board[0, 5, 2] = 1
-    board[1, 5, 3] = 1
-    board[1, 5, 4] = 1
-    board[1, 5, 6] = 1
-    board[1, 5, 7] = 1
+    board[0, 5, 6] = 1
+    board[0, 5, 7] = 1
     board[0, 5, 8] = 1
 
-    board[0, 2, 5] = 1
-    board[1, 3, 5] = 1
-    board[1, 4, 5] = 1
-    board[1, 6, 5] = 1
-    board[1, 7, 5] = 1
-    board[0, 8, 5] = 1
-
     c_board = ffi.cast("char *", board.ctypes.data)
-    count = fastcore.count_captures(c_board, 5, 5)
-    print(f"Capture: {count}")
-
+    c_full_board = ffi.cast("char *", full_board.ctypes.data)
+    count = fastcore.is_double_threes(c_board, c_full_board, 5, 6)
+    print(f"Count: {count}")
+    breakpoint()
     # board = np.zeros((2, 19, 19), dtype=np.bool8)
     # board[1, 5, 4] = 1
     # # board[1, 5, 5] = 1

@@ -1,9 +1,9 @@
 #include "algo.h"
 
-int     mcts_lazy_selection(float *policy, int *best_actions)
+int     mcts_lazy_selection(double *policy, int *best_actions)
 {
     int     i_end = 361;
-    float   best_policy = -1;
+    double   best_policy = -1;
     int     *best_action_start = best_actions;
 
     for (int i = 0; i < i_end; ++i, ++policy)
@@ -26,7 +26,7 @@ void    init_random_buffer(int *random_buffer, int size)
 {
     for (int i = 0; i < size; ++i)
         random_buffer[i] = i;
-    
+
     // shuffle size times
     int rnd = rand();
     int rnd_idx;

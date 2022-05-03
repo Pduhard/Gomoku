@@ -1,8 +1,12 @@
 from pickletools import uint8
 from time import perf_counter
 from typing import Any
+
+import fastcore
+from fastcore._rules import ffi, lib as fastcore
+
 from GomokuLib.Game.State import GomokuState
-# from numba import njit
+from numba import njit
 import numpy as np
 
 from GomokuLib.Game.Action import GomokuAction
@@ -120,14 +124,24 @@ class NoDoubleThrees(AbstractRule):
 
 	def is_valid(self, action: GomokuAction):
 
+		# return True
 		ar, ac = action.action
-		rmax, cmax = self.engine.board_size
-		board = self.engine.state.board
+		# rmax, cmax = self.engine.board_size
+		# board = self.engine.state.board
+		# old_value = board[0, ar, ac]
+		# board[0, ar, ac] = 1
+		# truth = njit_is_valid(rmax, cmax, ar, ac, board, self.FT_IDENT)
+		# board[0, ar, ac] = old_value
 
-		old_value = board[0, ar, ac]
-		board[0, ar, ac] = 1
-		res = njit_is_valid(rmax, cmax, ar, ac, board, self.FT_IDENT)
-		board[0, ar, ac] = old_value
+		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
+		c_full_board = ffi.cast("char *", self.engine.state.full_board.ctypes.data)
+
+		res = not fastcore.is_double_threes(c_board, c_full_board, ar, ac)
+		#
+		# if bool(res) != truth:
+		# 	print(f"ERROR res={bool(res)} / truth={truth}")
+		# 	breakpoint()
+
 		return res
 	
 	# def count_free_threes(self, board, x, y, dr, dc):

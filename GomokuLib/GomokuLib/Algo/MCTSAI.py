@@ -65,9 +65,9 @@ class MCTSAI(MCTSEvalLazy):
     def set_model_confidence(self, beta):
         self.model_confidence = beta
         self.model_confidence_inv = 1 - beta
-        if self.model_confidence < 0.05:
+        if self.model_confidence < 0.10:
             self.expand = self._expand_without_model
-        elif self.model_confidence > 0.95:
+        elif self.model_confidence > 0.90:
             self.expand = self._expand_without_heuristic
         else:
             self.expand = self._expand
@@ -128,7 +128,7 @@ class MCTSAI(MCTSEvalLazy):
         policy, value = self._get_model_policies()
         memory.update({
             'Policy': policy,
-            'Value': value
+            'Value': [value, 1 - value]
         })
         return memory
 

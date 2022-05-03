@@ -13,6 +13,7 @@ with open(os.path.join(PATH, 'srcs/rules.c'), 'r') as f:
         sources=[
             os.path.join(PATH, 'srcs/basic_rules.c'),
             os.path.join(PATH, 'srcs/capture.c'),
+            os.path.join(PATH, 'srcs/no_double_threes.c'),
         ],
         include_dirs=[os.path.join(PATH, 'includes')])
     

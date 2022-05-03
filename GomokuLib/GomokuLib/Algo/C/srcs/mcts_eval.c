@@ -64,7 +64,7 @@ static void count_align(char *board, int p1, int p2, int ar, int ac, char *align
 
 float mcts_eval_heuristic(char *board, int cap_1, int cap_2)
 {
-    float   cap_val = (cap_2 * cap_2 - cap_1 * cap_1) / 10.;
+    float   cap_val = (cap_1 * cap_1 - cap_2 * cap_2) / 10.;
     char    align_1[3] = {0, 0, 0};
     char    align_2[3] = {0, 0, 0};
     int     board_size = 361;
@@ -87,7 +87,7 @@ float mcts_eval_heuristic(char *board, int cap_1, int cap_2)
         }
     }
     return cap_val +\
-        0.2 * (align_2[0] - align_1[0]) +\
-        0.6 * (align_2[1] - align_1[1]) +\
-        3 * (align_2[2] - align_1[2]);
+        0.2 * (align_1[0] - align_2[0]) +\
+        0.6 * (align_1[1] - align_2[1]) +\
+        3 * (align_1[2] - align_2[2]);
 }

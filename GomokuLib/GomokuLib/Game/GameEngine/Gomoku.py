@@ -22,7 +22,7 @@ class Gomoku(AbstractGameEngine):
 
     def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]] = None,
                  board_size: Union[int, tuple[int]] = 19,
-                 rules: list[Union[str, AbstractRule]] = ['Capture', 'Game-Ending Capture', 'no double-threes'],
+                 rules: list[Union[str, AbstractRule]] = ['Game-Ending Capture', 'Capture', 'no double-threes'],
                  **kwargs) -> None:
         super().__init__(players)
 
@@ -30,8 +30,6 @@ class Gomoku(AbstractGameEngine):
         self.rules_str = rules
         self.init_game()
         self.capture_rule = None
-        print(f"self.rules_str: {self.rules_str}")
-        print(f"self.rules_fn: {self.rules_fn}\n\n")
 
     def init_game(self, **kwargs):
         self.turn = 0
@@ -54,8 +52,8 @@ class Gomoku(AbstractGameEngine):
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
 
         tab = {
-            'capture': Capture,
             'game-ending capture': GameEndingCapture,
+            'capture': Capture,
             'no double-threes': NoDoubleThrees
         }
 
@@ -136,11 +134,11 @@ class Gomoku(AbstractGameEngine):
         # self.history = np.concatenate((self.history, board[np.newaxis, ...]))
         self.history.append(board)
 
-        if np.all(self.state.full_board != 0):
-            print("DRAW")
-            self._isover = True
-            self.winner = -1
-            return
+        # if np.all(self.state.full_board != 0):
+        #     print("DRAW")
+        #     self._isover = True
+        #     self.winner = -1
+        #     return
         try:
 
             if self.last_action is None:
