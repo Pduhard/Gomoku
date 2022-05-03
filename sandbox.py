@@ -67,7 +67,7 @@ import cProfile, pstats
             Pour voir la répartition des games sur la map
 
         coef sur la policy du network pour le debut ?
-        Filtre de 5x5 dans le CNN ?
+        Filtre de 5x5 dans le CNN ? <== idée de merde
 
         Heuristic ne sert à rien sans les regles !
 
@@ -115,7 +115,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=2000,
+        iter=1000,
         pruning=False,
         hard_pruning=True
     )
@@ -123,7 +123,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=2000,
+        iter=500,
         pruning=False,
         hard_pruning=True
     )

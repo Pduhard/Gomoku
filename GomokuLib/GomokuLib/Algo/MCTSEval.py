@@ -124,6 +124,7 @@ class MCTSEval(MCTS):
         return self.states[self.current_board.tobytes()]['Heuristic']
 
     def heuristic(self, board):
+        return 0.5
         """
             Si 5 aligné -> GameEndingCapture
         """
