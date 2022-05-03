@@ -118,32 +118,12 @@ class NoDoubleThrees(AbstractRule):
 				actions[r, c] = self.is_valid(GomokuAction(r, c))
 		return actions
 
-
 	def is_valid(self, action: GomokuAction):
-		
-		# # return True
-		# # tic = perf_counter()
-		# ar, ac = action.action
-
-		# board = self.engine.state.board.copy()
-		# board[0, ar, ac] = 1  # c'est immonde mais bon
-
-		# free_threes = self.count_free_threes(board, ar - 1, ac - 1, 1, 1)
-		# free_threes += self.count_free_threes(board, ar - 1, ac, 1, 0)
-		# if free_threes == 2:
-		# 	return False
-		# free_threes += self.count_free_threes(board, ar - 1, ac + 1, 1, -1)
-		# if free_threes == 2:
-		# 	return False
-		# # elif free_threes ==0:
-		# # 	return True
-		# free_threes += self.count_free_threes(board, ar, ac + 1, 0, -1)
-		# # print('bousin:', (perf_counter() - tic) * 1000)
-		# return free_threes < 2
 
 		ar, ac = action.action
 		rmax, cmax = self.engine.board_size
 		board = self.engine.state.board
+
 		old_value = board[0, ar, ac]
 		board[0, ar, ac] = 1
 		res = njit_is_valid(rmax, cmax, ar, ac, board, self.FT_IDENT)
@@ -194,7 +174,7 @@ class NoDoubleThrees(AbstractRule):
 
 	
 	def create_snapshot(self):
-		return { }
+		return {}
 
 	def update_from_snapshot(self, snapshot):
 		pass

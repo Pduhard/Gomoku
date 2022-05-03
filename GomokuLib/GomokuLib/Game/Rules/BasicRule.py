@@ -64,8 +64,9 @@ class BasicRule(AbstractRule):
 		return self.engine.state.full_board ^ 1
 	
 	def is_valid(self, action: GomokuAction):
-		ar, ac = action.action
-		return np.all(self.engine.state.board[..., ar, ac] == 0)
+		return self.engine.state.full_board[action.action] == 0
+		# ar, ac = action.action
+		# return np.all(self.engine.state.board[..., ar, ac] == 0)
 
 	def winning(self, action: GomokuAction):
 
@@ -74,40 +75,6 @@ class BasicRule(AbstractRule):
 		return True if fastcore.basic_rule_winning(ffi.cast("char *", self.engine.state.board.ctypes.data), ar, ac, rmax, cmax) else False
 	# 	print("fastcore said", fastcore.basic_rule_winning(ffi.cast("char *", self.engine.state.board.ctypes.data), ar, ac, rmax, cmax))
 	# 	return njit_is_align(self.engine.state.board, ar, ac, rmax, cmax)
-	# 	# tic = perf_counter()
-	#
-	#
-	# 	if (self.count_align_this_way(state.board, ar, ac, -1, -1) +\
-	# 		self.count_align_this_way(state.board, ar, ac, 1, 1) + 1 >= 5):
-	# 		# print((perf_counter() - tic) * 1000)
-	# 		return True
-	#
-	# 	if (self.count_align_this_way(state.board, ar, ac, -1, 0) +\
-	# 		self.count_align_this_way(state.board, ar, ac, 1, 0) + 1 >= 5):
-	# 		# print((perf_counter() - tic) * 1000)
-	# 		return True
-	#
-	# 	if (self.count_align_this_way(state.board, ar, ac, -1, 1) +\
-	# 		self.count_align_this_way(state.board, ar, ac, 1, -1) + 1 >= 5):
-	# 		# print((perf_counter() - tic) * 1000)
-	# 		return True
-	#
-	# 	if (self.count_align_this_way(state.board, ar, ac, 0, -1) +\
-	# 		self.count_align_this_way(state.board, ar, ac, 0, 1) + 1 >= 5):
-	# 		# print((perf_counter() - tic) * 1000)
-	# 		return True
-	# 	# print("No win")
-	# 	# print((perf_counter() - tic) * 1000)
-	# 	return False
-	#
-	# def count_align_this_way(self, board, x, y, dx, dy):
-	# 	rmax, cmax = self.engine.board_size
-	# 	for i in range(4):
-	# 		x += dx
-	# 		y += dy
-	# 		if (x < 0 or x >= rmax or y < 0 or y >= cmax or board[0, x, y] == 0):
-	# 			return i
-	# 	return 4
 
 	def create_snapshot(self):
 		return {}

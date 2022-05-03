@@ -126,74 +126,10 @@ class MCTSEval(MCTS):
         return self.states[self.current_board.tobytes()]['Heuristic']
 
     def heuristic(self, board):
-<<<<<<< HEAD
-        return 0.5
-        """
-            Si 5 aligné -> GameEndingCapture
-        """
-        aligns = [
-            {
-                '3': 0,
-                '4': 0,
-                '5': 0
-            },
-            {
-                '3': 0,
-                '4': 0,
-                '5': 0
-            }
-        ]
-        coords = np.argwhere(board == 1)
-        for id, y, x in coords:
-            for align in [5, 4, 3]:
-                if njit_is_align(board, y, x, *self.engine.board_size, p_id=id, n_align=align):
-                    aligns[id][str(align)] += 1
-                    break
-
-        captures = self.engine.get_captures()
-        dcapture = (captures[0] * captures[0] - captures[1] * captures[1]) / 10
-=======
->>>>>>> 8bc7fdb58dbecddbedecc82de4f615266ed1a2ed
-
-        board = board.astype(np.float32)
+        # board = board.astype(np.float32)
         c_board = ffi.cast("char *", board.ctypes.data)
 
         captures = self.engine.get_captures()
         x = fastcore.mcts_eval_heuristic(c_board, captures[0], captures[1])
-        h = 1 / (1 + np.exp(-0.5 * x))
+        h = 1 / (1 + np.exp(-0.6 * x))
         return h
-
-    # def heuristic(self, board):
-    #     """
-    #         Si 5 aligné -> GameEndingCapture
-    #     """
-    #     aligns = [
-    #         {
-    #             '3': 0,
-    #             '4': 0,
-    #             '5': 0
-    #         },
-    #         {
-    #             '3': 0,
-    #             '4': 0,
-    #             '5': 0
-    #         }
-    #     ]
-    #     coords = np.argwhere(board == 1)
-    #     for id, y, x in coords:
-    #         for align in [5, 4, 3]:
-    #             if njit_is_align(board, y, x, *self.engine.board_size, p_id=id, n_align=align):
-    #                 aligns[id][str(align)] += 1
-    #                 break
-    #
-    #     captures = self.engine.get_captures()
-    #     dcapture = (captures[0] * captures[0] - captures[1] * captures[1]) / 10
-    #
-    #     d3 = (aligns[0]['3'] - aligns[1]['3']) / 3
-    #     d4 = (aligns[0]['4'] - aligns[1]['4']) / 4
-    #     d5 = (aligns[0]['5'] - aligns[1]['5']) / 5
-    #
-    #     x = dcapture + d3 * 0.125 + d4 * 0.5 + d5 * 2
-    #     h = 1 / (1 + np.exp(-0.4 * x))
-    #
-    #     return h

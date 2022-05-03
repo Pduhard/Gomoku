@@ -148,28 +148,24 @@ class MCTS(AbstractAlgorithm):
     def get_actions(self) -> np.ndarray:
         return self.engine.get_actions()
 
-
     def get_quality(self, state_data: list, **kwargs) -> np.ndarray:
         """
             quality(s, a) = rewards(s, a) / (visits(s, a) + 1)
         """
         sa_n, sa_v = state_data['StateAction']
-        # _, _, (sa_n, sa_v) = state_data[:3]
         return sa_v / (sa_n + 1)
 
     def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
         """
             exploration_rate(s, a) = c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
         """
-        # s_n, _, (sa_n, _) = state_data[:3]
         return self.c * np.sqrt(np.log(state_data['Visits']) / (state_data['StateAction'][0] + 1))
 
     def get_policy(self, state_data: list, **kwargs) -> np.ndarray:
         """
             ucb(s, a) = (quality(s, a) + exp_rate(s, a)) * valid_action(s, a)
         """
-        ucbs = self.get_quality(state_data, **kwargs) + self.get_exp_rate(state_data, **kwargs)
-        return ucbs
+        return self.get_quality(state_data, **kwargs) + self.get_exp_rate(state_data, **kwargs)
 
     def selection(self, policy: np.ndarray, state_data, *args) -> tuple:
 

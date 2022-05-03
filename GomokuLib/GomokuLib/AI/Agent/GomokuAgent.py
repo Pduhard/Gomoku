@@ -103,14 +103,15 @@ class GomokuAgent(Bot):
         self.v_loss = 0
 
         # Put these config numbers in an agent_config file
-        self.model_confidence = 0.1
+        self.n_best_models = 0
+        self.model_confidence = 0
         self.samples_per_epoch = 1500
         self.dataset_max_length = 4000
         self.last_n_indices = np.arange(-1, -self.dataset_max_length - 1, -1)
         # self.self_play_n_games = 10
         # self.epochs = 10
         self.evaluation_n_games = 6
-        self.model_comparison_mcts_iter = 100
+        self.model_comparison_mcts_iter = 1000
 
     def __str__(self):
         return f"Agent '{self.name}' with model '{self.model_interface.name}' -> {super().__str__()}"
@@ -131,9 +132,10 @@ class GomokuAgent(Bot):
             'mode': f"Model evaluation {i_game+1}/{n_games}",
             'p1': "Old one | " + str(self.best_model_interface),
             'p2': "New one | " + str(self.model_interface),
-            'model_confidence': self.model_confidence,
             'self_play': self.games_played,
-            'dataset_length': f"{len(self.dataset)}/{self.dataset.samples_generated}"
+            'dataset_length': f"{len(self.dataset)}/{self.dataset.samples_generated}",
+            'nbr_best_models': f"{self.n_best_models}/{self.n_model_inhibition}",
+            'model_confidence': self.model_confidence,
         }
 
         self.mcts.reset()
@@ -161,9 +163,10 @@ class GomokuAgent(Bot):
             'mode': f"self-play {i_game + 1}/{n_games}",
             'p1': str(self),
             'p2': str(self),
-            'model_confidence': self.model_confidence,
             'self_play': self.games_played,
-            'dataset_length': f"{len(self.dataset)}/{self.dataset.samples_generated}"
+            'dataset_length': f"{len(self.dataset)}/{self.dataset.samples_generated}",
+            'nbr_best_models': f"{self.n_best_models}/{self.n_model_inhibition}",
+            'model_confidence': self.model_confidence,
         }
 
         self.mcts.reset()
@@ -252,18 +255,18 @@ class GomokuAgent(Bot):
     def _model_inhibition(self, save: bool):
 
         win_rate = self._model_comparison()
+        self.n_model_inhibition += 1
 
         if win_rate >= 0.5:
             print(f"New best model !")
+            self.n_best_models += 1
             # No need to copy ModelInterface, just the model
             self.best_model_interface.model = copy.deepcopy(self.model_interface.model)
 
             if save:
                 self.save()
 
-            self.model_confidence *= 1 + (win_rate - 0.5)
-            if self.model_confidence > 1:
-                self.model_confidence = 1
+            self.model_confidence = self.n_best_models / (self.n_best_models + 20)
 
         else:
             print(f"New model is worst...")
@@ -383,6 +386,7 @@ class GomokuAgent(Bot):
         torch.save(
             {
                 'name': self.model_interface.name,
+                'n_best_models': self.n_best_models,
                 'training_loops': self.training_loops,
                 'self_play': self.games_played,
                 'samples_used_to_train': self.samples_used_to_train,
@@ -414,6 +418,7 @@ class GomokuAgent(Bot):
         self.training_loops = cp.get('training_loops', None)
         self.games_played = cp.get('self_play', None)
         self.samples_used_to_train = cp.get('samples_used_to_train', None)
+        self.n_best_models = cp.get('n_best_models', None)
 
         self.model_interface.name = cp.get('name', 'Unnamed')
         self.model_interface.model.load_state_dict(cp.get('model_state_dict'))

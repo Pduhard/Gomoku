@@ -30,6 +30,8 @@ class Gomoku(AbstractGameEngine):
         self.rules_str = rules
         self.init_game()
         self.capture_rule = None
+        print(f"self.rules_str: {self.rules_str}")
+        print(f"self.rules_fn: {self.rules_fn}\n\n")
 
     def init_game(self, **kwargs):
         self.turn = 0
@@ -97,7 +99,6 @@ class Gomoku(AbstractGameEngine):
         self.state.board[0, ar, ac] = 1
         self.last_action = action
 
-
     def new_rule(self, obj: object, operation: str):
         print('haled new rule')
         self.rules_fn[operation].append(obj)
@@ -144,6 +145,8 @@ class Gomoku(AbstractGameEngine):
 
             if self.last_action is None:
                 breakpoint()
+
+            # print(self.rules_fn)
 
             for rule in self.rules_fn['endturn']:
                 rule.endturn(self.last_action)

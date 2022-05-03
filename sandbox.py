@@ -92,19 +92,9 @@ print(f"Device selected: {device}")
 
 def duel():
 
+    # engine = GomokuLib.Game.GameEngine.GomokuGUI()
     engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
 
-    # agent = GomokuLib.AI.Agent.GomokuAgent(
-    #     RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-    #     agent_name="agent_23:04:2022_18:14:01",
-    #     mcts_iter=300,
-    #     mcts_hard_pruning=True,
-    #     mean_forward=True,
-    #     model_confidence=0.1,
-    #     device=device
-    # )
-    # p1 = agent
-    #
     # agent = GomokuLib.AI.Agent.GomokuAgent(
     #     RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
     #     # agent_name="agent_23:04:2022_18:14:01",
@@ -119,35 +109,13 @@ def duel():
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-<<<<<<< HEAD
+        engine=engine,
+        # engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
         iter=1000,
-=======
-        iter=500,
->>>>>>> 8bc7fdb58dbecddbedecc82de4f615266ed1a2ed
-        pruning=False,
         hard_pruning=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
     p2 = p1
-
-<<<<<<< HEAD
-    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=500,
-        pruning=False,
-        hard_pruning=True
-    )
-    p2 = GomokuLib.Player.Bot(mcts_p1)
-=======
-    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-    #     engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-    #     iter=1000,
-    #     pruning=False,
-    #     hard_pruning=True
-    # )
-    # p2 = GomokuLib.Player.Bot(mcts_p2)
->>>>>>> 8bc7fdb58dbecddbedecc82de4f615266ed1a2ed
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
@@ -155,12 +123,10 @@ def duel():
     profiler = cProfile.Profile()
     profiler.enable()
 
-    # p1 = GomokuLib.Player.Human()
-    # p2 = GomokuLib.Player.Human()
     winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
     profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('cumtime')
+    stats = pstats.Stats(profiler).sort_stats('tottime')
     stats.print_stats()
     stats.dump_stats('tmp_profile_from_script.prof')
 
@@ -169,12 +135,11 @@ def duel():
 def RLtest():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
-        GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
-        agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=100,
+        GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
+        # agent_name="agent_28:04:2022_20:39:46",
+        mcts_iter=500,
         mcts_hard_pruning=True,
-        heuristic_boost=False,
-        mean_forward=True,
+        mean_forward=False,
         device=device,
     )
     agent.evaluation_n_games = 0
@@ -200,19 +165,18 @@ def RLtest():
 def RLmain():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
-        GomokuLib.Game.GameEngine.GomokuGUI(rules=[]),
-        agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=200,
+        GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
+        # agent_name="agent_28:04:2022_20:39:46",
+        mcts_iter=500,
         mcts_hard_pruning=True,
-        heuristic_boost=False,
-        mean_forward=True,
+        mean_forward=False,
         device=device,
     )
 
     agent.training_loop(
         nbr_tl=-1,
         nbr_tl_before_cmp=4,
-        nbr_games_per_tl=5,
+        nbr_games_per_tl=4,
         epochs=10,
         save=False
     )
@@ -303,8 +267,8 @@ def c_tests():
     # print(f"{h} = sigmoid0.4({x})")
 
 if __name__ == '__main__':
-    duel()
-    # RLmain()
+    # duel()
+    RLmain()
     # RLtest()
     # agents_comparaison()
     # c_tests()

@@ -5,5 +5,5 @@ from . import Model
 __all__ = [
     'Agent',
     'Dataset',
-    'Model'
+    'Model',
 ]

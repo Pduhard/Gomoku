@@ -58,11 +58,11 @@ class GomokuGUI(Gomoku):
         """
         super().next_turn()
 
-        kwargs['Mode'] = mode
-        kwargs['Captures'] = self.get_captures()
+        kwargs['mode'] = mode
+        kwargs['captures'] = self.get_captures()
         if mode == "GomokuGUI.run()":
-            kwargs['White'] = str(self.players[0])
-            kwargs['Black'] = str(self.players[1])
+            kwargs['p1'] = str(self.players[0])
+            kwargs['p2'] = str(self.players[1])
 
         self.update_UI(
             **kwargs,

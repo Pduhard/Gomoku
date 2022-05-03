@@ -4,6 +4,8 @@ import torch
 import numpy as np
 from typing import Union, TYPE_CHECKING
 
+from .TinyGomokuModel import TinyGomokuModel
+
 from .GomokuModel import GomokuModel
 
 from ..Dataset.DatasetTransforms import Compose, HorizontalTransform, VerticalTransform, ToTensorTransform, AddBatchTransform
@@ -20,9 +22,11 @@ class ModelInterface:
                  name: str = None):
 
         self.name = name or "Default ModelInterface name"
-        self.device = device
+
         # Attention un kernel_size différent casse tout !
-        self.model = model or GomokuModel(5, 19, 19, resnet_depth=2, device=self.device)
+        self.device = device
+        self.model = model or TinyGomokuModel(5, 19, 19, device=self.device)
+        # self.model = model or GomokuModel(5, 19, 19, resnet_depth=2, device=self.device)
         self.model.to(self.device)
 
         self.channels, self.width, self.height = self.model.input_shape

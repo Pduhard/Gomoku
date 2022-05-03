@@ -53,6 +53,7 @@ class MCTSAI(MCTSEvalLazy):
         # self.policy_idx = None
         # self.value_idx = None
 
+        self.expand = self._expand
         self.model_interface = model_interface
         self.model_confidence = model_confidence
         self.model_confidence_inv = 1 - model_confidence
@@ -64,6 +65,12 @@ class MCTSAI(MCTSEvalLazy):
     def set_model_confidence(self, beta):
         self.model_confidence = beta
         self.model_confidence_inv = 1 - beta
+        if self.model_confidence < 0.05:
+            self.expand = self._expand_without_model
+        elif self.model_confidence > 0.95:
+            self.expand = self._expand_without_heuristic
+        else:
+            self.expand = self._expand
 
     def get_state_data(self, engine):
 
@@ -79,6 +86,13 @@ class MCTSAI(MCTSEvalLazy):
         })
         return data
 
+    def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
+        """
+            exploration_rate(s, a) =
+                policy(s, a) * c * sqrt( visits(s) ) / (1 + visits(s, a))
+        """
+        return state_data['Policy'] * super().get_exp_rate(state_data)
+
     def _get_model_policies(self) -> tuple:
         # Link history object to model interface in the constructor ? Always same address ?
         inputs = self.model_interface.prepare(self.engine)
@@ -88,16 +102,8 @@ class MCTSAI(MCTSEvalLazy):
 
         return policy, value
 
-    def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
-        """
-            exploration_rate(s, a) =
-                policy(s, a) * c * sqrt( visits(s) ) / (1 + visits(s, a))
-        """
-        return state_data['Policy'] * super().get_exp_rate(state_data)
-
-    def expand(self):
+    def _expand(self):
         memory = super().expand()
-
         policy, value = self._get_model_policies()
 
         policy = self.model_confidence * policy + self.model_confidence_inv * memory['Pruning']
@@ -106,6 +112,23 @@ class MCTSAI(MCTSEvalLazy):
         memory.update({
             'Policy': policy,
             'Value': [value, 1 - value]
+        })
+        return memory
+
+    def _expand_without_model(self):
+        memory = super().expand()
+        memory.update({
+            'Policy': memory['Pruning'],
+            'Value': memory['Heuristic']
+        })
+        return memory
+
+    def _expand_without_heuristic(self):
+        memory = super().expand()
+        policy, value = self._get_model_policies()
+        memory.update({
+            'Policy': policy,
+            'Value': value
         })
         return memory
 
