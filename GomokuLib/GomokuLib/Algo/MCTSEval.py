@@ -132,7 +132,7 @@ class MCTSEval(MCTS):
 
         captures = self.engine.get_captures()
         x = fastcore.mcts_eval_heuristic(c_board, captures[0], captures[1])
-        h = 1 / (1 + np.exp(-0.4 * x))
+        h = 1 / (1 + np.exp(-0.5 * x))
         return h
 
     # def heuristic(self, board):

@@ -35,13 +35,8 @@ static void count_align(char *board, int p1, int p2, int ar, int ac, char *align
         {
             // fprintf(stderr, "%d stones align %d %d on line dy=%d|dx=%d\n", count1 + 1, r1, c1, dr, dc);
 
-//            if (count1 != 3)
-//            {
-//                r1 += dr;   // Check if next cell is empty
-//                c1 += dc;
-//            }
             if (r1 < 0 || r1 >= rmax || c1 < 0 || c1 >= cmax ||
-                board[p1 + r1 * cmax + c1] == 1 || board[p2 + r1 * cmax + c1] == 1)
+                board[p2 + r1 * cmax + c1] == 1)
                 continue ;
             r1 = ar - dr;   // Check if previous cell is empty
             c1 = ac - dc;
@@ -92,7 +87,7 @@ float mcts_eval_heuristic(char *board, int cap_1, int cap_2)
         }
     }
     return cap_val +\
-        0.15 * (align_2[0] - align_1[0]) +\
+        0.2 * (align_2[0] - align_1[0]) +\
         0.6 * (align_2[1] - align_1[1]) +\
         3 * (align_2[2] - align_1[2]);
 }
