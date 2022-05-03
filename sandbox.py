@@ -71,7 +71,7 @@ from fastcore._rules import ffi, lib as fastcore
             Pour voir la répartition des games sur la map
 
         coef sur la policy du network pour le debut ?
-        Filtre de 5x5 dans le CNN ?
+        Filtre de 5x5 dans le CNN ? <== idée de merde
 
         Heuristic ne sert à rien sans les regles !
 
@@ -120,13 +120,26 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+<<<<<<< HEAD
+        iter=1000,
+=======
         iter=500,
+>>>>>>> 8bc7fdb58dbecddbedecc82de4f615266ed1a2ed
         pruning=False,
         hard_pruning=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
     p2 = p1
 
+<<<<<<< HEAD
+    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+        iter=500,
+        pruning=False,
+        hard_pruning=True
+    )
+    p2 = GomokuLib.Player.Bot(mcts_p1)
+=======
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
     #     iter=1000,
@@ -134,6 +147,7 @@ def duel():
     #     hard_pruning=True
     # )
     # p2 = GomokuLib.Player.Bot(mcts_p2)
+>>>>>>> 8bc7fdb58dbecddbedecc82de4f615266ed1a2ed
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()

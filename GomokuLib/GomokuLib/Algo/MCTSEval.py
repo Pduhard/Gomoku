@@ -126,6 +126,34 @@ class MCTSEval(MCTS):
         return self.states[self.current_board.tobytes()]['Heuristic']
 
     def heuristic(self, board):
+<<<<<<< HEAD
+        return 0.5
+        """
+            Si 5 aligné -> GameEndingCapture
+        """
+        aligns = [
+            {
+                '3': 0,
+                '4': 0,
+                '5': 0
+            },
+            {
+                '3': 0,
+                '4': 0,
+                '5': 0
+            }
+        ]
+        coords = np.argwhere(board == 1)
+        for id, y, x in coords:
+            for align in [5, 4, 3]:
+                if njit_is_align(board, y, x, *self.engine.board_size, p_id=id, n_align=align):
+                    aligns[id][str(align)] += 1
+                    break
+
+        captures = self.engine.get_captures()
+        dcapture = (captures[0] * captures[0] - captures[1] * captures[1]) / 10
+=======
+>>>>>>> 8bc7fdb58dbecddbedecc82de4f615266ed1a2ed
 
         board = board.astype(np.float32)
         c_board = ffi.cast("char *", board.ctypes.data)

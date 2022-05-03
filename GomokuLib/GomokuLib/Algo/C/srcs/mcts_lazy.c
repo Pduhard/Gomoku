@@ -4,23 +4,22 @@ int     mcts_lazy_selection(float *policy, int *best_actions)
 {
     int     i_end = 361;
     float   best_policy = -1;
-    int     best_action_count = 0;
+    int     *best_action_start = best_actions;
 
-    for (int i = 0; i < i_end; ++i)
+    for (int i = 0; i < i_end; ++i, ++policy)
     {
-        if (policy[i] >= best_policy)
+        if (*policy >= best_policy)
         {
-            if (policy[i] > best_policy)
+            if (*policy > best_policy)
             {
-                best_policy = policy[i];
-                best_action_count = 0;
+                best_policy = *policy;
+                best_actions = best_action_start;
             }
-            best_actions[best_action_count * 2] = i / 19;
-            best_actions[best_action_count * 2 + 1] = i % 19;
-            best_action_count++;
+            *best_actions++ = i / 19;
+            *best_actions++ = i % 19;
         }
     }
-    return best_action_count;
+    return (best_actions - best_action_start) / 2;
 }
 
 void    init_random_buffer(int *random_buffer, int size)
@@ -29,17 +28,18 @@ void    init_random_buffer(int *random_buffer, int size)
         random_buffer[i] = i;
     
     // shuffle size times
-    int a, b;
+    int rnd = rand();
+    int rnd_idx;
     if (size < 2)
         return;
-    for (int i = 0; i < size / 2; ++i)
+    for (int i = size - 1; i > 0; --i)
     {
-        a = rand() % size;
-        b = rand() % size;
-        while (b == a) 
-            b = rand() % size;
-        random_buffer[a] ^= random_buffer[b];
-        random_buffer[b] ^= random_buffer[a];
-        random_buffer[a] ^= random_buffer[b];
+        rnd = (rnd << 13) ^ 7;
+        rnd = (rnd >> 5) ^ (rnd << 8);
+        rnd = (rnd >> 9) ^ (rnd << 3);
+        rnd_idx = rnd % i;
+        random_buffer[i] ^= random_buffer[rnd_idx];
+        random_buffer[rnd_idx] ^= random_buffer[i];
+        random_buffer[i] ^= random_buffer[rnd_idx];
     }
 }
