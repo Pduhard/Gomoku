@@ -29,6 +29,7 @@ class UIManager:
         self.snapshot_idx_modified = False
         self.pause = False
         self.game_data = {}
+        self.init_time = time.time()
 
     def __call__(self, inqueue, outqueue): # Thread function
 
@@ -173,8 +174,9 @@ class UIManager:
             ss = self.game_snapshots[self.current_snapshot_idx]
             ss_data = ss['ss_data']
             dtime = ss['dtime']
+            tottime = ss['time'] - self.init_time
             for o in self.components:
-                o.draw(ss_data=ss_data, dtime=dtime)
+                o.draw(ss_data=ss_data, dtime=dtime, tottime=tottime)
 
         pygame.display.flip()
 

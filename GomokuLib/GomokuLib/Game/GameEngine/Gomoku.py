@@ -22,7 +22,7 @@ class Gomoku(AbstractGameEngine):
 
     def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]] = None,
                  board_size: Union[int, tuple[int]] = 19,
-                 rules: list[Union[str, AbstractRule]] = ['Game-Ending Capture', 'Capture', 'no double-threes'],
+                 rules: list[Union[str, AbstractRule]] = ['Capture', 'Game-Ending Capture', 'no double-threes'],
                  **kwargs) -> None:
         super().__init__(players)
 
@@ -52,8 +52,8 @@ class Gomoku(AbstractGameEngine):
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
 
         tab = {
-            'game-ending capture': GameEndingCapture,
             'capture': Capture,
+            'game-ending capture': GameEndingCapture,
             'no double-threes': NoDoubleThrees
         }
 

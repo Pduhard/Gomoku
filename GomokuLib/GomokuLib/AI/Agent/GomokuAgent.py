@@ -111,7 +111,7 @@ class GomokuAgent(Bot):
         self.last_n_indices = np.arange(-1, -self.dataset_max_length - 1, -1)
         # self.self_play_n_games = 10
         # self.epochs = 10
-        self.evaluation_n_games = 6
+        self.evaluation_n_games = 4
         self.model_comparison_mcts_iter = 1000
 
     def __str__(self):
@@ -129,29 +129,29 @@ class GomokuAgent(Bot):
 
     def _init_model_comparaison_game(self, i_game, n_games):
         self.RLengine.init_game()
-        self.game_data_UI = {
-            'mode': f"Model evaluation {i_game+1}/{n_games}",
-            'p1': "Old one | " + str(self.best_model_interface),
-            'p2': "New one | " + str(self.model_interface),
-            'self_play': self.games_played,
-            'dataset_length': f"{len(self.dataset)}/{self.dataset.samples_generated}",
-            'nbr_best_models': f"{self.n_best_models}/{self.n_model_inhibition}",
-            'model_confidence': self.model_confidence,
-        }
 
         self.mcts.reset()
         self.mcts.mcts_pruning = False
         self.mcts.mcts_hard_pruning = True
         self.mcts.mcts_iter = self.model_comparison_mcts_iter
-        self.mcts.set_model_confidence(1)
+        self.mcts.set_model_confidence(0.75)
         self.model_interface.set_mean_forward(True)
 
         self.best_model_mcts.reset()
         self.best_model_mcts.mcts_pruning = False
         self.best_model_mcts.mcts_hard_pruning = True
         self.best_model_mcts.mcts_iter = self.model_comparison_mcts_iter
-        self.best_model_mcts.set_model_confidence(1)
+        self.best_model_mcts.set_model_confidence(0.75)
         self.best_model_interface.set_mean_forward(True)
+
+        self.game_data_UI = {
+            'mode': f"Model evaluation {i_game+1}/{n_games}",
+            'p1': f"Old one | {self.best_model_interface}",
+            'p2': f"New one | {self.model_interface}",
+            'self_play': self.games_played,
+            'dataset_length': f"{len(self.dataset)}/{self.dataset.samples_generated}",
+            'nbr_best_models': f"{self.n_best_models}/{self.n_model_inhibition}",
+        }
 
         if self.rnd_first_turn:
             self._random_first_turn()
@@ -167,7 +167,6 @@ class GomokuAgent(Bot):
             'self_play': self.games_played,
             'dataset_length': f"{len(self.dataset)}/{self.dataset.samples_generated}",
             'nbr_best_models': f"{self.n_best_models}/{self.n_model_inhibition}",
-            'model_confidence': self.model_confidence,
         }
 
         self.mcts.reset()
@@ -179,6 +178,7 @@ class GomokuAgent(Bot):
 
         if self.rnd_first_turn:
             self._random_first_turn()
+
 
     def _self_play(self, tl_n_games):
 

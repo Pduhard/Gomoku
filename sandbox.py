@@ -93,7 +93,10 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    engine = GomokuLib.Game.GameEngine.GomokuGUI()
+    # engine = GomokuLib.Game.GameEngine.GomokuGUI()
+    engine=GomokuLib.Game.GameEngine.GomokuGUI(
+            rules=['no double-threes']
+    )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
 
     # agent = GomokuLib.AI.Agent.GomokuAgent(
@@ -111,8 +114,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        # engine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
-        iter=2000,
+        iter=500,
         hard_pruning=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
@@ -124,7 +126,7 @@ def duel():
     profiler = cProfile.Profile()
     profiler.enable()
 
-    for i in range(1):
+    for i in range(10):
         winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
     profiler.disable()
@@ -145,7 +147,7 @@ def RLtest():
         device=device,
     )
     agent.evaluation_n_games = 0
-    agent.model_comparison_mcts_iter = 50
+    agent.model_comparison_mcts_iter = 500
     # agent.samples_per_epoch = 50
     # agent.dataset_max_length = 100
 
@@ -158,6 +160,7 @@ def RLtest():
         nbr_games_per_tl=1,
         epochs=10
     )
+    agent.save()
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('cumtime')
@@ -177,7 +180,7 @@ def RLmain():
 
     agent.training_loop(
         nbr_tl=-1,
-        nbr_tl_before_cmp=4,
+        nbr_tl_before_cmp=5,
         nbr_games_per_tl=4,
         epochs=10,
         save=False
@@ -246,8 +249,8 @@ def c_tests():
     # print(f"{h} = sigmoid0.4({x})")
 
 if __name__ == '__main__':
-    # duel()
-    RLmain()
+    duel()
+    # RLmain()
     # RLtest()
     # agents_comparaison()
     # c_tests()

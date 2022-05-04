@@ -23,7 +23,7 @@ class Display:
         screen = pygame.Rect(self.origin, self.size)
         pygame.draw.rect(self.win, (200, 200, 200), screen)
 
-    def draw(self, ss_data: dict, dtime: time.time):
+    def draw(self, ss_data: dict, dtime: time.time, tottime: time.time):
 
         pygame.draw.rect(self.win, (200, 200, 200), self.square)
 
@@ -35,6 +35,7 @@ class Display:
                 winner = '_'
 
             elem = {
+                'Total time': f"{tottime} s",
                 'Mode': ss_data.get('mode', '_'),
                 'White': ss_data.get('p1', '_'),
                 'Black': ss_data.get('p2', '_'),

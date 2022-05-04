@@ -35,8 +35,6 @@ def init_ft_ident():
 
 	return FT_IDENT
 
-
-
 # @njit(parallel=True, fastmath=True)
 # @njit()
 def njit_is_valid(rmax, cmax, ar, ac, board, FT_IDENT):
@@ -124,8 +122,8 @@ class NoDoubleThrees(AbstractRule):
 
 	def is_valid(self, action: GomokuAction):
 
-		# return True
 		ar, ac = action.action
+
 		# rmax, cmax = self.engine.board_size
 		# board = self.engine.state.board
 		# old_value = board[0, ar, ac]
@@ -135,57 +133,16 @@ class NoDoubleThrees(AbstractRule):
 
 		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
 		c_full_board = ffi.cast("char *", self.engine.state.full_board.ctypes.data)
-
 		res = not fastcore.is_double_threes(c_board, c_full_board, ar, ac)
+
+		# if res is False:
+		# 	print(f"Find correct double threes")
 		#
 		# if bool(res) != truth:
-		# 	print(f"ERROR res={bool(res)} / truth={truth}")
+		# 	print(f"ERROR | Is valid ? res={bool(res)} / truth={truth}")
 		# 	breakpoint()
 
 		return res
-	
-	# def count_free_threes(self, board, x, y, dr, dc):
-	# 	"""
-	# 		A free-three is an alignement of three stones that, if not immediately blocked,
-	# 		allows for an indefendable alignment of four stones
-	# 		(that’s to say an alignment of four stones with two unobstructed extremities)
-	# 	"""
-	# 	rmax, cmax = self.engine.board_size
-	# 	return njit_count_free_threes(rmax, cmax, x, dr, y, dc, board, self.FT_IDENT)
-	# 	for i in range(4):
-	# 		align = []
-
-	# 		# for r, c in zip(
-	# 		# 	range(max(x, 0), min(x + dr * 6, self.engine.board_size[0]), dr),
-	# 		# 	range(max(y, 0), min(y + dc * 6, self.engine.board_size[1]), dc)
-	# 		# ):
-	# 		iter_x = range(x, x + dr * 6, dr) if dr != 0 else [x] * 6
-	# 		iter_y = range(y, y + dc * 6, dc) if dc != 0 else [y] * 6
-	# 		for r, c in zip(iter_x, iter_y):
-	# 			if (r >= 0 and r < rmax and c >= 0 and c < cmax):
-	# 				align.append(board[:, r, c])
-	# 			# else:
-	# 			# 	align.append([0, 0])
-	# 		align = np.array(align)
-	# 		if len(align) == 6:
-	# 			if np.all(align == self.FT_IDENT[0]):
-	# 				return 1
-	# 			elif np.all(align == self.FT_IDENT[1]):
-	# 				return 1
-	# 			elif np.all(align == self.FT_IDENT[2]):
-	# 				return 1
-	# 			elif np.all(align == self.FT_IDENT[3]):
-	# 				return 1
-	# 		# print(align)
-	# 		x -= dr
-	# 		y -= dc
-	# 		# exit(0)
-	# 	# fthrees = board[..., x : x+dr*6 : dr, y : y+dc*6 : dc]
-	# 	# print(fthrees)
-	# 	# exit(0)
-
-	# 	return 0
-
 	
 	def create_snapshot(self):
 		return {}

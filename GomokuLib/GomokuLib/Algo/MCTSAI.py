@@ -82,7 +82,8 @@ class MCTSAI(MCTSEvalLazy):
         data = super().get_state_data(engine)
         data.update({
             'model_policy': state_data['Policy'],
-            'model_value': state_data['Value'][0]
+            'model_value': state_data['Value'][0],
+            'model_confidence': self.model_confidence
         })
         return data
 
