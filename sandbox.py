@@ -94,19 +94,23 @@ print(f"Device selected: {device}")
 def duel():
 
     # engine = GomokuLib.Game.GameEngine.GomokuGUI()
-    engine=GomokuLib.Game.GameEngine.GomokuGUI(
-            rules=['no double-threes']
-    )
+    engine = GomokuLib.Game.GameEngine.GomokuGUI()
+    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
+    #         rules=['no double-threes']
+    # )
+    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
+    #         rules=['Capture', 'Game-Ending Capture']
+    # )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
-
+    #
     # agent = GomokuLib.AI.Agent.GomokuAgent(
-    #     RLengine=GomokuLib.Game.GameEngine.Gomoku(rules=['Capture']),
+    #     RLengine=engine,
     #     # agent_name="agent_23:04:2022_18:14:01",
-    #     agent_name="agent_28:04:2022_20:39:46",
-    #     mcts_iter=300,
+    #     # agent_name="agent_28:04:2022_20:39:46",
+    #     mcts_iter=1000,
     #     mcts_hard_pruning=True,
     #     mean_forward=True,
-    #     model_confidence=0.1,
+    #     model_confidence=0,
     #     device=device
     # )
     # p2 = agent
@@ -114,7 +118,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=500,
+        iter=1000,
         hard_pruning=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
@@ -126,7 +130,7 @@ def duel():
     profiler = cProfile.Profile()
     profiler.enable()
 
-    for i in range(10):
+    for i in range(1):
         winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
     profiler.disable()
@@ -186,53 +190,30 @@ def RLmain():
         save=False
     )
 
-def agents_comparaison():
+def tmp():
 
-    gameEngine = GomokuLib.Game.GameEngine.GomokuGUI(None, 19)
-    agentEngine = GomokuLib.Game.GameEngine.Gomoku(None, 19)
+    for i in range(100000):
+        rd = np.random.random_integers(0, 1, size=(19, 19))
+        c_rd = ffi.cast("char *", rd.ctypes.data)
 
-    # mcts = GomokuLib.Algo.MCTSAI(model_interface, pruning=True, iter=1000)
-    p1 = GomokuLib.AI.Agent.GomokuAgent(
-        agentEngine,
-        mcts_iter=100,
-        # mcts_pruning=True,
-        mcts_hard_pruning=True
-    )
-    # p1 = GomokuLib.Player.RandomPlayer()
-
-    p2 = GomokuLib.AI.Agent.GomokuAgent(
-        agentEngine,
-        agent_name="agent_21:04:2022_18:19:35",
-        mcts_iter=100,
-        # mcts_pruning=True,
-        mcts_hard_pruning=True,
-        # mean_forward=True,
-    )
-
-    win_rate = 0
-    n_games = 3
-    for i in range(n_games):
-        winner = gameEngine.run([p2, p1])  # White: 0 / Black: 1
-        print(f"Players ->\np1: {p1}\np2: {p2}")
-        print(f"Game {i}: winner is\n -> {winner}")
-        if winner == p2:
-            win_rate += 1
-    print(f"last version win rate: {win_rate / n_games}")
+        for y in range(19):
+            for x in range(19):
+                fastcore.is_winning(c_rd, y, x)
+                fastcore.basic_rule_winning(c_rd, y, x)
 
 def c_tests():
 
-    board = np.zeros((2, 19, 19), dtype=np.int8)
-    full_board = np.zeros((19, 19), dtype=np.int8)
+    profiler = cProfile.Profile()
+    profiler.enable()
 
-    board[0, 5, 6] = 1
-    board[0, 5, 7] = 1
-    board[0, 5, 8] = 1
+    tmp()
 
-    c_board = ffi.cast("char *", board.ctypes.data)
-    c_full_board = ffi.cast("char *", full_board.ctypes.data)
-    count = fastcore.is_double_threes(c_board, c_full_board, 5, 6)
-    print(f"Count: {count}")
-    breakpoint()
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats('tottime')
+    stats.print_stats()
+    stats.dump_stats('tmp_profile_from_script.prof')
+
+
     # board = np.zeros((2, 19, 19), dtype=np.bool8)
     # board[1, 5, 4] = 1
     # # board[1, 5, 5] = 1
@@ -252,5 +233,4 @@ if __name__ == '__main__':
     duel()
     # RLmain()
     # RLtest()
-    # agents_comparaison()
     # c_tests()

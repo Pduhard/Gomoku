@@ -4,14 +4,13 @@ import os
 PATH = os.path.dirname(__file__)
 
 ffibuilder = cffi.FFI()
-with open(os.path.join(PATH, 'srcs/rules.c'), 'r') as f:
+with open(os.path.join(PATH, 'srcs/basic_rules.c'), 'r') as f:
 
     ffibuilder.set_source(
         "fastcore._rules",
         f.read(),
         libraries=['c'],
         sources=[
-            os.path.join(PATH, 'srcs/basic_rules.c'),
             os.path.join(PATH, 'srcs/capture.c'),
             os.path.join(PATH, 'srcs/no_double_threes.c'),
         ],

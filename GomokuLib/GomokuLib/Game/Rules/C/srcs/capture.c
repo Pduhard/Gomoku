@@ -1,10 +1,10 @@
 #include "rules.h"
 #include <stdio.h>
 
-int count_captures(char *board, int ar, int ac)
+int count_captures(char *board, int ar, int ac, int gz_start_r, int gz_start_c, int gz_end_r, int gz_end_c)
 {
     int         count = 0;
-    static int  rmax = 19, cmax = 19;
+    static int  cmax = 19;
     static int  directions[16] = {
         -1, -1,
         -1, 0,
@@ -27,7 +27,8 @@ int count_captures(char *board, int ar, int ac)
         int     c1 = ac + 3 * dc;
 //        fprintf(stderr, "La boucle est la ! %d %d -> %d %d\n", ar, ac, r1, c1);
 
-        if (0 <= r1 && r1 < rmax && 0 <= c1 && c1 < cmax && board[r1 * cmax + c1] == 1)                       // Second stone that made capture
+//        if (0 <= r1 && r1 < rmax && 0 <= c1 && c1 < cmax && board[r1 * cmax + c1] == 1)                       // Second stone that made capture
+        if (gz_start_r <= r1 && r1 <= gz_end_r && gz_start_c <= c1 && c1 <= gz_end_c && board[r1 * cmax + c1] == 1)                       // Second stone that made capture
         {
             int opp_i1 = 361 + (r1 - dr) * cmax + (c1 - dc);            // Second captured stone
 //            fprintf(stderr, "La boucle est semi pleine ! %d %d: opp %d %d -> opp %d / %d\n", ar, ac, r1 - dr, c1 - dc, board[opp_i1], board[opp_i1 - 361]);

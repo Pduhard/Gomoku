@@ -30,10 +30,12 @@ class MCTSLazy(MCTS):
         # c_policy = ffi.cast("double *", action_policy.ctypes.data)
 
         while True:
+
             # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
 
             action_policy = policy * np.where(actions > 0, 1, 0)
             tmp = np.argwhere(action_policy == np.amax(action_policy))
+
             arr = np.arange(len(tmp))
             np.random.shuffle(arr)
 

@@ -1,4 +1,6 @@
-from time import perf_counter
+import fastcore
+from fastcore._rules import ffi, lib as fastcore
+
 from GomokuLib.Game.Action import GomokuAction
 import numpy as np
 
@@ -7,16 +9,17 @@ from GomokuLib.Game.GameEngine import Gomoku
 from .AbstractRule import AbstractRule
 
 
-
 class ForceWinPlayer(Exception):
     def __init__(self, reason="No reason", *args: object) -> None:
         super().__init__(args)
         self.reason = reason
 
+
 class ForceWinOpponent(Exception):
     def __init__(self, reason="No reason", *args: object) -> None:
         super().__init__(args)
         self.reason = reason
+
 
 class GameEndingCapture(AbstractRule):
 
@@ -25,30 +28,30 @@ class GameEndingCapture(AbstractRule):
 	def __init__(self, engine: Gomoku) -> None:
 		super().__init__(engine)
 		self.last_capture = [None, None]
-		self.check_ending_capture = np.array([0, 0])
+		self.check_ending_capture = [0, 0]
+
+	# def count_align_this_way(self, board, x, y, dx, dy):
+	# 	xmax, ymax = self.engine.board_size
+	# 	for i in range(4):
+	# 		x += dx
+	# 		y += dy
+	# 		if (x < 0 or x >= xmax or y < 0 or y >= ymax or board[0, x, y] == 0):
+	# 			return i
+	# 	return 4
 
 	def winning(self, action):
 		if self.check_ending_capture[self.engine.player_idx ^ 1] == 0:
 			return False
-		board = self.engine.state.board[::-1]
+
 		ar, ac = self.last_capture[self.engine.player_idx ^ 1].action
 
-		win = False
-		if (self.count_align_this_way(board, ar, ac, -1, -1) +\
-			self.count_align_this_way(board, ar, ac, 1, 1) + 1 >= 5):
-			win = True
+		board = self.engine.state.board[::-1]
+		if not board.flags['C_CONTIGUOUS']:
+			board = np.ascontiguousarray(board)
+		c_board = ffi.cast("char *", board.ctypes.data)
 
-		elif (self.count_align_this_way(board, ar, ac, -1, 0) +\
-			self.count_align_this_way(board, ar, ac, 1, 0) + 1 >= 5):
-			win = True
-
-		elif (self.count_align_this_way(board, ar, ac, -1, 1) +\
-			self.count_align_this_way(board, ar, ac, 1, -1) + 1 >= 5):
-			win = True
-
-		elif (self.count_align_this_way(board, ar, ac, 0, -1) +\
-			self.count_align_this_way(board, ar, ac, 0, 1) + 1 >= 5):
-			win = True
+		# win = fastcore.basic_rule_winning(c_board, ar, ac)
+		win = fastcore.is_winning(c_board, ar, ac, *self.engine.game_zone)
 
 		if win:
 			raise ForceWinOpponent(reason="GameEndingCapture")
@@ -61,16 +64,6 @@ class GameEndingCapture(AbstractRule):
 		self.check_ending_capture[self.engine.player_idx] = 1
 		return True
 
-	def count_align_this_way(self, board, x, y, dx, dy):
-		xmax, ymax = self.engine.board_size
-		for i in range(4):
-			x += dx
-			y += dy
-			if (x < 0 or x >= xmax or y < 0 or y >= ymax or board[0, x, y] == 0):
-				return i
-		return 4
-	
-	
 	def create_snapshot(self):
 		return {
 			'last_capture': [GomokuAction(*c.action) if c is not None else c for c in self.last_capture],

@@ -131,7 +131,6 @@ class MCTS(AbstractAlgorithm):
 
             self.current_board = self.engine.state.board
             statehash = self.current_board.tobytes()
-            mcts_iter += 1
 
         self.end_game = self.engine.isover()
         self.win = self.mcts_idx == self.engine.winner
@@ -222,21 +221,21 @@ class MCTS(AbstractAlgorithm):
 
     def _evaluate_random_rollingout(self):
         return [0.5, 0.5]
-    #     actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
-    #     actions = np.array(actions).T.reshape(self.cells_count, 2)
-    #
-    #     self.mcts_idx = self.engine.player_idx
-    #     while not self.engine.isover():
-    #
-    #         np.random.shuffle(actions)
-    #         i = 0
-    #         while not self.engine.is_valid_action(GomokuAction(*actions[i])):
-    #             i += 1
-    #
-    #         self.engine.apply_action(GomokuAction(*actions[i]))
-    #         self.engine.next_turn()
-    #
-    #     self.end_game = self.engine.isover()
-    #     self.win = self.mcts_idx == self.engine.winner
-    #     self.draw = self.engine.winner == -1
-    #     return self.award_end_game()
+        # all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
+        # all_actions = np.array(all_actions).T.reshape(self.cells_count, 2)
+        #
+        # self.mcts_idx = self.engine.player_idx
+        # while not self.engine.isover():
+        #
+        #     np.random.shuffle(actions)
+        #     i = 0
+        #     while not self.engine.is_valid_action(GomokuAction(*actions[i])):
+        #         i += 1
+        #
+        #     self.engine.apply_action(GomokuAction(*actions[i]))
+        #     self.engine.next_turn()
+        #
+        # self.end_game = self.engine.isover()
+        # self.win = self.mcts_idx == self.engine.winner
+        # self.draw = self.engine.winner == -1
+        # return self.award_end_game()

@@ -24,24 +24,6 @@
          |
 */
 
-//char    get_n_align(char *board, char r, char c, char dr, char dc, char n)
-//{
-//    /*
-//        Exclusive start at r, c until n cells visited in dr, dc direction
-//    */
-//    char align = 0;
-//
-//    for (int i = 0; i < n; ++i)
-//    {
-//        r += dr
-//        c += dc
-//        if (board[r * cmax + c])
-//            align |= 1;
-//        align <<= 1;
-//    }
-//    return align
-//}
-
 static char is_threes(char *board, char *full_board, char ar, char ac, char dr, char dc)
 {
     static char rmax = 19, cmax = 19;

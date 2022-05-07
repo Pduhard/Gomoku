@@ -25,7 +25,7 @@ class GomokuAgent(Bot):
     def __init__(self, RLengine: Gomoku,
                  model_interface: ModelInterface = None, dataset: GomokuDataset = None,
                  agent_to_load: str = None, model_name: str = None, dataset_name: str = None,
-                 mcts_iter: int = 500,
+                 mcts_iter: int = 500, model_confidence: float = 0,
                  mcts_pruning: bool = False, mcts_hard_pruning: bool = False,
                  batch_size: int = 64, shuffle: bool = True, mean_forward: bool = False,
                  rnd_first_turn: tuple = True, device: str = 'cpu',
@@ -37,6 +37,7 @@ class GomokuAgent(Bot):
         self.mcts_iter = mcts_iter
         self.mcts_pruning = mcts_pruning
         self.mcts_hard_pruning = mcts_hard_pruning
+        self.model_confidence = model_confidence
 
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -76,6 +77,7 @@ class GomokuAgent(Bot):
             iter=self.mcts_iter,
             pruning=self.mcts_pruning,
             hard_pruning=self.mcts_hard_pruning,
+            model_confidence=self.model_confidence
         )
 
         self.best_model_interface = ModelInterface(
@@ -89,6 +91,7 @@ class GomokuAgent(Bot):
             iter=self.mcts_iter,
             pruning=self.mcts_pruning,
             hard_pruning=self.mcts_hard_pruning,
+            model_confidence=self.model_confidence
         )
         super().__init__(self.best_model_mcts)         # Assign algo to best model mcts
 
@@ -105,7 +108,6 @@ class GomokuAgent(Bot):
         # Put these config numbers in an agent_config file
         self.n_model_inhibition = 0
         self.n_best_models = 0
-        self.model_confidence = 0
         self.samples_per_epoch = 1500
         self.dataset_max_length = 4000
         self.last_n_indices = np.arange(-1, -self.dataset_max_length - 1, -1)

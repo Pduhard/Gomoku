@@ -45,20 +45,21 @@ from GomokuLib.Game.Rules.BasicRule import njit_is_align
 #     ALIGNS[1, 10, 5] = 1
 #
 #     return ALIGNS
+from ..Game.Action import GomokuAction
 
 
 def get_neighbors_mask(board):
 
     neigh = np.zeros_like(board)
-    neigh[:-1, ...] += board[1:, ...]   # Roll cols to left
-    neigh[1:, ...] += board[:-1, ...]   # Roll cols to right
-    neigh[..., :-1] += board[..., 1:]   # Roll rows to top
-    neigh[..., 1:] += board[..., :-1]   # Roll rows to bottom
+    neigh[:-1, ...] |= board[1:, ...]   # Roll cols to left
+    neigh[1:, ...] |= board[:-1, ...]   # Roll cols to right
+    neigh[..., :-1] |= board[..., 1:]   # Roll rows to top
+    neigh[..., 1:] |= board[..., :-1]   # Roll rows to bottom
 
-    neigh[1:, 1:] += board[:-1, :-1]   # Roll cells to the right-bottom corner
-    neigh[1:, :-1] += board[:-1, 1:]   # Roll cells to the right-upper corner
-    neigh[:-1, 1:] += board[1:, :-1]   # Roll cells to the left-bottom corner
-    neigh[:-1, :-1] += board[1:, 1:]   # Roll cells to the left-upper corner
+    neigh[1:, 1:] |= board[:-1, :-1]   # Roll cells to the right-bottom corner
+    neigh[1:, :-1] |= board[:-1, 1:]   # Roll cells to the right-upper corner
+    neigh[:-1, 1:] |= board[1:, :-1]   # Roll cells to the left-bottom corner
+    neigh[:-1, :-1] |= board[1:, 1:]   # Roll cells to the left-upper corner
     # breakpoint()
     return neigh
 
@@ -77,9 +78,6 @@ class MCTSEval(MCTS):
         self.pruning = pruning
         self.hard_pruning = hard_pruning
         self.get_exp_rate = self._get_exp_rate_pruned if self.pruning or self.hard_pruning else super().get_exp_rate()
-
-        # self.pruning_idx = None
-        # self.heuristic_idx = None
 
     def __str__(self):
         return f"MCTSEval with: Pruning / Heuristics ({self.mcts_iter} iter)"
@@ -115,7 +113,7 @@ class MCTSEval(MCTS):
     def expand(self):
         memory = super().expand()
 
-        h = self.heuristic(self.current_board)
+        h = self.heuristic()
         memory.update({
             'Pruning': self._pruning(),
             'Heuristic': [h, 1 - h]
@@ -125,11 +123,47 @@ class MCTSEval(MCTS):
     def award(self):
         return self.states[self.current_board.tobytes()]['Heuristic']
 
-    def heuristic(self, board):
-        # board = board.astype(np.float32)
-        c_board = ffi.cast("char *", board.ctypes.data)
+    def heuristic(self):
 
-        captures = self.engine.get_captures()
-        x = fastcore.mcts_eval_heuristic(c_board, captures[0], captures[1])
-        h = 1 / (1 + np.exp(-0.6 * x))
-        return h
+        return self._evaluate_random_rollingout()[0]
+
+        # c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
+        # c_full_board = ffi.cast("char *", self.engine.state.full_board.ctypes.data)
+        # x = fastcore.mcts_eval_heuristic(
+        #     c_board, c_full_board,
+        #     *self.engine.get_captures(),
+        #     *self.engine.game_zone
+        # )
+        #
+        # h = 1 / (1 + np.exp(-0.6 * x))
+
+        # return h
+
+    def _evaluate_random_rollingout(self):
+        # return [0.5, 0.5]
+        all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
+        all_actions = np.array(all_actions).T.reshape(self.cells_count, 2)
+
+        self.mcts_idx = self.engine.player_idx
+        while not self.engine.isover():
+
+            pruning = self._pruning().ravel()
+            if pruning.any():
+                actions = all_actions[pruning > 0]
+            else:
+                actions = all_actions.copy()
+
+            if not len(actions):
+                breakpoint()
+            np.random.shuffle(actions)
+            i = 0
+            while not self.engine.is_valid_action(GomokuAction(*actions[i])):
+                i += 1
+
+            self.engine.apply_action(GomokuAction(*actions[i]))
+            self.engine.next_turn()
+
+        self.end_game = self.engine.isover()
+        self.win = self.mcts_idx == self.engine.winner
+        self.draw = self.engine.winner == -1
+        return self.award_end_game()
