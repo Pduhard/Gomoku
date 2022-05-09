@@ -84,10 +84,6 @@ class MCTS(AbstractAlgorithm):
         self.mcts_policy = sa_v / (sa_n + 1)
         # print("self.mcts_policy (rewards sum / visit count):\n", self.mcts_policy)
 
-        # print(f"MCTS  self.mcts_policy:\n{self.mcts_policy}")
-        # print(f"Model self.mcts_policy:\n{state_data[5][0]}")
-        # print(f"Model value :\n{state_data[5][1]}")
-
         self.engine.update(game_engine)
         self.gAction = None
         while not (self.gAction and game_engine.is_valid_action(self.gAction)):
@@ -102,12 +98,18 @@ class MCTS(AbstractAlgorithm):
             'mcts_state_data': self.states[engine.state.board.tobytes()],
         }
 
+    def get_state_data_after_action(self, engine):
+        return {}
+
+    def reset(self):
+        self.states = {}
+
     def mcts(self, mcts_iter: int):
 
         # print(f"\n[MCTS function {mcts_iter}]\n")
 
         path = []
-        self.mcts_idx = self.engine.player_idx
+        # self.mcts_idx = self.engine.player_idx
         self.current_board = self.engine.state.board
         statehash = self.current_board.tobytes()
         self.bestGAction = None
@@ -119,12 +121,6 @@ class MCTS(AbstractAlgorithm):
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
             self.bestGAction = self.selection(policy, state_data)
 
-            # print(f"selection {self.bestGAction.action}")
-            # if not self.engine.is_valid_action(self.bestGAction):
-            #     print(f"Not a fucking valid action in mcts: {self.bestGAction.action}")
-            #     breakpoint()
-            #     raise Exception
-
             path.append(self.new_memory(statehash, self.bestGAction.action))
             self.engine.apply_action(self.bestGAction)
             self.engine.next_turn()
@@ -133,15 +129,15 @@ class MCTS(AbstractAlgorithm):
             statehash = self.current_board.tobytes()
 
         self.end_game = self.engine.isover()
-        self.win = self.mcts_idx == self.engine.winner
+        # self.win = self.mcts_idx == self.engine.winner
         self.draw = self.engine.winner == -1
 
         path.append(self.new_memory(statehash, None))
 
         self.states[statehash] = self.expand()
-        rewards = self.evaluate()
+        reward = self.evaluate()
 
-        self.backpropagation(path, rewards)
+        self.backpropagation(path, reward)
         return
 
     def get_actions(self) -> np.ndarray:
@@ -149,7 +145,7 @@ class MCTS(AbstractAlgorithm):
 
     def get_quality(self, state_data: list, **kwargs) -> np.ndarray:
         """
-            quality(s, a) = rewards(s, a) / (visits(s, a) + 1)
+            quality(s, a) = reward(s, a) / (visits(s, a) + 1)
         """
         sa_n, sa_v = state_data['StateAction']
         return sa_v / (sa_n + 1)
@@ -169,7 +165,6 @@ class MCTS(AbstractAlgorithm):
     def selection(self, policy: np.ndarray, state_data, *args) -> tuple:
 
         policy *= state_data['Actions']     # Avaible actions
-        # policy *= state_data[3]     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
         bestaction = bestactions[np.random.randint(len(bestactions))]
         return GomokuAction(*bestaction)
@@ -183,18 +178,18 @@ class MCTS(AbstractAlgorithm):
         }
 
     def new_memory(self, statehash, bestaction):
-        return 0 if self.engine.player_idx == self.mcts_idx else 1, statehash, bestaction
+        return statehash, bestaction
 
-    def backpropagation(self, path: list, rewards: list):
+    def backpropagation(self, path: list, reward: float):
 
         for mem in path[::-1]:
-            self.backprop_memory(mem, rewards)
+            self.backprop_memory(mem, reward)
+            reward = 1 - reward
 
-    def backprop_memory(self, memory: tuple, rewards: list):
+    def backprop_memory(self, memory: tuple, reward: float):
 
-        player_idx, statehash, bestaction = memory
+        statehash, bestaction = memory
 
-        reward = rewards[player_idx]
         state_data = self.states[statehash]
 
         state_data['Visits'] += 1                           # update n count
@@ -205,37 +200,36 @@ class MCTS(AbstractAlgorithm):
         r, c = bestaction
         state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
-    def reset(self):
-        self.states = {}
-
     def evaluate(self):
+        """
+            Award and Award_end_game always reward player id self.engine.player_idx
+        """
         return self.award_end_game() if self.end_game else self.award()
 
     def award_end_game(self):
         if self.draw:
-            return [0.5, 0.5]
-        return [1 if self.win else 0, 1 if not self.win else 0]
+            return 0.5
+        return 1 if self.engine.winner == self.engine.player_idx else 0
 
     def award(self):
         return self._evaluate_random_rollingout()
 
-    def _evaluate_random_rollingout(self):
-        return [0.5, 0.5]
-        # all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
-        # all_actions = np.array(all_actions).T.reshape(self.cells_count, 2)
+    def _evaluate_random_rollingout(self, n_turns: int = 420):
+        return 0.5
+        # turn = 0
+        # while not self.end_game and turn <= n_turns:
         #
-        # self.mcts_idx = self.engine.player_idx
-        # while not self.engine.isover():
+        #     pruning = self._pruning().flatten()
+        #     if pruning.any():
+        #         actions = self.all_actions[pruning > 0]
+        #     else:
+        #         actions = self.all_actions.copy()
         #
-        #     np.random.shuffle(actions)
-        #     i = 0
+        #     i = np.random.randint(len(actions))
         #     while not self.engine.is_valid_action(GomokuAction(*actions[i])):
-        #         i += 1
+        #         i = np.random.randint(len(actions))
         #
         #     self.engine.apply_action(GomokuAction(*actions[i]))
         #     self.engine.next_turn()
-        #
-        # self.end_game = self.engine.isover()
-        # self.win = self.mcts_idx == self.engine.winner
-        # self.draw = self.engine.winner == -1
-        # return self.award_end_game()
+        #     self.end_game = self.engine.isover() # For MCTS.evaluate()
+        #     turn += 1

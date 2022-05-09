@@ -140,7 +140,7 @@ class Board:
         if self.hint_type == 0 and 'model_policy' in hints_data:
             self.draw_model_hints(hints_data['model_policy'])
         elif self.hint_type == 1:
-            self.draw_mcts_hints(np.nan_to_num(sa_v / sa_n))
+            self.draw_mcts_hints(sa_n, sa_v)
         elif self.hint_type == 2:
             self.draw_actions(actions)
 
@@ -195,17 +195,20 @@ class Board:
         )
         # print(f"hint_mouse -> {self.hint_mouse}")
 
-    def draw_mcts_hints(self, policy: np.ndarray):
+    def draw_mcts_hints(self, sa_n: np.ndarray, sa_v: np.ndarray):
         """
             MCTS policy in range [0, 1)
                 Transparent black  if policy=0
                 Opaque blue        if policy=1
         """
+        policy = np.nan_to_num(sa_v / sa_n)
         if policy.max() != policy.min():
             for y in range(self.board_size[1]):
                 for x in range(self.board_size[0]):
 
-                    color = pygame.Color(0, 0, int(255 * policy[y, x]), int(255 * policy[y, x]))
+                    alpha = 30 + int(225 * policy[y, x]) if sa_n[y, x] else 0
+                    # color = pygame.Color(0, 0, int(255 * policy[y, x]), int(255 * policy[y, x]))
+                    color = pygame.Color(0, 0, 200, alpha)
 
                     self.hint_surface.fill(color)
                     self.win.blit(

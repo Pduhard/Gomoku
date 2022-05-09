@@ -109,7 +109,7 @@ class Gomoku(AbstractGameEngine):
         self.rules_fn[operation].remove(obj)
 
     def _get_captures_success(self):
-        return self.capture_rule.player_count_capture
+        return self.capture_rule.get_current_player_captures()
 
     def _get_captures_failed(self):
         return [0, 0]
@@ -141,13 +141,15 @@ class Gomoku(AbstractGameEngine):
         # if self.players:
         #     print(f"Game zone: {self.game_zone[0]} {self.game_zone[1]} into {self.game_zone[2]} {self.game_zone[3]}")
 
-    def next_turn(self) -> None:
+    def next_turn(self, before_next_turn_cb=[]) -> None:
 
         board = self.state.board if self.player_idx == 0 else self.state.board[::-1, ...]
         # self.history = np.insert(self.history, len(self.history), board, axis=0)
         # np.append(self.history, board[np.newaxis, ...], axis=0)
         # self.history = np.concatenate((self.history, board[np.newaxis, ...]))
         self.history.append(board)
+
+        # print(f"GOMOKU NEXT TURN\n")
 
         # if np.all(self.state.full_board != 0):
         #     print("DRAW")
@@ -159,7 +161,7 @@ class Gomoku(AbstractGameEngine):
             if self.last_action is None:
                 breakpoint()
 
-            for rule in self.rules_fn['endturn']:
+            for rule in self.rules_fn['endturn']:       # A mettre dans le apply_action ?
                 rule.endturn(self.last_action)
 
             # print(self.rules_fn['winning'])
@@ -188,12 +190,18 @@ class Gomoku(AbstractGameEngine):
             print(f"An exception occur: {e}")
             exit(0)
 
-        finally:
-            self.turn += 1
-            self.player_idx ^= 1
-            self.state.board = self.state.board[::-1, ...]
-            if not self.state.board.flags['C_CONTIGUOUS']:
-                self.state.board = np.ascontiguousarray(self.state.board)
+        # print(f"GOMOKU CALLBACKS\n")
+        cb_return = {}
+        for cb in before_next_turn_cb:  # Callbacks
+            cb_return.update(cb(self))
+
+        self.turn += 1
+        self.player_idx ^= 1
+        self.state.board = self.state.board[::-1, ...]
+        if not self.state.board.flags['C_CONTIGUOUS']:
+            self.state.board = np.ascontiguousarray(self.state.board)
+
+        return cb_return
 
     def isover(self):
         # print(f"Gomoku(): isover() return {self._isover}")

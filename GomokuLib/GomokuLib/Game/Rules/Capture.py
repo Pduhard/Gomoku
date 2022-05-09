@@ -104,6 +104,7 @@ class Capture(AbstractRule):
 
 		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
 		y, x = action.action
+		# print(f"NEXT TURN CAPTURE")
 
 		count1 = fastcore.count_captures(c_board, y, x, *self.engine.game_zone)
 		self.player_count_capture[self.engine.player_idx] += count1
@@ -112,6 +113,9 @@ class Capture(AbstractRule):
 		if self.player_count_capture[self.engine.player_idx] >= 5:
 			raise ForceWinPlayer(reason="Five captures.")
 		return False
+
+	def get_current_player_captures(self):
+		return self.player_count_capture[::-1] if self.engine.player_idx else self.player_count_capture
 
 	def create_snapshot(self):
 		return {

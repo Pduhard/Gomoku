@@ -9,40 +9,30 @@ import cProfile, pstats
 
 import fastcore
 from fastcore._rules import ffi, lib as fastcore
+from fastcore._algo import lib as fastcore_algo
 
 """
 
+    Today :
+    
+        rollingout pendant levaluation
+        Opti rollingout
+        astype dans l'heuristic
+        Debug capture envoye a lheuristic
+        Upgrade color UI
+        
+        Les captures sont dans le endturn du next_turn() donc quand
+        on compute l'heuristic pour l'UI, le nbr de capture n'est pas update
+            Add callbacks to next_turn
+        
+        Reward du mcts doit diminuer dans la backprop ?
+
     TODO (Important):
 
-        Heuristics ajouter embeter ladversaire
-        Heuristics to replace value
-            Test Human vs MCTS
-            Create dataset with MCTS
-
-        Test AMAF
-
-        Nbr de best agents
-        Ajouter le 1er coup random dans la comparaison
-            Sinon à peut près les même game se font
-
-        Lazy vraiment opti ? verif avec le dtime
-            Si c'est possible is_valid_action est appelle a chaque fois !
-            1 seule fois si jamais l'action est impossible
-            Essayer de mettre 3 valeurs differentes ?
-            Ne pas regenerer les gomokuAction à chaque fois !
-        
-        # Enlever les captures du réseau
-        Save pruning masks in state_data
-        
-        .to(device) -> Ou les mettre ?
-        Essayer de forcer lexploration en prenant au moins une fois chaque actions 
+        Dupliquer l'heuristic pour valoriser les coups de l'adversaire (Qui ne sont pas les même)
+        UI fonction pour afficher un board 
 
     TODO (Pas très important):
-
-        UI
-            Ajouter 'Total time'
-            'dtime' -> 'turn time'
-            'Total smples' ajouter le nbr total genéré depuis le debut
 
         Faire un config file avec toute les constantes du RL
         afficher le nbr de train / epochs effectué / nbr de best model
@@ -57,33 +47,20 @@ from fastcore._rules import ffi, lib as fastcore
 
     A faire/essayer ?:
 
-        Cancel les games avec plus de n coups ? boff...
-    
-        Les 'last_samples' sont reset à chaque nouveau model ?
-            (Deja plus ou moins le cas en fonctions des parm de l'agent)
-    
         Uniformiser les petites policy du réseau:
             Si pas pertinent return 0 sinon la policy
 
-        Forcer le mcts à simuler toutes les actions possible à la depth=1 ?
-            Permettrait de louper moins de choses pour mieux entrainer le model
-    
         Afficher une map 'statististique' sur les samples
             Pour voir la répartition des games sur la map
 
         coef sur la policy du network pour le debut ?
         Filtre de 5x5 dans le CNN ? <== idée de merde
 
-        Heuristic ne sert à rien sans les regles !
-
     Bug:        
         
-        Conflict between self.end_game and GameEndingCapture rule in expansion/ucb
-
 
     Notes:
 
-        Besoin urgent de favoriser l'exploration !
 
 """
 
@@ -94,13 +71,12 @@ print(f"Device selected: {device}")
 def duel():
 
     # engine = GomokuLib.Game.GameEngine.GomokuGUI()
-    engine = GomokuLib.Game.GameEngine.GomokuGUI()
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
     #         rules=['no double-threes']
     # )
-    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
-    #         rules=['Capture', 'Game-Ending Capture']
-    # )
+    engine=GomokuLib.Game.GameEngine.GomokuGUI(
+            rules=['Capture', 'Game-Ending Capture']
+    )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
     #
     # agent = GomokuLib.AI.Agent.GomokuAgent(
@@ -118,11 +94,19 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=1000,
-        hard_pruning=True
+        iter=3000,
+        hard_pruning=True,
+        rollingout_turns=2
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
-    p2 = p1
+
+    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+    #     engine=engine,
+    #     iter=3000,
+    #     hard_pruning=True,
+    #     rollingout_turns=2
+    # )
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
@@ -130,6 +114,9 @@ def duel():
     profiler = cProfile.Profile()
     profiler.enable()
 
+    if 'p2' not in locals():
+        print("new p2")
+        p2 = p1
     for i in range(1):
         winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
@@ -206,28 +193,39 @@ def c_tests():
     profiler = cProfile.Profile()
     profiler.enable()
 
-    tmp()
+    # tmp()
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('tottime')
     stats.print_stats()
     stats.dump_stats('tmp_profile_from_script.prof')
 
+    board = np.zeros((2, 19, 19), dtype=np.int8, order='C')
+    board[0, 0, 0] = 1
+    board[0, 2, 2] = 1
+    board[0, 3, 2] = 1
+    board[0, 4, 2] = 1
 
-    # board = np.zeros((2, 19, 19), dtype=np.bool8)
-    # board[1, 5, 4] = 1
-    # # board[1, 5, 5] = 1
-    # board[0, 5, 6] = 1
-    # board[0, 5, 7] = 1
-    # board[0, 5, 8] = 1
-    # # board[0, 5, 9] = 1
-    # board[1, 5, 10] = 1
-    # c_board = ffi.cast("char *", board.ctypes.data)
-    #
-    # x = fastcore.mcts_eval_heuristic(c_board, 0, 0)
-    # h = 1 / (1 + np.exp(-0.4 * x))
-    # print(f"h = sigmoid0.4(x)")
-    # print(f"{h} = sigmoid0.4({x})")
+    board[1, 1, 1] = 1
+    board[1, 2, 1] = 1
+    board[1, 3, 1] = 1
+    board[1, 4, 1] = 1
+    board[0, 5, 1] = 1
+
+    full_board = np.sum(board, axis=0).astype(np.int8)
+
+    if not board.flags['C_CONTIGUOUS']:
+        board = np.ascontiguousarray(board)
+
+    if not full_board.flags['C_CONTIGUOUS']:
+        full_board = np.ascontiguousarray(full_board)
+
+    c_board = ffi.cast("char *", board.ctypes.data)
+    c_full_board = ffi.cast("char *", full_board.ctypes.data)
+    x = fastcore_algo.mcts_eval_heuristic(c_board, c_full_board, 0, 0, 0, 0, 18, 18)
+    h = 1 / (1 + np.exp(-0.4 * x))
+    print(f"{h} = sigmoid0.4({x})")
+    breakpoint()
 
 if __name__ == '__main__':
     duel()

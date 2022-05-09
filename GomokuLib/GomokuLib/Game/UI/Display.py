@@ -48,7 +48,8 @@ class Display:
                 'Best models': ss_data.get('nbr_best_models', '_'),
                 'Total self-play': ss_data.get('self_play', '_'),
                 'Total samples': ss_data.get('dataset_length', '_'),
-                'Heuristic': ss_data.get('heuristic', '_')
+                'Heuristic': ss_data.get('heuristic', '_'),
+                'Award': ss_data.get('award', '_')
             }
             elem = {k: v for k, v in elem.items() if v != '_'}
 

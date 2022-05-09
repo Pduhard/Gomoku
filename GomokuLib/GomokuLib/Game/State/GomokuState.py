@@ -36,6 +36,7 @@ class GomokuState(AbstractState):
             print('error board size')
             exit(0)
         self.board = np.zeros(board_size, dtype=np.int8, order='C')
+        self._full_board = None
         self._full_board_uptodate = False
 
     @property

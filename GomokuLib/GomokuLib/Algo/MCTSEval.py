@@ -1,56 +1,36 @@
-import fastcore
-import torch.nn.functional
 import numpy as np
+
+import fastcore
 from fastcore._algo import ffi, lib as fastcore
 
-from .MCTSAMAFLazy import MCTSAMAFLazy
-from .MCTSLazy import MCTSLazy
 from .MCTS import MCTS
-from ..AI.Model.ModelInterface import ModelInterface
-from GomokuLib.Game.GameEngine.Gomoku import Gomoku
-
-from GomokuLib.Game.Rules.Capture import Capture
-from GomokuLib.Game.Rules.BasicRule import njit_is_align
-
-
-# def init_meaning_aligns():
-#     ALIGNS = np.zeros((4, 11, 11), dtype=np.bool8)
-#
-#     ALIGNS[0, 5, 5] = 1
-#     ALIGNS[0, 4, 6] = 1
-#     ALIGNS[0, 3, 7] = 1
-#     ALIGNS[0, 2, 8] = 1
-#     ALIGNS[0, 1, 9] = 1
-#     ALIGNS[0, 0, 10] = 1
-#
-#     ALIGNS[1, 5, 5] = 1
-#     ALIGNS[1, 5, 6] = 1
-#     ALIGNS[1, 5, 7] = 1
-#     ALIGNS[1, 5, 8] = 1
-#     ALIGNS[1, 5, 9] = 1
-#     ALIGNS[1, 5, 10] = 1
-#
-#     ALIGNS[0, 5, 5] = 1
-#     ALIGNS[0, 6, 6] = 1
-#     ALIGNS[0, 7, 7] = 1
-#     ALIGNS[0, 8, 8] = 1
-#     ALIGNS[0, 9, 9] = 1
-#     ALIGNS[0, 10, 10] = 1
-#
-#     ALIGNS[1, 5, 5] = 1
-#     ALIGNS[1, 6, 5] = 1
-#     ALIGNS[1, 7, 5] = 1
-#     ALIGNS[1, 8, 5] = 1
-#     ALIGNS[1, 9, 5] = 1
-#     ALIGNS[1, 10, 5] = 1
-#
-#     return ALIGNS
 from ..Game.Action import GomokuAction
 
 
+def heuristic(engine):
+    engine.state.board = engine.state.board.astype(np.int8)
+    # if not engine.state.board.flags['C_CONTIGUOUS']:
+    #     print(f"NOT continuoueo_iyfhg_uièyergbiuybziruygbirzuy")
+    #     engine.state.board = np.ascontiguousarray(engine.state.board)
+    # if not engine.state.full_board.flags['C_CONTIGUOUS']:
+    #     print(f"NOT continuoueo_iyfhg_uièyergbiuybziruygbirzuy 2")
+    #     engine.state.full_board = np.ascontiguousarray(engine.state.full_board)
+
+    c_board = ffi.cast("char *", engine.state.board.ctypes.data)
+    c_full_board = ffi.cast("char *", engine.state.full_board.ctypes.data)
+    x = fastcore.mcts_eval_heuristic(
+        c_board, c_full_board,
+        *engine.get_captures(),
+        *engine.game_zone
+    )
+    h_v = 1 / (1 + np.exp(-0.4 * x))
+    return h_v
+
 def get_neighbors_mask(board):
 
-    neigh = np.zeros_like(board)
+    # neigh = np.zeros_like(board)
+    neigh = np.zeros((19, 19), dtype=board.dtype)
+
     neigh[:-1, ...] |= board[1:, ...]   # Roll cols to left
     neigh[1:, ...] |= board[:-1, ...]   # Roll cols to right
     neigh[..., :-1] |= board[..., 1:]   # Roll rows to top
@@ -66,11 +46,12 @@ def get_neighbors_mask(board):
 
 class MCTSEval(MCTS):
     """
-        All MCTS modifications/optimizations
+        MCTS modifications/optimizations
     """
 
     def __init__(self,
-                 pruning=False, hard_pruning=False,
+                 pruning: bool = False, hard_pruning: bool = False,
+                 rollingout_turns: int = 5,
                  *args, **kwargs) -> None:
 
         super().__init__(*args, **kwargs)
@@ -78,14 +59,21 @@ class MCTSEval(MCTS):
         self.pruning = pruning
         self.hard_pruning = hard_pruning
         self.get_exp_rate = self._get_exp_rate_pruned if self.pruning or self.hard_pruning else super().get_exp_rate()
+        self.rollingout_turns = rollingout_turns
+
+        all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
+        self.all_actions = np.array(all_actions).T.reshape(self.cells_count, 2) # Shape (361, 2): [(x, y), ...]
 
     def __str__(self):
         return f"MCTSEval with: Pruning / Heuristics ({self.mcts_iter} iter)"
 
-    def get_state_data(self, engine):
-        data = super().get_state_data(engine)
+    def get_state_data_after_action(self, engine):
+        # byte_board = engine.state.board.tobytes()
+        # print(f"byte_board in self.states = {byte_board in self.states}")
+        data = super().get_state_data_after_action(engine)
         data.update({
-            'heuristic': self.states[engine.state.board.tobytes()]['Heuristic'][0]
+            'heuristic': heuristic(engine)
+            # 'heuristic': self.states[byte_board]['Heuristic'] if byte_board in self.states else self.heuristic(engine)
         })
         return data
 
@@ -113,57 +101,48 @@ class MCTSEval(MCTS):
     def expand(self):
         memory = super().expand()
 
-        h = self.heuristic()
         memory.update({
             'Pruning': self._pruning(),
-            'Heuristic': [h, 1 - h]
+            'Heuristic': heuristic(self.engine),
         })
         return memory
 
     def award(self):
-        return self.states[self.current_board.tobytes()]['Heuristic']
 
-    def heuristic(self):
+        h_leaf = self.states[self.engine.state.board.tobytes()]['Heuristic']
 
-        return self._evaluate_random_rollingout()[0]
-
-        # c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
-        # c_full_board = ffi.cast("char *", self.engine.state.full_board.ctypes.data)
-        # x = fastcore.mcts_eval_heuristic(
-        #     c_board, c_full_board,
-        #     *self.engine.get_captures(),
-        #     *self.engine.game_zone
-        # )
-        #
-        # h = 1 / (1 + np.exp(-0.6 * x))
-
-        # return h
-
-    def _evaluate_random_rollingout(self):
-        # return [0.5, 0.5]
-        all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
-        all_actions = np.array(all_actions).T.reshape(self.cells_count, 2)
-
-        self.mcts_idx = self.engine.player_idx
-        while not self.engine.isover():
-
-            pruning = self._pruning().ravel()
-            if pruning.any():
-                actions = all_actions[pruning > 0]
+        if self.rollingout_turns:
+            self._random_rollingout(n_turns=self.rollingout_turns)
+            if self.end_game:
+                if self.engine.winner == -1: # DRAW
+                    return 0.5
+                return 1 if self.engine.winner == self.engine.player_idx else 0
             else:
-                actions = all_actions.copy()
+                h = heuristic(self.engine)
+                if self.rollingout_turns % 2:
+                    return (h_leaf + 1 - h) / 2
+                else:
+                    return (h_leaf + h) / 2
 
-            if not len(actions):
-                breakpoint()
-            np.random.shuffle(actions)
-            i = 0
+        else:
+            return h_leaf
+
+    def _random_rollingout(self, n_turns):
+
+        turn = 0
+        while not self.end_game and turn < n_turns:
+
+            pruning = self._pruning().flatten()
+            if pruning.any():
+                actions = self.all_actions[pruning > 0]
+            else:
+                actions = self.all_actions.copy()
+
+            i = np.random.randint(len(actions))
             while not self.engine.is_valid_action(GomokuAction(*actions[i])):
-                i += 1
+                i = np.random.randint(len(actions))
 
             self.engine.apply_action(GomokuAction(*actions[i]))
             self.engine.next_turn()
-
-        self.end_game = self.engine.isover()
-        self.win = self.mcts_idx == self.engine.winner
-        self.draw = self.engine.winner == -1
-        return self.award_end_game()
+            self.end_game = self.engine.isover() # For MCTS.evaluate()
+            turn += 1

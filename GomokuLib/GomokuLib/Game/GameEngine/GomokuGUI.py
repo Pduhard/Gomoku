@@ -1,6 +1,7 @@
 from __future__ import annotations
 from copy import deepcopy
 from multiprocessing.dummy import Process
+from subprocess import call
 from time import sleep
 from typing import TYPE_CHECKING, Union
 import numpy as np
@@ -52,25 +53,27 @@ class GomokuGUI(Gomoku):
             },
         })
 
-    def next_turn(self, mode: str = "GomokuGUI.run()", **kwargs) -> None:
+    def next_turn(self, mode: str = "GomokuGUI.run()", before_next_turn_cb=[], **kwargs) -> None:
         """
             All kwargs information will be sent to UIManager
         """
-        super().next_turn()
+        cb_ret = super().next_turn(before_next_turn_cb=before_next_turn_cb)
 
-        kwargs['mode'] = mode
-        kwargs['captures'] = self.get_captures()
         if mode == "GomokuGUI.run()":
             kwargs['p1'] = str(self.players[0])
             kwargs['p2'] = str(self.players[1])
 
         self.update_UI(
+            **cb_ret,
             **kwargs,
+            mode=mode,
+            captures=self.get_captures()[::-1],
             board=self.state.board,
             turn=self.turn,
             player_idx=self.player_idx,
-            winner=self.winner
+            winner=self.winner,
         )
+        return cb_ret
 
     def _run(self, players: AbstractPlayer) -> AbstractPlayer:
 
@@ -82,11 +85,17 @@ class GomokuGUI(Gomoku):
 
             if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
                 turn_data = p.algo.get_state_data(self)
-            else:
-                turn_data = {}
+                self.apply_action(player_action)
+                # breakpoint()
+                self.next_turn(
+                    **turn_data,
+                    before_next_turn_cb=[p.algo.get_state_data_after_action]
+                )
 
-            self.apply_action(player_action)
-            self.next_turn(**turn_data)
+            else:
+                self.apply_action(player_action)
+                self.next_turn()
+
 
         print(f"Player {self.winner} win.")
         # sleep(5)

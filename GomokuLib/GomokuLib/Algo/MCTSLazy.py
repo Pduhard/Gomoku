@@ -15,7 +15,6 @@ class MCTSLazy(MCTS):
         self.c_best_actions_buffer = ffi.cast("int *", self.best_actions_buffer.ctypes.data)
         # self.c_random_buffer = ffi.cast("int *", self.random_buffer.ctypes.data)
 
-
     def __str__(self):
         return f"MCTSLazy with: Progressive/Lazy valid action checking ({self.mcts_iter} iter)"
 
