@@ -38,3 +38,6 @@ class AbstractRule(metaclass=ABCMeta):
 	@abstractmethod
 	def copy(self, engine: Gomoku, rule: AbstractRule) -> AbstractRule:
 		pass
+
+	def update_from_snapshot(self, snapshot):
+		pass

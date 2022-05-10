@@ -1,8 +1,19 @@
 import numpy as np
 
+from numba import njit, prange
+
 from .MCTS import MCTS
 from ..Game.Action.GomokuAction import GomokuAction
 from fastcore._algo import ffi, lib as fastcore
+
+@njit(parallel=True)
+def test_selection_parallel(actions, policy):
+    # action_policy = np.zeros((19, 19, 2))
+    max = -1
+    for i in prange(19):
+        for j in prange(19):
+            if policy[i, j] >= max and actions > 0:
+                max = policy[i, j]
 
 
 class MCTSLazy(MCTS):
@@ -25,13 +36,11 @@ class MCTSLazy(MCTS):
 
         actions = state_data['Actions']
         # action_policy = action_policy.astype(np.float64)
-
         # c_policy = ffi.cast("double *", action_policy.ctypes.data)
-
         while True:
 
             # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
-
+            test_selection_parallel(actions.astype(np.float32), policy)
             action_policy = policy * np.where(actions > 0, 1, 0)
             tmp = np.argwhere(action_policy == np.amax(action_policy))
 

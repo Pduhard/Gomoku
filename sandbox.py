@@ -1,4 +1,8 @@
+import time
 from time import sleep
+
+import numba
+from numba.core import types
 
 import numpy as np
 import torch.cuda
@@ -14,18 +18,9 @@ from fastcore._algo import lib as fastcore_algo
 """
 
     Today :
-    
-        rollingout pendant levaluation
-        Opti rollingout
-        astype dans l'heuristic
-        Debug capture envoye a lheuristic
-        Upgrade color UI
-        
-        Les captures sont dans le endturn du next_turn() donc quand
-        on compute l'heuristic pour l'UI, le nbr de capture n'est pas update
-            Add callbacks to next_turn
-        
-        Reward du mcts doit diminuer dans la backprop ?
+
+            
+        copy de class njit ?!
 
     TODO (Important):
 
@@ -35,7 +30,7 @@ from fastcore._algo import lib as fastcore_algo
     TODO (Pas très important):
 
         Faire un config file avec toute les constantes du RL
-        afficher le nbr de train / epochs effectué / nbr de best model
+        afficher le nbr de train / epochs effectué 
 
         Graph du winrate OMG 
         Passer le model loading dans le ModelInterface et pas dans l'Agent !
@@ -75,7 +70,7 @@ def duel():
     #         rules=['no double-threes']
     # )
     engine=GomokuLib.Game.GameEngine.GomokuGUI(
-            rules=['Capture', 'Game-Ending Capture']
+            # rules=['Capture', 'Game-Ending Capture']
     )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
     #
@@ -94,9 +89,9 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=3000,
+        iter=1000,
         hard_pruning=True,
-        rollingout_turns=2
+        rollingout_turns=3
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -110,6 +105,7 @@ def duel():
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
+
 
     profiler = cProfile.Profile()
     profiler.enable()
@@ -190,45 +186,107 @@ def tmp():
 
 def c_tests():
 
-    profiler = cProfile.Profile()
-    profiler.enable()
 
-    # tmp()
+    """
+    1000 iter
+        Python with njit_is_align -> 26.2
+        Python with C is_align    -> 2.2
+        jitclass                  -> 1.4
+        
+    """
 
-    profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('tottime')
-    stats.print_stats()
-    stats.dump_stats('tmp_profile_from_script.prof')
+    engine = GomokuLib.Game.GameEngine.Gomoku()
 
-    board = np.zeros((2, 19, 19), dtype=np.int8, order='C')
-    board[0, 0, 0] = 1
-    board[0, 2, 2] = 1
-    board[0, 3, 2] = 1
-    board[0, 4, 2] = 1
+    rule = GomokuLib.Game.Rules.BasicRuleJit()
+    # rule = GomokuLib.Game.Rules.NoDoubleThreesJit()
+    rule.is_valid(engine.state.board, 0, 0)
+    rule.get_valid(engine.state.board)
+    # rule.winning(engine.state.board, 0, 0, 0, 0, 18, 18)
+    # rule.create_snapshot()
+    # rule.update_from_snapshot()
 
-    board[1, 1, 1] = 1
-    board[1, 2, 1] = 1
-    board[1, 3, 1] = 1
-    board[1, 4, 1] = 1
-    board[0, 5, 1] = 1
+    c_board = ffi.from_buffer(engine.state.board)
+    print(c_board)
 
-    full_board = np.sum(board, axis=0).astype(np.int8)
+    caddr = ffi.addressof(c_board)
+    print(caddr)
+    # c_board = ffi.cast("char *", engine.state.board.ctypes.data)
+    # print(c_board)
+    #
 
-    if not board.flags['C_CONTIGUOUS']:
-        board = np.ascontiguousarray(board)
+    # profiler = cProfile.Profile()
+    # profiler.enable()
+    n = 10
+    t = time.time()
+    for i in range(n):
+        for a in range(19):
+            for b in range(19):
+                # rule.is_valid(engine.state.board, a, b)
+                # rule.get_valid(engine.state.board)
+                # rule.winning(c_board, a, b, 0, 0, 18, 18)
+                rule.winning(c_board, np.int32(a), np.int32(b), np.int32(0), np.int32(0), np.int32(18), np.int32(18))
+                # rule.create_snapshot()
+                # rule.update_from_snapshot()
+                # rule.copy()
+    dt = time.time() - t
+    print(f"dtime BasiRuleJit={dt} s")
+    print(hasattr(rule, "get_valid"))
 
-    if not full_board.flags['C_CONTIGUOUS']:
-        full_board = np.ascontiguousarray(full_board)
+    # rule = GomokuLib.Game.Rules.NoDoubleThrees(engine)
+    rule = GomokuLib.Game.Rules.BasicRule(engine)
+    # rule.winning(GomokuLib.Game.Action.GomokuAction(0, 0))
 
-    c_board = ffi.cast("char *", board.ctypes.data)
-    c_full_board = ffi.cast("char *", full_board.ctypes.data)
-    x = fastcore_algo.mcts_eval_heuristic(c_board, c_full_board, 0, 0, 0, 0, 18, 18)
-    h = 1 / (1 + np.exp(-0.4 * x))
-    print(f"{h} = sigmoid0.4({x})")
-    breakpoint()
+    t = time.time()
+    for i in range(n):
+        for a in range(19):
+            for b in range(19):
+                action = GomokuLib.Game.Action.GomokuAction(a, b)
+                # rule.get_valid()
+                # rule.is_valid(action)
+                rule.winning(action)
+                # rule.create_snapshot()
+                # rule.update_from_snapshot(None)
+                # rule.copy()
+    dt = time.time() - t
+    print(f"dtime BasicRule={dt} s")
+
+
+    # GomokuLib.Game.Rules.njit_is_align.parallel_diagnostics(level=4)
+
+
+    # profiler.disable()
+    # stats = pstats.Stats(profiler).sort_stats('tottime')
+    # # stats.print_stats()
+    # stats.dump_stats('tmp_profile_from_script.prof')
+
+    # board[0, 0, 0] = 1
+    # board[0, 2, 2] = 1
+    # board[0, 3, 2] = 1
+    # board[0, 4, 2] = 1
+    #
+    # board[1, 1, 1] = 1
+    # board[1, 2, 1] = 1
+    # board[1, 3, 1] = 1
+    # board[1, 4, 1] = 1
+    # board[0, 5, 1] = 1
+    #
+    # full_board = np.sum(board, axis=0).astype(np.int8)
+    #
+    # if not board.flags['C_CONTIGUOUS']:
+    #     board = np.ascontiguousarray(board)
+    #
+    # if not full_board.flags['C_CONTIGUOUS']:
+    #     full_board = np.ascontiguousarray(full_board)
+    #
+    # c_board = ffi.cast("char *", board.ctypes.data)
+    # c_full_board = ffi.cast("char *", full_board.ctypes.data)
+    # x = fastcore_algo.mcts_eval_heuristic(c_board, c_full_board, 0, 0, 0, 0, 18, 18)
+    # h = 1 / (1 + np.exp(-0.4 * x))
+    # print(f"{h} = sigmoid0.4({x})")
+    # breakpoint()
 
 if __name__ == '__main__':
-    duel()
+    # duel()
     # RLmain()
     # RLtest()
-    # c_tests()
+    c_tests()

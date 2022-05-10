@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Union, TYPE_CHECKING
 import numpy as np
 
-from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, RULES
+from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, BasicRuleJit, RULES
 from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
 
 from ..State.GomokuState import GomokuState
@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from ...Player.AbstractPlayer import AbstractPlayer
 
 from .AbstractGameEngine import AbstractGameEngine
-
 
 class Gomoku(AbstractGameEngine):
 
@@ -59,6 +58,7 @@ class Gomoku(AbstractGameEngine):
         }
 
         rules.append(BasicRule(self))
+        # rules.append(BasicRuleJit(self))
         self.rules = [
             tab[r.lower()](self)    # Attention ! Si la str n'est pas dans tab !
             if isinstance(r, str)
@@ -127,6 +127,9 @@ class Gomoku(AbstractGameEngine):
     def get_history(self) -> np.ndarray:
         # return self.history[1:]
         return np.array(self.history)
+
+    def get_game_zone(self):
+        return self.game_zone
 
     def update_game_zone(self, ar, ac):
         gz_start_r, gz_start_c, gz_end_r, gz_end_c = self.game_zone
