@@ -45,13 +45,14 @@ class GameEndingCapture(AbstractRule):
 
 		ar, ac = self.last_capture[self.engine.player_idx ^ 1].action
 
-		board = self.engine.state.board[::-1]
+		board = self.engine.state.board
 		if not board.flags['C_CONTIGUOUS']:
 			board = np.ascontiguousarray(board)
+			print("NOT CONTIGUOUS ARRAY !!!!!!")
 		c_board = ffi.cast("char *", board.ctypes.data)
 
 		# win = fastcore.basic_rule_winning(c_board, ar, ac)
-		win = fastcore.is_winning(c_board, ar, ac, *self.engine.game_zone)
+		win = fastcore.is_winning(c_board, 361, ar, ac, *self.engine.game_zone)
 
 		if win:
 			raise ForceWinOpponent(reason="GameEndingCapture")
@@ -76,6 +77,11 @@ class GameEndingCapture(AbstractRule):
 
 	def copy(self, engine: Gomoku, _: AbstractRule):
 		rule = GameEndingCapture(engine)
-		rule.last_capture = [GomokuAction(*c.action) if c is not None else c for c in self.last_capture]
+		rule.last_capture = [
+			GomokuAction(*c.action)
+			if c is not None
+			else c
+			for c in self.last_capture
+		]
 		rule.check_ending_capture = self.check_ending_capture.copy()
 		return rule

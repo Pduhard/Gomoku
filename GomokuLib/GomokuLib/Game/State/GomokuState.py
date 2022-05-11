@@ -52,6 +52,7 @@ class GomokuState(AbstractState):
 
     @property
     def full_board(self):
+        # print(f"self._full_board_uptodate={self._full_board_uptodate}")
         if not self._full_board_uptodate:
             self._full_board = self._board[0] | self._board[1]
             self._full_board_uptodate = True

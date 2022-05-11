@@ -24,15 +24,15 @@
          |
 */
 
-static char is_threes(char *board, char *full_board, char ar, char ac, char dr, char dc)
+static int is_threes(char *board, long *full_board, long ar, long ac, long dr, long dc)
 {
-    static char rmax = 19, cmax = 19;
+    static long rmax = 19, cmax = 19;
     int  lineidx[8];   // Idx of each cell on the line (Implicite action on the middle between index 3 and 4)
-    char map_edges[8]; // Bool values 4 cells in 2 directions (Implicite action on the middle between index 3 and 4)
-    char pr = ar;
-    char pc = ac;
-    char nr = ar;
-    char nc = ac;
+    int  map_edges[8]; // Bool values 4 cells in 2 directions (Implicite action on the middle between index 3 and 4)
+    long pr = ar;
+    long pc = ac;
+    long nr = ar;
+    long nc = ac;
 //    fprintf(stderr, "\nar, ac | dr, dc = %d, %d | %d, %d\n", ar, ac, dr, dc);
     for (int i = 1; i < 5; ++i) // 2 for avec un break selon map edge (init map edge a 1)
     {
@@ -133,9 +133,9 @@ static char is_threes(char *board, char *full_board, char ar, char ac, char dr, 
     return 0;
 }
 
-static char count_threes(char *board, char *full_board, int ar, int ac)
+static char count_threes(char *board, long *full_board, long ar, long ac)
 {
-    char count = is_threes(board, full_board, ar, ac, -1, 1);
+    int count = is_threes(board, full_board, ar, ac, -1, 1);
     // fprintf(stderr, "count0=%d\n", count);
 
     count += is_threes(board, full_board, ar, ac, 0, 1);
@@ -153,16 +153,16 @@ static char count_threes(char *board, char *full_board, int ar, int ac)
     return count;
 }
 
-int is_double_threes(char *board, char *full_board, int ar, int ac)
+int is_double_threes(char *board, long *full_board, long ar, long ac)
 {
-    char old_value = 1;
-    int  cell_i = ar * 19 + ac;
+    int old_value = 1;
+    long  cell_i = ar * 19 + ac;
 
     old_value ^= board[cell_i]; // Place a stone and save old value
     board[cell_i] ^= old_value;
     old_value ^= board[cell_i];
 
-    char count = count_threes(board, full_board, ar, ac);
+    int count = count_threes(board, full_board, ar, ac);
 
     old_value ^= board[cell_i]; // Replace old value
     board[cell_i] ^= old_value;

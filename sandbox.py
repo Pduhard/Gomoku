@@ -22,12 +22,15 @@ from fastcore._algo import lib as fastcore_algo
 
     Today :
 
-            
-        copy de class njit ?!
+        NodoubleThrees
 
     TODO (Important):
 
+        Essayer de ne pas recréer de relge dans le update
+        
         Dupliquer l'heuristic pour valoriser les coups de l'adversaire (Qui ne sont pas les même)
+        Valoriser les alignement de 4 ou il en manque qu'un !
+        
         UI fonction pour afficher un board 
 
     TODO (Pas très important):
@@ -72,7 +75,7 @@ def duel():
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
     #         rules=['no double-threes']
     # )
-    engine=GomokuLib.Game.GameEngine.GomokuGUI(
+    engine=GomokuLib.Game.GameEngine.GomokuJit(
             # rules=['Capture', 'Game-Ending Capture']
     )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
@@ -109,13 +112,13 @@ def duel():
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
 
+    if 'p2' not in locals():
+        print("new p2")
+        p2 = p1
 
     profiler = cProfile.Profile()
     profiler.enable()
 
-    if 'p2' not in locals():
-        print("new p2")
-        p2 = p1
     for i in range(1):
         winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
@@ -198,113 +201,105 @@ def c_tests():
         
     """
 
+    a = np.array([[[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+
+       [[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]],
+        dtype=np.int8,
+        order='C')
+
+    # a = np.ascontiguousarray(a)
+
+    full_a = a[0] | a[1]
+    c_board = ffi.cast("char *", a.ctypes.data)
+    c_full_board = ffi.cast("long *", full_a.ctypes.data)
+
+    print(f"All True: {[fastcore.is_double_threes(c_board, c_full_board, 4, 4) for i in range(100)]}")
+
+    exit(0)
+
+
     engine = GomokuLib.Game.GameEngine.Gomoku()
 
-    rule = GomokuLib.Game.Rules.BasicRuleJit()
-    # rule = GomokuLib.Game.Rules.NoDoubleThreesJit()
-    rule.is_valid(engine.state.board, 0, 0)
-    rule.get_valid(engine.state.board)
-    # rule.winning(engine.state.board, 0, 0, 0, 0, 18, 18)
-    # rule.create_snapshot()
-    # rule.update_from_snapshot()
-    # import numba as nb
-    # import fastcore._rules as md
-    import ctypes
-    # board.size * board.dtype.itemsize
-    board = engine.state.board
-    # print(cffi_board)
-    # print(c_buffer)
+    rule = GomokuLib.Game.Rules.NoDoubleThrees(engine)
+    ruleJit = GomokuLib.Game.Rules.NoDoubleThreesJit(engine.state.board)
 
-    # caddr = ffi.addressof(c_board)
-    # print(caddr)
-    # c_board = ffi.cast("char *", engine.state.board.ctypes.data)
-    # c_board_ffi = ffi.buffer(, board.size * board.dtype.itemsize)
-    # print(c_board)
-
-
-
-    # nb.core.typing.cffi_utils.register_module(md)
-
-    # is_winning = md.lib.is_winning
-
-    # def winning(board, ar, ac, gz0, gz1, gz2, gz3):
-
-    #     return rule.winning(board, ar, ac, gz0, gz1, gz2, gz3)
-
-    # winningjit = nb.njit(winning)
-    # profiler = cProfile.Profile()
-    # profiler.enable()
-    rule.winning(board, np.int64(0), np.int64(5), np.int64(0), np.int64(0), np.int64(18), np.int64(18))
-    n = 1000
-    t = time.time()
-    # for i in range(n):
-    #     for a in range(19):
-    #         for b in range(19):
-                # rule.is_valid(engine.state.board, a, b)
-                # rule.get_valid(engine.state.board)
-                # print()
-    rule.winning(board, np.int64(5), np.int64(5), np.int64(0), np.int64(0), np.int64(18), np.int64(18))
-                # rule.winning(c_board, np.int32(a), np.int32(b), np.int32(0), np.int32(0), np.int32(18), np.int32(18))
-                # rule.create_snapshot()
-                # rule.update_from_snapshot()
-                # rule.copy()
-    dt = time.time() - t
-    print(f"dtime BasiRuleJit={dt} s")
-    
-    print(hasattr(rule, "get_valid"))
-
-    # rule = GomokuLib.Game.Rules.NoDoubleThrees(engine)
-    rule = GomokuLib.Game.Rules.BasicRule(engine)
-    # rule.winning(GomokuLib.Game.Action.GomokuAction(0, 0))
-
-    t = time.time()
-    for i in range(n):
+    for i in range(1000):
+        board = np.random.randint(0, 2, (2, 19, 19))
+        engine.state.board = board
         for a in range(19):
             for b in range(19):
+
                 action = GomokuLib.Game.Action.GomokuAction(a, b)
-                # rule.get_valid()
-                # rule.is_valid(action)
-                rule.winning(action)
-                # rule.create_snapshot()
-                # rule.update_from_snapshot(None)
-                # rule.copy()
-    dt = time.time() - t
-    print(f"dtime BasicRule={dt} s")
+                full_board = board[0] | board[1]
+
+                # rj_ret = ruleJit.get_valid(full_board)
+                # r_ret = rule.get_valid()
+                # if np.any(rj_ret != r_ret):
+                #     print(f"ERROR get_validJit: {a}\n{b}")
+                #     breakpoint()
+
+                rj_ret = ruleJit.is_valid(full_board, a, b)
+                r_ret = rule.is_valid(action)
+                if np.any(rj_ret != r_ret):
+                    print(f"ERROR get_validJit: {a}\n{b}")
+                    breakpoint()
+
+                # # ruleJit.winning(np.int64(0), np.int64(5), np.int64(0), np.int64(0), np.int64(18), np.int64(18))
+                # rj_ret = ruleJit.winning(a, b, *engine.game_zone)
+                # r_ret = rule.winning(action)
+                # if rj_ret != r_ret:
+                #     print(f"ERROR get_validJit: {a}\n{b}")
+                #     breakpoint()
+
+        print(f"Valid board: {board}")
 
 
-    # GomokuLib.Game.Rules.njit_is_align.parallel_diagnostics(level=4)
+    # t = time.time()
+    # dt = time.time() - t
+    # print(f"dtime BasicRule={dt} s")
 
-
+    # profiler = cProfile.Profile()
+    # profiler.enable()
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')
     # # stats.print_stats()
     # stats.dump_stats('tmp_profile_from_script.prof')
-
-    # board[0, 0, 0] = 1
-    # board[0, 2, 2] = 1
-    # board[0, 3, 2] = 1
-    # board[0, 4, 2] = 1
-    #
-    # board[1, 1, 1] = 1
-    # board[1, 2, 1] = 1
-    # board[1, 3, 1] = 1
-    # board[1, 4, 1] = 1
-    # board[0, 5, 1] = 1
-    #
-    # full_board = np.sum(board, axis=0).astype(np.int8)
-    #
-    # if not board.flags['C_CONTIGUOUS']:
-    #     board = np.ascontiguousarray(board)
-    #
-    # if not full_board.flags['C_CONTIGUOUS']:
-    #     full_board = np.ascontiguousarray(full_board)
-    #
-    # c_board = ffi.cast("char *", board.ctypes.data)
-    # c_full_board = ffi.cast("char *", full_board.ctypes.data)
-    # x = fastcore_algo.mcts_eval_heuristic(c_board, c_full_board, 0, 0, 0, 0, 18, 18)
-    # h = 1 / (1 + np.exp(-0.4 * x))
-    # print(f"{h} = sigmoid0.4({x})")
-    # breakpoint()
 
 def numba_tests():
     spec = [

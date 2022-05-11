@@ -43,29 +43,29 @@ class Gomoku(AbstractGameEngine):
         self.history = []
         self.game_zone = [*self.board_size, 0, 0]
 
-    def set_rules_fn(self, rules):
+    def set_rules_fn(self):
         self.rules_fn = {
-            k: [r for r in rules if (hasattr(r, k) and getattr(r, k) != None)]
+            k: [r for r in self.rules if (hasattr(r, k) and getattr(r, k) != None)]
             for k in RULES
         }
 
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
 
-        tab = {
+        tab_rules = {
             'capture': Capture,
             'game-ending capture': GameEndingCapture,
             'no double-threes': NoDoubleThrees
         }
-
         rules.append(BasicRule(self))
-        # rules.append(BasicRuleJit(self))
+
         self.rules = [
-            tab[r.lower()](self)    # Attention ! Si la str n'est pas dans tab !
+            tab_rules[r.lower()](self)  # Attention ! Si la str n'est pas dans tab !
             if isinstance(r, str)
             else r
             for r in rules
         ]
-        self.set_rules_fn(self.rules)
+
+        self.set_rules_fn()
         return self.rules_fn
 
     def init_board(self):
@@ -76,47 +76,39 @@ class Gomoku(AbstractGameEngine):
 
     def get_actions(self) -> np.ndarray:
 
-        # actions = self.rules_fn['restricting'][0].get_valid(self.state)
-        masks = np.array([rule.get_valid() for rule in self.rules_fn['restricting']])
+        masks = np.array([
+            rule.get_valid()
+            for rule in self.rules_fn['restricting']
+        ])
         masks = np.bitwise_and.reduce(masks, axis=0)
-        # print(masks.shape)
-        # print(masks)
         return masks
 
     def is_valid_action(self, action: GomokuAction) -> bool:
-        isvalid = all(rule.is_valid(action) for rule in self.rules_fn['restricting'])
-        return isvalid
+        return all(
+            rule.is_valid(action)
+            for rule in self.rules_fn['restricting']
+        )
 
     def apply_action(self, action: GomokuAction) -> None:
         ar, ac = action.action
         if not self.is_valid_action(action):
-            print('action', action)
-            breakpoint()
             print(f"Not a fucking valid action: {ar} {ac}")
+            breakpoint()
             raise Exception
-        # print(ar, ac)
+
         self.state.board[0, ar, ac] = 1
         self.update_game_zone(ar, ac)
         self.last_action = action
 
-    # def new_rule(self, obj: object, operation: str):
-    #     print('haled new rule???')
-    #     self.rules_fn[operation].append(obj)
-    #     print('haled new rule')
-
-    # def remove_rule(self, obj: object, operation: str):
-    #     print('haled remove rule')
-    #     self.rules_fn[operation].remove(obj)
-
-    def _get_captures_success(self):
+    def _get_captures_success(self) -> list:
         return self.capture_rule.get_current_player_captures()
 
-    def _get_captures_failed(self):
+    def _get_captures_failed(self) -> list:
         return [0, 0]
 
-    def get_captures(self):
+    def get_captures(self, capture_class: AbstractRule = Capture) -> list:
         for r in self.rules:
-            if isinstance(r, Capture):
+            if isinstance(r, capture_class):
                 self.capture_rule = r
         if self.capture_rule:
             self.get_captures = self._get_captures_success
@@ -125,10 +117,9 @@ class Gomoku(AbstractGameEngine):
         return self.get_captures()
 
     def get_history(self) -> np.ndarray:
-        # return self.history[1:]
         return np.array(self.history)
 
-    def get_game_zone(self):
+    def get_game_zone(self) -> list:
         return self.game_zone
 
     def update_game_zone(self, ar, ac):
@@ -141,18 +132,27 @@ class Gomoku(AbstractGameEngine):
             self.game_zone[1] = ac
         elif gz_end_c < ac:
             self.game_zone[3] = ac
-        # if self.players:
-        #     print(f"Game zone: {self.game_zone[0]} {self.game_zone[1]} into {self.game_zone[2]} {self.game_zone[3]}")
+
+    def _next_turn_rules(self):
+
+        for rule in self.rules_fn['endturn']:  # A mettre dans le apply_action ?
+            rule.endturn(self.last_action)
+
+        # print(self.rules_fn['winning'])
+        if (any([
+            rule.winning(self.last_action)
+            for rule in self.rules_fn['winning']
+        ]) and not any([
+            rule.nowinning(self.last_action)
+            for rule in self.rules_fn['nowinning']
+        ])):
+            self._isover = True
+            self.winner = self.player_idx  # ????????????????????????????? Mouais
 
     def next_turn(self, before_next_turn_cb=[]) -> None:
 
         board = self.state.board if self.player_idx == 0 else self.state.board[::-1, ...]
-        # self.history = np.insert(self.history, len(self.history), board, axis=0)
-        # np.append(self.history, board[np.newaxis, ...], axis=0)
-        # self.history = np.concatenate((self.history, board[np.newaxis, ...]))
         self.history.append(board)
-
-        # print(f"GOMOKU NEXT TURN\n")
 
         # if np.all(self.state.full_board != 0):
         #     print("DRAW")
@@ -163,21 +163,7 @@ class Gomoku(AbstractGameEngine):
 
             if self.last_action is None:
                 breakpoint()
-
-            for rule in self.rules_fn['endturn']:       # A mettre dans le apply_action ?
-                rule.endturn(self.last_action)
-
-            # print(self.rules_fn['winning'])
-            if (any([
-                    rule.winning(self.last_action)
-                    for rule in self.rules_fn['winning']
-                ]) and not any([
-                    rule.nowinning(self.last_action)
-                    for rule in self.rules_fn['nowinning']
-                ])):
-
-                self._isover = True
-                self.winner = self.player_idx       # ?????????????????????????????
+            self._next_turn_rules()
 
         except ForceWinPlayer as e:
             # print(f"Player {self.player_idx} win. Reason: {e.reason}")
@@ -193,7 +179,6 @@ class Gomoku(AbstractGameEngine):
             print(f"An exception occur: {e}")
             exit(0)
 
-        # print(f"GOMOKU CALLBACKS\n")
         cb_return = {}
         for cb in before_next_turn_cb:  # Callbacks
             cb_return.update(cb(self))
@@ -232,7 +217,6 @@ class Gomoku(AbstractGameEngine):
         self._run(self.players)
         return self.players[self.winner] if self.winner >= 0 else self.winner
 
-
     def create_snapshot(self):
         return {
             'history': self.history.copy(),
@@ -260,6 +244,10 @@ class Gomoku(AbstractGameEngine):
         for rule in self.rules:
             rule.update_from_snapshot(snapshot['rules'][rule.name])
 
+    def _update_rules(self, engine: Gomoku):
+        self.rules = [rule.copy(self, rule) for rule in engine.rules]
+        self.set_rules_fn()
+
     def update(self, engine: Gomoku):
 
         self.history = engine.history.copy()
@@ -273,13 +261,7 @@ class Gomoku(AbstractGameEngine):
         self.game_zone = engine.game_zone
         self.update_game_zone = engine.update_game_zone
 
-        # print(engine.rules_fn)
-        # print(self.rules_fn)
-        # print('----------------------')
-        self.rules = [rule.copy(self, rule) for rule in engine.rules]
-        self.set_rules_fn(self.rules)
-        # print(engine.rules_fn)
-        # print(self.rules_fn)
+        self._update_rules(engine)
 
     def clone(self) -> Gomoku:
         engine = Gomoku(self.players, self.board_size, self.rules_str)
