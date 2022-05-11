@@ -2,32 +2,34 @@ import numba
 from numba import typed
 from numba.core import types
 from numba.experimental import jitclass
+import cffi
+ffi = cffi.FFI()
 
-from cffi import FFI
-import fastcore
-from fastcore._rules import ffi, lib
+# from cffi import FFI
+# import fastcore
+import fastcore._rules as c_module
+# from fastcore._rules import ffi, lib as md
 from numba.core.typing import cffi_utils
 
-cffi_utils.register_module(fastcore._rules)
+import ctypes
 
-# @numba.njit("boolean(pyobject, char[:], int8, int8, int8, int8, int8, int8)")
-# def _C_winning(board, ar, ac, gz0, gz1, gz2, gz3):
-#     c_board = ffi.cast("char *", board.ctypes.data)
-#     return fastcore.is_winning(c_board, ar, ac, gz0, gz1, gz2, gz3)
-
+cffi_utils.register_module(c_module)
+is_winning_ctype = cffi_utils.make_function_type(c_module.lib.is_winning)
+is_winning = c_module.lib.is_winning
 
 spec = [
     ('name', types.string),
     ('restricting', types.boolean),
+    ('_winning_cfunc', is_winning_ctype),
 ]
 
-fn = lib.is_winning
 @jitclass(spec)
 class BasicRuleJit:
 
     def __init__(self):
         self.name = 'BasicRule'
         self.restricting = True  # Imply existing methods get_valid() and is_valid()
+        self._winning_cfunc = c_module.lib.is_winning
 
     def get_valid(self, full_board):
         return full_board ^ 1
@@ -37,40 +39,12 @@ class BasicRuleJit:
 
     def winning(self, board, ar, ac, gz0, gz1, gz2, gz3):
 
-        return fn(board, ar, ac, gz0, gz1, gz2, gz3)
-
-        ways = [
-            (-1, -1),
-            (-1, 0),
-            (-1, 1),
-            (0, -1)
-        ]
-
-        # 4 direction
-        for rway, cway in ways:
-
-            # Slide 4 times
-            r1, c1, count1, i = ar, ac, 4, 0
-            while (i < 4 and count1 == 4):
-
-                r1 += rway
-                c1 += cway
-                if (r1 < gz0 or r1 >= gz1 or c1 < gz2 or c1 >= gz3 or board[0, r1, c1] == 0):
-                    count1 = i
-                i += 1
-
-            r2, c2, count2, i = ar, ac, 4, 0
-            while (i < 4 and count2 == 4):
-                r2 -= rway
-                c2 -= cway
-                if (r2 < gz0 or r2 >= gz1 or c2 < gz2 or c2 >= gz3 or board[0, r2, c2] == 0):
-                    count2 = i
-                i += 1
-
-            if count1 + count2 >= 4:
-                return True
-
-        return False
+        ptr = ffi.from_buffer(board)
+        for i in range(1000):
+            for a in range(19):
+                for b in range(19):
+                    self._winning_cfunc(ptr, ar, ac, gz0, gz1, gz2, gz3)
+        return 0
 
     def create_snapshot(self):
         return typed.Dict.empty(types.string, types.string)

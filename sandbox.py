@@ -1,3 +1,4 @@
+from ctypes import c_buffer
 import time
 from time import sleep
 
@@ -204,32 +205,49 @@ def c_tests():
     # rule.winning(engine.state.board, 0, 0, 0, 0, 18, 18)
     # rule.create_snapshot()
     # rule.update_from_snapshot()
+    # import numba as nb
+    # import fastcore._rules as md
+    import ctypes
+    # board.size * board.dtype.itemsize
+    board = engine.state.board
+    # print(cffi_board)
+    # print(c_buffer)
 
-    c_board = ffi.from_buffer(engine.state.board)
-    print(c_board)
-
-    caddr = ffi.addressof(c_board)
-    print(caddr)
+    # caddr = ffi.addressof(c_board)
+    # print(caddr)
     # c_board = ffi.cast("char *", engine.state.board.ctypes.data)
+    # c_board_ffi = ffi.buffer(, board.size * board.dtype.itemsize)
     # print(c_board)
     #
 
+    # nb.core.typing.cffi_utils.register_module(md)
+
+    # is_winning = md.lib.is_winning
+
+    # def winning(board, ar, ac, gz0, gz1, gz2, gz3):
+
+    #     return rule.winning(board, ar, ac, gz0, gz1, gz2, gz3)
+
+    # winningjit = nb.njit(winning)
     # profiler = cProfile.Profile()
     # profiler.enable()
-    n = 10
+    rule.winning(board, np.int64(0), np.int64(5), np.int64(0), np.int64(0), np.int64(18), np.int64(18))
+    n = 1000
     t = time.time()
-    for i in range(n):
-        for a in range(19):
-            for b in range(19):
+    # for i in range(n):
+    #     for a in range(19):
+    #         for b in range(19):
                 # rule.is_valid(engine.state.board, a, b)
                 # rule.get_valid(engine.state.board)
-                # rule.winning(c_board, a, b, 0, 0, 18, 18)
-                rule.winning(c_board, np.int32(a), np.int32(b), np.int32(0), np.int32(0), np.int32(18), np.int32(18))
+                # print()
+    rule.winning(board, np.int64(5), np.int64(5), np.int64(0), np.int64(0), np.int64(18), np.int64(18))
+                # rule.winning(c_board, np.int32(a), np.int32(b), np.int32(0), np.int32(0), np.int32(18), np.int32(18))
                 # rule.create_snapshot()
                 # rule.update_from_snapshot()
                 # rule.copy()
     dt = time.time() - t
     print(f"dtime BasiRuleJit={dt} s")
+    
     print(hasattr(rule, "get_valid"))
 
     # rule = GomokuLib.Game.Rules.NoDoubleThrees(engine)
