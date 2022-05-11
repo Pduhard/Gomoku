@@ -1,3 +1,4 @@
+import numba
 import numpy as np
 
 from numba import njit, prange
@@ -6,14 +7,35 @@ from .MCTS import MCTS
 from ..Game.Action.GomokuAction import GomokuAction
 from fastcore._algo import ffi, lib as fastcore
 
-@njit(parallel=True)
+
+@numba.vectorize('float64(int8, float64)')
+def valid_action(actions, policy):
+    if actions > 0:
+        return policy
+    else:
+        return 0
+
+
+@njit(parallel=True, nogil=True)
 def test_selection_parallel(actions, policy):
-    # action_policy = np.zeros((19, 19, 2))
-    max = -1
+    best_actions = np.zeros((362, 2), dtype=np.int32)
+
+    action_policy = valid_action(actions, policy)
+    #
+    # action_policy = policy * np.where(actions > 0, 1, 0)
+    # tmp = np.argwhere(action_policy == np.amax(action_policy))
+
+    k = 0
+    max = np.amax(action_policy)
     for i in prange(19):
         for j in prange(19):
-            if policy[i, j] >= max and actions > 0:
-                max = policy[i, j]
+            if max == action_policy[i, j]:
+                best_actions[k][0] = i
+                best_actions[k][1] = j
+                k += 1
+
+    best_actions[-1, ...] = k
+    return best_actions
 
 
 class MCTSLazy(MCTS):
@@ -38,17 +60,13 @@ class MCTSLazy(MCTS):
         # action_policy = action_policy.astype(np.float64)
         # c_policy = ffi.cast("double *", action_policy.ctypes.data)
         while True:
-
             # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
-            test_selection_parallel(actions.astype(np.float32), policy)
-            action_policy = policy * np.where(actions > 0, 1, 0)
-            tmp = np.argwhere(action_policy == np.amax(action_policy))
-
-            arr = np.arange(len(tmp))
+            arr = test_selection_parallel(actions, policy)
+            len = arr[-1, 0]
+            arr = arr[:len]
             np.random.shuffle(arr)
-
             for e in arr:
-                x, y = tmp[e]
+                x, y = e
 
                 gAction = GomokuAction(x, y)
                 if actions[x, y] == 2:

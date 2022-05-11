@@ -3,10 +3,12 @@ import time
 from time import sleep
 
 import numba
+from numba import typed, njit, prange
 from numba.core import types
 
 import numpy as np
 import torch.cuda
+from numba.experimental import jitclass
 
 import GomokuLib
 
@@ -218,7 +220,8 @@ def c_tests():
     # c_board = ffi.cast("char *", engine.state.board.ctypes.data)
     # c_board_ffi = ffi.buffer(, board.size * board.dtype.itemsize)
     # print(c_board)
-    #
+
+
 
     # nb.core.typing.cffi_utils.register_module(md)
 
@@ -303,8 +306,54 @@ def c_tests():
     # print(f"{h} = sigmoid0.4({x})")
     # breakpoint()
 
+def numba_tests():
+    spec = [
+        ('d', numba.typeof(typed.Dict.empty(types.string, types.int64))),
+    ]
+
+    @njit(parallel=True, nogil=True)
+    def par(d, value):
+        for i in prange(100000):
+            d[str(hash(str(i)))]
+            d[str(i) * 722]
+
+    @jitclass(spec)
+    class A:
+        def __init__(self):
+            self.d = typed.Dict.empty(types.string, types.int64)
+
+        def run(self, value):
+            par(self.d, value)
+
+    class B:
+        def __init__(self):
+            self.d = {}
+
+    a = A()
+    b = B()
+
+    value = np.random.randint(10)
+    a.d[str(-1) * 722] = value
+    b.d[str(-1) * 722] = value
+    a.run(value)
+
+    t = time.time()
+    a.run(value)
+    dt = time.time() - t
+    print(f"dtime {a}={dt} s")
+
+
+    t = time.time()
+    for i in range(100000):
+        b.d[str(hash(str(i)))]
+        b.d[str(i) * 722]
+
+    dt = time.time() - t
+    print(f"dtime {b}={dt} s")
+
 if __name__ == '__main__':
-    # duel()
+    duel()
     # RLmain()
     # RLtest()
-    c_tests()
+    # numba_tests()
+    # c_tests()
