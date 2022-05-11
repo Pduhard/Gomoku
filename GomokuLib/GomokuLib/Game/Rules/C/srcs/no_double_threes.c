@@ -24,7 +24,7 @@
          |
 */
 
-static int is_threes(char *board, long *full_board, long ar, long ac, long dr, long dc)
+static int is_threes(char *board, char *full_board, long ar, long ac, long dr, long dc)
 {
     static long rmax = 19, cmax = 19;
     int  lineidx[8];   // Idx of each cell on the line (Implicite action on the middle between index 3 and 4)
@@ -133,7 +133,7 @@ static int is_threes(char *board, long *full_board, long ar, long ac, long dr, l
     return 0;
 }
 
-static char count_threes(char *board, long *full_board, long ar, long ac)
+static char count_threes(char *board, char *full_board, long ar, long ac)
 {
     int count = is_threes(board, full_board, ar, ac, -1, 1);
     // fprintf(stderr, "count0=%d\n", count);
@@ -153,7 +153,7 @@ static char count_threes(char *board, long *full_board, long ar, long ac)
     return count;
 }
 
-int is_double_threes(char *board, long *full_board, long ar, long ac)
+int is_double_threes(char *board, char *full_board, long ar, long ac)
 {
     int old_value = 1;
     long  cell_i = ar * 19 + ac;

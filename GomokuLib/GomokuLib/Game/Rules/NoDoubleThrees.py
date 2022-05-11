@@ -38,8 +38,11 @@ class NoDoubleThrees(AbstractRule):
 		if not self.engine.state.board.flags['C_CONTIGUOUS']:
 			print(f"AHH LA ***** DE SA ***** de ùùùùùùù")
 			self.engine.state.board = np.ascontiguousarray(self.engine.state.board)
+
+		full_board = self.engine.state.full_board.astype(np.int8)
+
 		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
-		c_full_board = ffi.cast("long *", self.engine.state.full_board.ctypes.data)
+		c_full_board = ffi.cast("char *", full_board.ctypes.data)
 		return not fastcore.is_double_threes(c_board, c_full_board, *action.action)
 	
 	def create_snapshot(self):
@@ -48,5 +51,5 @@ class NoDoubleThrees(AbstractRule):
 	def update_from_snapshot(self, snapshot):
 		pass
 
-	def copy(self, engine: Gomoku, rule: AbstractRule):
+	def update(self, engine: Gomoku, rule: AbstractRule):
 		return NoDoubleThrees(engine)

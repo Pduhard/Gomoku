@@ -75,9 +75,10 @@ def duel():
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
     #         rules=['no double-threes']
     # )
-    engine=GomokuLib.Game.GameEngine.GomokuJit(
+    engine=GomokuLib.Game.GameEngine.GomokuGUI()
+    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
             # rules=['Capture', 'Game-Ending Capture']
-    )
+    # )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
     #
     # agent = GomokuLib.AI.Agent.GomokuAgent(
@@ -95,9 +96,9 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=1000,
+        iter=3000,
         hard_pruning=True,
-        rollingout_turns=3
+        rollingout_turns=1
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -201,7 +202,8 @@ def c_tests():
         
     """
 
-    a = np.array([[[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    a = np.array([[
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -243,9 +245,12 @@ def c_tests():
         dtype=np.int8,
         order='C')
 
-    # a = np.ascontiguousarray(a)
+    a = np.ascontiguousarray(a)
 
-    full_a = a[0] | a[1]
+
+    full_a = np.int64(a[0] | a[1])
+    full_a = np.ascontiguousarray(full_a)
+
     c_board = ffi.cast("char *", a.ctypes.data)
     c_full_board = ffi.cast("long *", full_a.ctypes.data)
 

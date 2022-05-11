@@ -30,7 +30,8 @@ class GomokuJit(Gomoku):
     def get_actions(self) -> np.ndarray:
 
         masks = np.array([
-            rule.get_valid(self.state.full_board)
+            # rule.get_valid(self.state.full_board)
+            rule.get_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8))
             for rule in self.rules_fn['restricting']
         ])
         masks = np.bitwise_and.reduce(masks, axis=0)
@@ -38,7 +39,7 @@ class GomokuJit(Gomoku):
 
     def is_valid_action(self, action: GomokuAction) -> bool:
         return all(
-            rule.is_valid(self.state.full_board, *action.action)
+            rule.is_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8), *action.action)
             for rule in self.rules_fn['restricting']
         )
 
@@ -49,19 +50,43 @@ class GomokuJit(Gomoku):
         gz = self.get_game_zone()
 
         for rule in self.rules_fn['endturn']:  # A mettre dans le apply_action ?
-            rule.endturn(self.player_idx, *self.last_action.action, *gz)
+            rule.endturn(self.player_idx, *self.last_action.action, gz[0], gz[1], gz[2], gz[3])
 
         # print(self.rules_fn['winning'])
-        if (any([
-            rule.winning(self.player_idx, *self.last_action.action, *gz)
-            for rule in self.rules_fn['winning']
-        ]) and not any([
+
+        win = False
+        for rule in self.rules_fn['winning']:
+            flag = rule.winning(self.player_idx, *self.last_action.action, gz[0], gz[1], gz[2], gz[3])
+            if flag == 3:   # GameEndingCapture win
+                self._isover = True
+                self.winner = self.player_idx ^ 1
+                return
+            if flag == 1:   # BasicRule win
+                win = True
+            elif flag == 2:   # Capture win
+                self._isover = True
+                self.winner = self.player_idx
+                return
+
+        if (win and not any([   #  Ca setr à rien !!!!!!!!!!!!!!!!!
             rule.nowinning(self.player_idx, self.last_action.action)
             for rule in self.rules_fn['nowinning']
         ])):
             self._isover = True
-            self.winner = self.player_idx  # ?????????????????????????????
+            self.winner = self.player_idx  # ????????????????????????????? Mouais
+
+    def next_turn(self, *args, **kwargs):
+        ret = super().next_turn(*args, **kwargs)
+        for rule in self.rules:
+            rule.update_board_ptr(self.state.board)
+        return ret
 
     def _update_rules(self, engine: Gomoku):
-        self.rules = [rule.copy(self.state.board) for rule in engine.rules]
-        self.set_rules_fn(self.rules)
+        for to_update, rule in zip(self.rules, engine.rules):
+            to_update.update(rule)
+        self.set_rules_fn()
+
+    def clone(self) -> Gomoku:
+        engine = GomokuJit(self.players, self.board_size, self.rules_str)
+        engine.update(self)
+        return engine

@@ -24,8 +24,9 @@ class BasicRule(AbstractRule):
 		# win = njit_is_align(self.engine.state.board, *action.action)
 
 		ar, ac = action.action
+		gz = self.engine.get_game_zone()
 		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
-		win = fastcore.is_winning(c_board, 0, ar, ac, *self.engine.game_zone)
+		win = fastcore.is_winning(c_board, 0, ar, ac, gz[0], gz[1], gz[2], gz[3])
 		return win
 
 	def create_snapshot(self):
@@ -34,7 +35,7 @@ class BasicRule(AbstractRule):
 	def update_from_snapshot(self, snapshot):
 		pass
 
-	def copy(self, engine: Gomoku, rule: AbstractRule):
+	def update(self, engine: Gomoku, rule: AbstractRule):
 		return BasicRule(engine)
 
 

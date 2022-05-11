@@ -19,8 +19,7 @@ class ForceWinOpponent(Exception):
 
 spec = [
 	('name', nb.types.string),
-	('last_capture', nb.types.Any),
-	('check_ending_capture', nb.types.Any),
+	('stats', nb.types.int8[:, :]),
 	('_board_ptr', nb.types.CPointer(nb.types.int8)),
 	('is_winning_cfunc', is_winning_ctype),
 	# ('_full_board_ptr', nb.types.CPointer(nb.types.int8)),
@@ -32,40 +31,34 @@ class GameEndingCaptureJit:
 
 	def __init__(self, board: np.ndarray):
 		self.name = 'GameEndingCapture'
-		self.last_capture = [None, None]
-		self.check_ending_capture = [0, 0]
+		self.stats = np.zeros((3, 2), dtype=np.int8)
 		self._board_ptr = ffi.from_buffer(board)
 		self.is_winning_cfunc = fastcore._rules.lib.is_winning
 
 	def winning(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
-		if self.check_ending_capture[player_idx ^ 1] == 0:
-			return False
+		if self.stats[2][player_idx ^ 1] == 0:
+			return 0
 
-		win = fastcore.is_winning(self._board_ptr, 361, *self.last_capture[player_idx ^ 1], gz0, gz1, gz2, gz3)
-
+		win = self.is_winning_cfunc(self._board_ptr, 361, self.stats[player_idx][0], self.stats[player_idx][1], gz0, gz1, gz2, gz3)
 		if win:
-			raise ForceWinOpponent("GameEndingCapture")
+			return 3
 
-		self.check_ending_capture[player_idx ^ 1] = 0
-		return False
+		self.stats[2][player_idx ^ 1] = 0
+		return 0
 
 	def nowinning(self, player_idx: int, last_action: tuple):
-		self.last_capture[player_idx] = last_action
-		self.check_ending_capture[player_idx] = 1
+		self.stats[2][player_idx] = 1
+		self.stats[player_idx] = last_action
 		return True
 
 	def create_snapshot(self):
-		return {
-			'last_capture': self.last_capture.copy(),
-			'check_ending_capture': self.check_ending_capture.copy()
-		}
+		return self.stats
 
-	def update_from_snapshot(self, snapshot: dict):	# Remove these copy()
-		self.last_capture = snapshot['last_capture'].copy()
-		self.check_ending_capture = snapshot['check_ending_capture'].copy()
+	def update_from_snapshot(self, stats: np.ndarray):	# Remove these copy()
+		self.stats[...] = stats
 
-	def copy(self, board: np.ndarray):
-		rule = GameEndingCaptureJit(board)
-		rule.last_capture = self.last_capture.copy()
-		rule.check_ending_capture = self.check_ending_capture.copy()
-		return rule
+	def update(self, rule):
+		self.stats[...] = rule.stats
+
+	def update_board_ptr(self, board):
+		self._board_ptr = ffi.from_buffer(board)

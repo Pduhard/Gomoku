@@ -45,15 +45,16 @@ class NoDoubleThreesJit:
 		return False if ret else True
 
 	def create_snapshot(self):
-		return None
+		return 0
 
 	def update_from_snapshot(self, *args):
 		pass
 
-	def copy(self, board: np.ndarray):
-		return NoDoubleThreesJit(board)
+	def update(self, *args):
+		pass
 
-
+	def update_board_ptr(self, board):
+		self._board_ptr = ffi.from_buffer(board)
 
 #
 # @njit

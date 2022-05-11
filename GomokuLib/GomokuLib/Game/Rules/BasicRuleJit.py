@@ -38,10 +38,13 @@ class BasicRuleJit:
         return self._winning_cfunc(self._board_ptr, 0, ar, ac, gz0, gz1, gz2, gz3)
 
     def create_snapshot(self):
-        return None
+        return 0
 
     def update_from_snapshot(self, *args):
         pass
 
-    def copy(self, board: np.ndarray):
-        return BasicRuleJit(board)
+    def update(self, *args):
+        pass
+
+    def update_board_ptr(self, board):
+        self._board_ptr = ffi.from_buffer(board)

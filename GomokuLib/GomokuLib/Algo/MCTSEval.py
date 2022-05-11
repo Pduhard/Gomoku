@@ -21,7 +21,7 @@ def heuristic(engine):
     x = fastcore.mcts_eval_heuristic(
         c_board, c_full_board,
         *engine.get_captures(),
-        *engine.game_zone
+        *engine.get_game_zone()
     )
     h_v = 1 / (1 + np.exp(-0.4 * x))
     return h_v

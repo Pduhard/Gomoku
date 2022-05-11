@@ -1,5 +1,6 @@
 import numba as nb
 import numpy as np
+from numba import njit
 from numba.core.typing import cffi_utils
 from numba.experimental import jitclass
 
@@ -19,7 +20,7 @@ class ForceWinPlayer(Exception):
 
 spec = [
 	('name', nb.types.string),
-	('player_count_capture', nb.types.Any),
+	('player_count_capture', nb.types.int8[:]),
 	('_board_ptr', nb.types.CPointer(nb.types.int8)),
 	('count_captures_cfunc', count_captures_ctype),
 	# ('_full_board_ptr', nb.types.CPointer(nb.types.int8)),
@@ -32,7 +33,7 @@ class CaptureJit():
 	def __init__(self, board: np.ndarray) -> None:
 		# self.CAPTURE_MASK=init_capture_mask()
 		self.name = 'Capture'
-		self.player_count_capture = [0, 0]
+		self.player_count_capture = np.zeros(2, dtype=np.int8)
 		self._board_ptr = ffi.from_buffer(board)
 		self.count_captures_cfunc = fastcore._rules.lib.count_captures
 
@@ -43,24 +44,25 @@ class CaptureJit():
 
 	def winning(self, player_idx: int, *args):
 		if self.player_count_capture[player_idx] >= 5:
-			raise ForceWinPlayer(reason="Five captures.")
-		return False
+			return 2
+		return 0
 
 	def get_current_player_captures(self, player_idx: int):
 		return self.player_count_capture[::-1] if player_idx else self.player_count_capture
 
 	def create_snapshot(self):
-		d = dict()
-		d['player_count_capture'] = self.player_count_capture.copy()
-		return d
+		return self.player_count_capture
 
-	def update_from_snapshot(self, snapshot: dict):
-		self.player_count_capture = snapshot['player_count_capture']
+	def update_from_snapshot(self, player_count_capture):
+		self.player_count_capture[0] = player_count_capture[0]
+		self.player_count_capture[1] = player_count_capture[1]
+		# self.player_count_capture[::] = snapshot['player_count_capture']
 
-	def copy(self, board: np.ndarray):
-		newrule = CaptureJit(board)
-		newrule.player_count_capture = self.player_count_capture.copy()
-		return newrule
+	def update(self, rule):
+		self.player_count_capture[:] = rule.player_count_capture
+
+	def update_board_ptr(self, board):
+		self._board_ptr = ffi.from_buffer(board)
 
 
 
