@@ -37,6 +37,17 @@ class GomokuJit(Gomoku):
         masks = np.bitwise_and.reduce(masks, axis=0)
         return masks
 
+    # def apply_action(self, action: GomokuAction) -> None:
+    #     ar, ac = action.action
+    #     if not self.is_valid_action(action):
+    #         print(f"Not a fucking valid action: {ar} {ac}")
+    #         breakpoint()
+    #         raise Exception
+
+    #     self.state.board[0, ar, ac] = 1
+    #     self.update_game_zone(ar, ac)
+    #     self.last_action = action
+
     def is_valid_action(self, action: GomokuAction) -> bool:
         return all(
             rule.is_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8), *action.action)
@@ -84,6 +95,8 @@ class GomokuJit(Gomoku):
     def _update_rules(self, engine: Gomoku):
         for to_update, rule in zip(self.rules, engine.rules):
             to_update.update(rule)
+            to_update.update_board_ptr(self.state.board)
+
         self.set_rules_fn()
 
     def clone(self) -> Gomoku:

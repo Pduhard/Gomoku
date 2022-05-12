@@ -121,7 +121,8 @@ class Gomoku(AbstractGameEngine):
         return np.array(self.history)
 
     def get_game_zone(self) -> list:
-        return self.game_zone if self.game_zone_init else np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
+        return np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
+        # return self.game_zone if self.game_zone_init else np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
 
     def update_game_zone(self, ar, ac):
         if self.game_zone_init:
@@ -147,6 +148,8 @@ class Gomoku(AbstractGameEngine):
         win = False
         for rule in self.rules_fn['winning']:
             flag = rule.winning(self.last_action)
+            if (flag != 0):
+                print(flag)
             if flag == 3:   # GameEndingCapture win
                 self._isover = True
                 self.winner = self.player_idx ^ 1
@@ -267,6 +270,8 @@ class Gomoku(AbstractGameEngine):
         self.rules[3].update_from_snapshot(snapshot['rules'][self.rules[3].name])
 
     def _update_rules(self, engine: Gomoku):
+        # for rule in engine.rules:
+        #     rule.update(self, rule)
         self.rules = [rule.update(self, rule) for rule in engine.rules]
         self.set_rules_fn()
 

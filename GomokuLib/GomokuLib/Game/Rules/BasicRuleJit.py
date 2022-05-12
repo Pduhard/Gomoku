@@ -4,8 +4,6 @@ from numba.core.typing import cffi_utils
 from numba.experimental import jitclass
 
 import fastcore
-import cffi
-ffi = cffi.FFI()
 
 cffi_utils.register_module(fastcore._rules)
 is_winning_ctype = cffi_utils.make_function_type(fastcore._rules.lib.is_winning)
@@ -26,7 +24,7 @@ class BasicRuleJit:
         self.name = 'BasicRule'
         self.restricting = True  # Imply existing methods get_valid() and is_valid()
         self._winning_cfunc = fastcore._rules.lib.is_winning
-        self._board_ptr = ffi.from_buffer(board)
+        self._board_ptr = fastcore._rules.ffi.from_buffer(board)
 
     def get_valid(self, full_board: np.ndarray):
         return full_board ^ 1
@@ -47,4 +45,4 @@ class BasicRuleJit:
         pass
 
     def update_board_ptr(self, board):
-        self._board_ptr = ffi.from_buffer(board)
+        self._board_ptr = fastcore._rules.ffi.from_buffer(board)

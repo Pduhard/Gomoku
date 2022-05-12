@@ -4,8 +4,6 @@ from numba.core.typing import cffi_utils
 from numba.experimental import jitclass
 
 import fastcore
-import cffi
-ffi = cffi.FFI()
 
 cffi_utils.register_module(fastcore._rules)
 is_double_threes_ctype = cffi_utils.make_function_type(fastcore._rules.lib.is_double_threes)
@@ -29,7 +27,7 @@ class NoDoubleThreesJit:
 		self.restricting = True  # Imply existing methods get_valid() and is_valid()
 		# self.FT_IDENT = init_ft_ident()
 		self._is_double_threes_cfunc = fastcore._rules.lib.is_double_threes
-		self._board_ptr = ffi.from_buffer(board)
+		self._board_ptr = fastcore._rules.ffi.from_buffer(board)
 
 	def get_valid(self, full_board: np.ndarray):
 		# return njit_get_valid(board, self.FT_IDENT)
@@ -39,8 +37,9 @@ class NoDoubleThreesJit:
 				a[r, c] = self.is_valid(full_board, r, c)
 
 	def is_valid(self, full_board: np.ndarray, ar: int, ac: int):
+		# return 1
 		# return njit_is_valid(board, ac, ar, self.FT_IDENT)
-		full_board_ptr = ffi.from_buffer(full_board)
+		full_board_ptr = fastcore._rules.ffi.from_buffer(full_board)
 		ret = self._is_double_threes_cfunc(self._board_ptr, full_board_ptr, ar, ac)
 		return False if ret else True
 
@@ -54,7 +53,7 @@ class NoDoubleThreesJit:
 		pass
 
 	def update_board_ptr(self, board):
-		self._board_ptr = ffi.from_buffer(board)
+		self._board_ptr = fastcore._rules.ffi.from_buffer(board)
 
 #
 # @njit

@@ -98,17 +98,17 @@ def duel():
         engine=engine,
         iter=3000,
         hard_pruning=True,
-        rollingout_turns=1
+        rollingout_turns=2
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-    #     engine=engine,
-    #     iter=3000,
-    #     hard_pruning=True,
-    #     rollingout_turns=2
-    # )
-    # p2 = GomokuLib.Player.Bot(mcts_p2)
+    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=engine,
+        iter=3000,
+        hard_pruning=True,
+        rollingout_turns=2
+    )
+    p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
@@ -125,7 +125,7 @@ def duel():
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('tottime')
-    stats.print_stats()
+    # stats.print_stats()
     stats.dump_stats('tmp_profile_from_script.prof')
 
     print(f"Winner is {winner}")
