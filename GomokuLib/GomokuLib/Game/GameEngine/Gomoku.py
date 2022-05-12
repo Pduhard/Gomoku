@@ -253,7 +253,7 @@ class Gomoku(AbstractGameEngine):
         self._isover = snapshot['_isover']
         self.winner = snapshot['winner']
         self.turn = snapshot['turn']
-        self.game_zone = snapshot['game_zone']
+        self.game_zone[:] = snapshot['game_zone']
         for rule in self.rules:
             rule.update_from_snapshot(snapshot['rules'][rule.name])
 
@@ -267,8 +267,7 @@ class Gomoku(AbstractGameEngine):
         self._isover = engine._isover
         self.winner = engine.winner
         self.turn = engine.turn
-        self.game_zone = engine.game_zone
-        self.update_game_zone = engine.update_game_zone
+        self.game_zone[:] = engine.game_zone
 
         # print(engine.rules_fn)
         # print(self.rules_fn)

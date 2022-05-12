@@ -121,7 +121,7 @@ class Capture(AbstractRule):
 		return {
 			'player_count_capture': self.player_count_capture.copy()
 		}
-	
+
 	def update_from_snapshot(self, snapshot):
 		self.player_count_capture = snapshot['player_count_capture']
 

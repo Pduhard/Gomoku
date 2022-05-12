@@ -6,7 +6,7 @@ from fastcore._algo import ffi, lib as fastcore
 from .MCTS import MCTS
 from ..Game.Action import GomokuAction
 
-
+#njit() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 def heuristic(engine):
     engine.state.board = engine.state.board.astype(np.int8)
     # if not engine.state.board.flags['C_CONTIGUOUS']:
@@ -23,8 +23,7 @@ def heuristic(engine):
         *engine.get_captures(),
         *engine.game_zone
     )
-    h_v = 1 / (1 + np.exp(-0.4 * x))
-    return h_v
+    return x
 
 def get_neighbors_mask(board):
 
@@ -58,7 +57,7 @@ class MCTSEval(MCTS):
 
         self.pruning = pruning
         self.hard_pruning = hard_pruning
-        self.get_exp_rate = self._get_exp_rate_pruned if self.pruning or self.hard_pruning else super().get_exp_rate()
+        self.get_exp_rate = self._get_exp_rate_pruned if self.pruning or self.hard_pruning else super().get_exp_rate
         self.rollingout_turns = rollingout_turns
 
         all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))

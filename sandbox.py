@@ -1,3 +1,5 @@
+import concurrent
+import time
 from time import sleep
 
 import numpy as np
@@ -15,12 +17,7 @@ from fastcore._algo import lib as fastcore_algo
 
     Today :
     
-        rollingout pendant levaluation
-        Opti rollingout
-        astype dans l'heuristic
-        Debug capture envoye a lheuristic
-        Upgrade color UI
-        
+    
         Les captures sont dans le endturn du next_turn() donc quand
         on compute l'heuristic pour l'UI, le nbr de capture n'est pas update
             Add callbacks to next_turn
@@ -70,13 +67,13 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # engine = GomokuLib.Game.GameEngine.GomokuGUI()
+    engine = GomokuLib.Game.GameEngine.GomokuGUI()
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
     #         rules=['no double-threes']
     # )
-    engine=GomokuLib.Game.GameEngine.GomokuGUI(
-            rules=['Capture', 'Game-Ending Capture']
-    )
+    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
+    #         rules=['Capture', 'Game-Ending Capture']
+    # )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
     #
     # agent = GomokuLib.AI.Agent.GomokuAgent(
@@ -94,7 +91,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=3000,
+        iter=2000,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -127,37 +124,6 @@ def duel():
 
     print(f"Winner is {winner}")
 
-def RLtest():
-
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
-        # agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=500,
-        mcts_hard_pruning=True,
-        mean_forward=False,
-        device=device,
-    )
-    agent.evaluation_n_games = 0
-    agent.model_comparison_mcts_iter = 500
-    # agent.samples_per_epoch = 50
-    # agent.dataset_max_length = 100
-
-    profiler = cProfile.Profile()
-    profiler.enable()
-
-    agent.training_loop(
-        nbr_tl=1,
-        nbr_tl_before_cmp=1,
-        nbr_games_per_tl=1,
-        epochs=10
-    )
-    agent.save()
-
-    profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('cumtime')
-    stats.print_stats()
-    stats.dump_stats('tmp_profile_from_script.prof')
-
 def RLmain():
 
     agent = GomokuLib.AI.Agent.GomokuAgent(
@@ -177,58 +143,63 @@ def RLmain():
         save=False
     )
 
-def tmp():
-
-    for i in range(100000):
-        rd = np.random.random_integers(0, 1, size=(19, 19))
-        c_rd = ffi.cast("char *", rd.ctypes.data)
-
-        for y in range(19):
-            for x in range(19):
-                fastcore.is_winning(c_rd, y, x)
-                fastcore.basic_rule_winning(c_rd, y, x)
-
 def c_tests():
 
-    profiler = cProfile.Profile()
-    profiler.enable()
 
-    # tmp()
+    # profiler = cProfile.Profile()
+    # profiler.enable()
 
-    profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('tottime')
-    stats.print_stats()
-    stats.dump_stats('tmp_profile_from_script.prof')
+    t = time.time()
+    for i in range(1000):
+        board = np.random.randint(0, 2, (2, 19, 19), dtype=np.int8)
+        full_board = np.ascontiguousarray(board[0] | board[1]).astype(np.int8)
+        c_board = ffi.cast("char *", board.ctypes.data)
+        c_full_board = ffi.cast("char *", full_board.ctypes.data)
+        for r in range(19):
+            for c in range(19):
+                fastcore_algo.mcts_eval_heuristic(
+                    c_board, c_full_board,
+                    0, 0,
+                    0, 0, 18, 18
+                )
+    dt = time.time() - t
+    print(f"dtime={dt}")
 
-    board = np.zeros((2, 19, 19), dtype=np.int8, order='C')
-    board[0, 0, 0] = 1
-    board[0, 2, 2] = 1
-    board[0, 3, 2] = 1
-    board[0, 4, 2] = 1
+    # profiler.disable()
+    # stats = pstats.Stats(profiler).sort_stats('tottime')
+    # stats.print_stats()
+    # stats.dump_stats('tmp_profile_from_script.prof')
 
-    board[1, 1, 1] = 1
-    board[1, 2, 1] = 1
-    board[1, 3, 1] = 1
-    board[1, 4, 1] = 1
-    board[0, 5, 1] = 1
+def parrallel_test():
 
-    full_board = np.sum(board, axis=0).astype(np.int8)
+    engine = GomokuLib.Game.GameEngine.Gomoku()
+    engine2 = GomokuLib.Game.GameEngine.Gomoku()
 
-    if not board.flags['C_CONTIGUOUS']:
-        board = np.ascontiguousarray(board)
+    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(engine=engine)
+    p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    if not full_board.flags['C_CONTIGUOUS']:
-        full_board = np.ascontiguousarray(full_board)
+    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(engine=engine2)
+    p2 = GomokuLib.Player.Bot(mcts_p2)
 
-    c_board = ffi.cast("char *", board.ctypes.data)
-    c_full_board = ffi.cast("char *", full_board.ctypes.data)
-    x = fastcore_algo.mcts_eval_heuristic(c_board, c_full_board, 0, 0, 0, 0, 18, 18)
-    h = 1 / (1 + np.exp(-0.4 * x))
-    print(f"{h} = sigmoid0.4({x})")
-    breakpoint()
+    mcts = GomokuLib.Algo.MCTSParallel(
+        engine=engine,
+        # mcts_iter=1000,
+        num_workers=8,
+        batch_size=100,
+    )
+
+
+    t = time.time()
+    with concurrent.futures.ThreadPoolExecutor() as ex:
+        ex.submit(engine.run, [p1, p1])
+        ex.submit(engine2.run, [p2, p2])
+
+    # ret = mcts(engine)
+    dt = time.time() - t
+    print(f"dtime={dt}")
 
 if __name__ == '__main__':
-    duel()
+    # duel()
     # RLmain()
-    # RLtest()
-    # c_tests()
+    # parrallel_test()
+    c_tests()
