@@ -22,16 +22,16 @@ from fastcore._algo import lib as fastcore_algo
 
     Today :
 
-        NodoubleThrees
+        Worker
 
     TODO (Important):
 
-        Essayer de ne pas recréer de relge dans le update
         
         Dupliquer l'heuristic pour valoriser les coups de l'adversaire (Qui ne sont pas les même)
-        Valoriser les alignement de 4 ou il en manque qu'un !
+            Valoriser les alignement de 4 ou il en manque qu'un !
         
-        UI fonction pour afficher un board 
+        UI fonction pour afficher un board
+
 
     TODO (Pas très important):
 
@@ -61,7 +61,6 @@ from fastcore._algo import lib as fastcore_algo
         
 
     Notes:
-
 
 """
 
@@ -96,7 +95,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=3000,
+        iter=1000,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -104,7 +103,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=3000,
+        iter=1000,
         hard_pruning=True,
         rollingout_turns=2
     )

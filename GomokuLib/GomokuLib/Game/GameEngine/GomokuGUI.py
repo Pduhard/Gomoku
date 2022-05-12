@@ -97,6 +97,7 @@ class GomokuGUI(GomokuJit):
             else:
                 self.apply_action(player_action)
                 self.next_turn()
+            # print(f"Game zone: {self.game_zone[0]} {self.game_zone[1]} into {self.game_zone[2]} {self.game_zone[3]}")
 
 
         print(f"Player {self.winner} win.")

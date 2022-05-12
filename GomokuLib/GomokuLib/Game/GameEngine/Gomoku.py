@@ -41,8 +41,8 @@ class Gomoku(AbstractGameEngine):
         self.rules_fn = self.init_rules_fn(self.rules_str.copy())
         # self.history = np.zeros((1, self.C, self.H, self.W), dtype=int)
         self.history = []
-        self.game_zone_init = False
-        self.game_zone = np.zeros(4, dtype=np.int8)
+        # self.game_zone_init = False
+        self.game_zone = np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
 
     def set_rules_fn(self):
         self.rules_fn = {
@@ -121,11 +121,11 @@ class Gomoku(AbstractGameEngine):
         return np.array(self.history)
 
     def get_game_zone(self) -> list:
-        return np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
-        # return self.game_zone if self.game_zone_init else np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
+        # return np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
+        return self.game_zone
 
     def update_game_zone(self, ar, ac):
-        if self.game_zone_init:
+        if self.turn:
             if ar < self.game_zone[0]:
                 self.game_zone[0] = ar
             elif self.game_zone[2] < ar:
@@ -135,7 +135,7 @@ class Gomoku(AbstractGameEngine):
             elif self.game_zone[3] < ac:
                 self.game_zone[3] = ac
         else:
-            self.game_zone_init = True
+            # self.game_zone_init = True
             self.game_zone = np.array((ar, ac, ar, ac), dtype=np.int8)
 
     def _next_turn_rules(self):
@@ -207,7 +207,6 @@ class Gomoku(AbstractGameEngine):
 
             self.apply_action(player_action)
             self.next_turn()
-            print(f"Game zone: {self.game_zone[0]} {self.game_zone[1]} into {self.game_zone[2]} {self.game_zone[3]}")
 
         print(f"Player {self.winner} win.")
 
@@ -239,7 +238,7 @@ class Gomoku(AbstractGameEngine):
             'winner': self.winner,
             'turn': self.turn,
             'game_zone': self.get_game_zone(),
-            'game_zone_init': self.game_zone_init,
+            # 'game_zone_init': self.game_zone_init,
             'rules': {
                 rule.name: rule.create_snapshot() for rule in self.rules
             }
@@ -253,21 +252,18 @@ class Gomoku(AbstractGameEngine):
         self._isover = snapshot['_isover']
         self.winner = snapshot['winner']
         self.turn = snapshot['turn']
-        if self.game_zone_init and snapshot['game_zone_init']:
-            self.game_zone[:] = snapshot['game_zone']
-        elif snapshot['game_zone_init']:
-            self.game_zone = snapshot['game_zone'].copy()
-        else:
-            self.game_zone = None
-        self.game_zone_init = snapshot['game_zone_init']
-        # for rule in self.rules:
-        #     rule.update_from_snapshot(snapshot['rules'][rule.name])
+        self.game_zone[:] = snapshot['game_zone']
 
-        print(snapshot['rules'][self.rules[0].name])
-        self.rules[0].update_from_snapshot(snapshot['rules'][self.rules[0].name])
-        self.rules[1].update_from_snapshot(snapshot['rules'][self.rules[1].name])
-        self.rules[2].update_from_snapshot(snapshot['rules'][self.rules[2].name])
-        self.rules[3].update_from_snapshot(snapshot['rules'][self.rules[3].name])
+        # if self.game_zone_init and snapshot['game_zone_init']:
+        #     self.game_zone[:] = snapshot['game_zone']
+        # elif snapshot['game_zone_init']:
+        #     self.game_zone = snapshot['game_zone'].copy()
+        # else:
+        #     self.game_zone = None
+        # self.game_zone_init = snapshot['game_zone_init']
+
+        for rule in self.rules:
+            rule.update_from_snapshot(snapshot['rules'][rule.name])
 
     def _update_rules(self, engine: Gomoku):
         # for rule in engine.rules:
@@ -285,13 +281,15 @@ class Gomoku(AbstractGameEngine):
         self._isover = engine._isover
         self.winner = engine.winner
         self.turn = engine.turn
-        if self.game_zone_init and engine.game_zone_init:
-            self.game_zone[:] = engine.game_zone
-        elif engine.game_zone_init:
-            self.game_zone = engine.game_zone.copy()
-        else:
-            self.game_zone = None
-        self.game_zone_init = engine.game_zone_init
+        self.game_zone[:] = engine.game_zone
+
+        # if self.game_zone_init and engine.game_zone_init:
+        #     self.game_zone[:] = engine.game_zone
+        # elif engine.game_zone_init:
+        #     self.game_zone = engine.game_zone.copy()
+        # else:
+        #     self.game_zone = None
+        # self.game_zone_init = engine.game_zone_init
 
         self._update_rules(engine)
 
