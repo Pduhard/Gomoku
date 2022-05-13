@@ -1,8 +1,41 @@
+import numba
 import numpy as np
+
+from numba import njit, prange
 
 from .MCTS import MCTS
 from ..Game.Action.GomokuAction import GomokuAction
 from fastcore._algo import ffi, lib as fastcore
+
+
+@numba.vectorize('float64(int8, float64)')
+def valid_action(actions, policy):
+    if actions > 0:
+        return policy
+    else:
+        return 0
+
+
+@njit()
+def test_selection_parallel(actions, policy):
+    best_actions = np.zeros((362, 2), dtype=np.int32)
+
+    action_policy = valid_action(actions, policy)
+
+    # action_policy = policy * np.where(actions > 0, 1, 0)
+    # tmp = np.argwhere(action_policy == np.amax(action_policy))
+
+    k = 0
+    max = np.amax(action_policy)
+    for i in range(19):
+        for j in range(19):
+            if max == action_policy[i, j]:
+                best_actions[k][0] = i
+                best_actions[k][1] = j
+                k += 1
+
+    best_actions[-1, 0] = k
+    return best_actions
 
 
 class MCTSLazy(MCTS):
@@ -25,21 +58,16 @@ class MCTSLazy(MCTS):
 
         actions = state_data['Actions']
         # action_policy = action_policy.astype(np.float64)
-
         # c_policy = ffi.cast("double *", action_policy.ctypes.data)
-
         while True:
-
             # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
+            arr = test_selection_parallel(actions, policy)
+            len = arr[-1, 0]
+            arr_pick = np.arange(len)
+            np.random.shuffle(arr_pick)
 
-            action_policy = policy * np.where(actions > 0, 1, 0)
-            tmp = np.argwhere(action_policy == np.amax(action_policy))
-
-            arr = np.arange(len(tmp))
-            np.random.shuffle(arr)
-
-            for e in arr:
-                x, y = tmp[e]
+            for e in arr_pick:
+                x, y = arr[e]
 
                 gAction = GomokuAction(x, y)
                 if actions[x, y] == 2:
@@ -49,6 +77,5 @@ class MCTSLazy(MCTS):
                     return gAction
                 else:
                     actions[x, y] = 0
-
 
         raise Exception("No valid action to select.")

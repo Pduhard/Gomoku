@@ -137,9 +137,8 @@ class MCTS(AbstractAlgorithm):
         path.append(self.new_memory(statehash))
 
         self.states[statehash] = self.expand()
-        reward = self.evaluate()
 
-        self.backpropagation(path, reward)
+        self.backpropagation(path)
         return
 
     def get_actions(self) -> np.ndarray:
@@ -172,18 +171,21 @@ class MCTS(AbstractAlgorithm):
         return GomokuAction(*bestaction)
 
     def expand(self):
+        actions = self.get_actions()
+        self.reward = self.award_end_game() if self.end_game else self.award()
         return {
             'Visits': 1,
             'Rewards': 0,
             'StateAction': np.zeros((2, self.brow, self.bcol)),
-            'Actions': self.get_actions()
+            'Actions': actions,
         }
 
     def new_memory(self, statehash: str):
         return self.engine.player_idx, statehash, self.bestGAction
 
-    def backpropagation(self, path: list, reward: float):
+    def backpropagation(self, path: list):
 
+        reward = self.reward
         for mem in path[::-1]:
             self.backprop_memory(mem, reward)
             reward = 1 - reward
@@ -201,36 +203,10 @@ class MCTS(AbstractAlgorithm):
         r, c = bestaction.action
         state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
-    def evaluate(self):
-        """
-            Award and Award_end_game always reward player id self.engine.player_idx
-        """
-        return self.award_end_game() if self.end_game else self.award()
+    def award(self):
+        return 0.5
 
     def award_end_game(self):
         if self.draw:
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
-
-    def award(self):
-        return self._evaluate_random_rollingout()
-
-    def _evaluate_random_rollingout(self, n_turns: int = 420):
-        return 0.5
-        # turn = 0
-        # while not self.end_game and turn <= n_turns:
-        #
-        #     pruning = self._pruning().flatten()
-        #     if pruning.any():
-        #         actions = self.all_actions[pruning > 0]
-        #     else:
-        #         actions = self.all_actions.copy()
-        #
-        #     i = np.random.randint(len(actions))
-        #     while not self.engine.is_valid_action(GomokuAction(*actions[i])):
-        #         i = np.random.randint(len(actions))
-        #
-        #     self.engine.apply_action(GomokuAction(*actions[i]))
-        #     self.engine.next_turn()
-        #     self.end_game = self.engine.isover() # For MCTS.evaluate()
-        #     turn += 1

@@ -137,8 +137,8 @@ class Board:
         state_data = hints_data['mcts_state_data']
         (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
 
-        if self.hint_type == 0 and 'model_policy' in hints_data:
-            self.draw_model_hints(hints_data['model_policy'])
+        if self.hint_type == 0 and 'Policy' in hints_data:
+            self.draw_model_hints(hints_data['Policy'])
         elif self.hint_type == 1:
             self.draw_mcts_hints(sa_n, sa_v)
         elif self.hint_type == 2:
@@ -167,9 +167,9 @@ class Board:
         else:
             rsa, nsa, qsa = '_', '_', '_'
 
-        if 'model_value' in hints_data:
+        if 'Value' in hints_data:
             self.blit_text(
-                "P(s)[-1,1]= " + str(round(hints_data['model_value'], 3)),
+                "P(s)[-1,1]= " + str(round(hints_data['Value'], 3)),
                 1,
                 y
             )
