@@ -181,6 +181,7 @@ class Gomoku(AbstractGameEngine):
 
         if self.last_action is None:
             breakpoint()
+
         self._next_turn_rules()
 
         cb_return = {}
