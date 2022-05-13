@@ -48,9 +48,7 @@ class Capture(AbstractRule):
 		# self.player_count_capture[:] = snapshot['player_count_capture']
 
 	def update(self, rule: AbstractRule):
-		print(f"Update captures: {self.player_count_capture} to {rule.player_count_capture} = ", end='')
 		self.player_count_capture[:] = rule.player_count_capture
-		print(self.player_count_capture)
 
 	# def update(self, engine: Gomoku, rule: AbstractRule):
 	# 	newrule = Capture(engine)

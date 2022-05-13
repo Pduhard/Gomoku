@@ -95,9 +95,9 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=400,
+        iter=2000,
         hard_pruning=True,
-        rollingout_turns=0
+        rollingout_turns=2
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -134,7 +134,7 @@ def RLtest():
     agent = GomokuLib.AI.Agent.GomokuAgent(
         GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
         # agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=500,
+        mcts_iter=1000,
         mcts_hard_pruning=True,
         mean_forward=False,
         device=device,
