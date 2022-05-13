@@ -122,7 +122,7 @@ class MCTS(AbstractAlgorithm):
             policy = self.get_policy(state_data, mcts_iter=mcts_iter)
             self.bestGAction = self.selection(policy, state_data)
 
-            path.append(self.new_memory(statehash, self.bestGAction.action))
+            path.append(self.new_memory(statehash))
             self.engine.apply_action(self.bestGAction)
             self.engine.next_turn()
 
@@ -133,7 +133,8 @@ class MCTS(AbstractAlgorithm):
 
         self.draw = self.engine.winner == -1
 
-        path.append(self.new_memory(statehash, None))
+        self.bestGAction = None
+        path.append(self.new_memory(statehash))
 
         self.states[statehash] = self.expand()
         reward = self.evaluate()
@@ -178,8 +179,8 @@ class MCTS(AbstractAlgorithm):
             'Actions': self.get_actions()
         }
 
-    def new_memory(self, statehash, bestaction):
-        return statehash, bestaction
+    def new_memory(self, statehash: str):
+        return self.engine.player_idx, statehash, self.bestGAction
 
     def backpropagation(self, path: list, reward: float):
 
@@ -188,8 +189,7 @@ class MCTS(AbstractAlgorithm):
             reward = 1 - reward
 
     def backprop_memory(self, memory: tuple, reward: float):
-
-        statehash, bestaction = memory
+        _, statehash, bestaction = memory
 
         state_data = self.states[statehash]
 
@@ -198,7 +198,7 @@ class MCTS(AbstractAlgorithm):
         if bestaction is None:
             return
 
-        r, c = bestaction
+        r, c = bestaction.action
         state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
     def evaluate(self):

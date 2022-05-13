@@ -1,20 +1,13 @@
 import numpy as np
+from numba import njit
+
 from .MCTS import MCTS
+
+# @njit(vectorize=True)
+# def get_amaf_quality():
 
 
 class MCTSAMAF(MCTS):
-
-    def __init__(self, *args, **kwargs) -> None:
-        """
-            self.states :
-                Dict of List:
-                    State visit
-                    State reward
-                    State/actions visit/reward for each cells (2*19*19)
-                    Actions (1*19*19)
-                    State/actions amaf visit/reward for each cells (2*19*19)
-        """
-        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return f"MCTSAMAF with: Action-Move As First ({self.mcts_iter} iter)"
@@ -42,15 +35,14 @@ class MCTSAMAF(MCTS):
         })
         return memory
 
-    def backpropagation(self, path: list, rewards: list):
+    def backpropagation(self, path: list, reward: float):
 
         self.amaf_masks = np.zeros((2, 2, self.brow, self.bcol))    # sAMAF_v and sAMAF_n for 2 players
-        super().backpropagation(path, rewards)
+        super().backpropagation(path, reward)
 
-    def backprop_memory(self, memory: tuple, rewards: list):
+    def backprop_memory(self, memory: tuple, reward: float):
         player_idx, statehash, bestaction = memory
 
-        reward = rewards[player_idx]
         state_data = self.states[statehash]
 
         state_data['Visits'] += 1  # update n count
@@ -58,7 +50,7 @@ class MCTSAMAF(MCTS):
         if bestaction is None:
             return
 
-        r, c = bestaction
+        r, c = bestaction.action
         state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
         self.amaf_masks[player_idx, ..., r, c] += [1, reward]

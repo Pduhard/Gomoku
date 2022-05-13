@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-static int  count_align_current_player(char *board, char *full_board, int ar, int ac, char *align)
+static void count_align_current_player(char *board, char *full_board, int ar, int ac, char *align)
 {
     /*
         Current player heuristic
@@ -261,8 +261,19 @@ float mcts_eval_heuristic(char *board, char *full_board, int cap_1, int cap_2, i
             }
         }
     float x = (cap_1 * cap_1 - cap_2 * cap_2) / 10. + \
-        1 * (align_1[0] - align_2[0]) + \
-        2.5 * (align_1[1] - align_2[1]) + \
-        6 * (align_1[2] - align_2[2]);
-    return 1 / (1 + exp(-0.4 * x));        // Weighted sigmoid (w=-0.4)
+        0.75 * align_1[0] - 1 * align_2[0] + \
+        3 * align_1[1] - 4 * align_2[1] + \
+        7 * align_1[2] - 9 * align_2[2];
+    return 1 / (1 + exp(-0.5 * x));        // Weighted sigmoid (w=-0.4)
 }
+
+/*
+    Weights:
+        3: 1
+        4: 2.5
+        5: 6
+
+        3: 1
+        4: 2.5
+        5: 6
+*/

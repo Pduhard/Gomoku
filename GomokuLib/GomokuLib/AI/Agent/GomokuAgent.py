@@ -121,7 +121,7 @@ class GomokuAgent(Bot):
         # self.self_play_n_games = 10
         # self.epochs = 10
         self.evaluation_n_games = 4
-        self.model_comparison_mcts_iter = 1000
+        self.model_comparison_mcts_iter = 2000
 
     def __str__(self):
         return f"Agent '{self.name}' with model '{self.model_interface.name}' -> {super().__str__()}"
@@ -143,7 +143,7 @@ class GomokuAgent(Bot):
         self.mcts.mcts_pruning = False
         self.mcts.mcts_hard_pruning = True
         self.mcts.mcts_iter = self.model_comparison_mcts_iter
-        self.mcts.rollingout_turns = 0
+        self.mcts.rollingout_turns = 1
         self.mcts.set_model_confidence(max(self.model_confidence, 0.5))
         self.model_interface.set_mean_forward(True)
 
@@ -151,14 +151,14 @@ class GomokuAgent(Bot):
         self.best_model_mcts.mcts_pruning = False
         self.best_model_mcts.mcts_hard_pruning = True
         self.best_model_mcts.mcts_iter = self.model_comparison_mcts_iter
-        self.best_model_mcts.rollingout_turns = 0
+        self.best_model_mcts.rollingout_turns = 1
         self.best_model_mcts.set_model_confidence(max(self.model_confidence, 0.5))
         self.best_model_interface.set_mean_forward(True)
 
         self.game_data_UI = {
             'mode': f"Model evaluation {i_game+1}/{n_games}",
-            'p1': f"Old one | {self.best_model_interface}",
-            'p2': f"New one | {self.model_interface}",
+            'p1': f"Old one | {i_game+1 - self.new_model_wins} wins | {self.best_model_interface}",
+            'p2': f"New one | {self.new_model_wins} wins | {self.model_interface}",
             'self_play': self.games_played,
             'dataset_length': f"{len(self.dataset)}/{self.dataset.samples_generated}",
             'nbr_best_models': f"{self.n_best_models}/{self.n_model_inhibition}",
@@ -239,7 +239,7 @@ class GomokuAgent(Bot):
         if self.evaluation_n_games == 0:
             return 1
 
-        new_model_wins = 0
+        self.new_model_wins = 0
         for i in range(self.evaluation_n_games):
 
             print(f"- Agent start evaluation game n={i}/{self.evaluation_n_games}")
@@ -261,12 +261,12 @@ class GomokuAgent(Bot):
                 )
 
             if self.RLengine.winner:
-                new_model_wins += 1
+                self.new_model_wins += 1
             print(f"-------------  Agent end evaluation game n={i}/{self.evaluation_n_games}")
             print(f"New model win: {self.RLengine.winner}")
 
-        print("Model comparison: New model win rate=", new_model_wins / self.evaluation_n_games)
-        return new_model_wins / self.evaluation_n_games
+        print("Model comparison: New model win rate=", self.new_model_wins / self.evaluation_n_games)
+        return self.new_model_wins / self.evaluation_n_games
 
     def _model_inhibition(self, save: bool):
 
