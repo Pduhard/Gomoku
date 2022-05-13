@@ -51,5 +51,8 @@ class NoDoubleThrees(AbstractRule):
 	def update_from_snapshot(self, snapshot):
 		pass
 
-	def update(self, engine: Gomoku, rule: AbstractRule):
-		return NoDoubleThrees(engine)
+	def update(self, *args):
+		pass
+
+	# def update(self, engine: Gomoku, rule: AbstractRule):
+	# 	return NoDoubleThrees(engine)

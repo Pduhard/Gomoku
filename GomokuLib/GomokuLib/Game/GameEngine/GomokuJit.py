@@ -8,10 +8,12 @@ from GomokuLib.Game.Rules import GameEndingCaptureJit, NoDoubleThreesJit, Captur
 
 class GomokuJit(Gomoku):
 
+    capture_class: object = CaptureJit
+
     def init_rules_fn(self, rules: list[Union[str, object]]):
 
         tab_rules = {
-            'capture': CaptureJit,
+            'capture': self.capture_class,
             'game-ending capture': GameEndingCaptureJit,
             'no double-threes': NoDoubleThreesJit
         }
@@ -54,9 +56,6 @@ class GomokuJit(Gomoku):
             for rule in self.rules_fn['restricting']
         )
 
-    def get_captures(self):
-        return super().get_captures(capture_class=CaptureJit)
-
     def _next_turn_rules(self):
         gz = self.get_game_zone()
 
@@ -96,8 +95,6 @@ class GomokuJit(Gomoku):
         for to_update, rule in zip(self.rules, engine.rules):
             to_update.update(rule)
             to_update.update_board_ptr(self.state.board)
-
-        self.set_rules_fn()
 
     def clone(self) -> Gomoku:
         engine = GomokuJit(self.players, self.board_size, self.rules_str)

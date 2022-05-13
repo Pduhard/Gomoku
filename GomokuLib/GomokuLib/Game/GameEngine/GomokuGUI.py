@@ -19,7 +19,8 @@ from .GomokuJit import GomokuJit
 if TYPE_CHECKING:
     from ...Player.AbstractPlayer import AbstractPlayer
 
-class GomokuGUI(GomokuJit):
+class GomokuGUI(Gomoku):
+# class GomokuGUI(GomokuJit):
 
     def __init__(self,
                  players: Union[list[AbstractPlayer], tuple[AbstractPlayer]] = None,
