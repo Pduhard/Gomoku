@@ -99,15 +99,6 @@ class Gomoku(AbstractGameEngine):
         self.update_game_zone(ar, ac)
         self.last_action = action
 
-    def new_rule(self, obj: object, operation: str):
-        print('haled new rule???')
-        self.rules_fn[operation].append(obj)
-        print('haled new rule')
-
-    def remove_rule(self, obj: object, operation: str):
-        print('haled remove rule')
-        self.rules_fn[operation].remove(obj)
-
     def _get_captures_success(self):
         return self.capture_rule.get_current_player_captures()
 

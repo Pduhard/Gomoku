@@ -35,21 +35,21 @@ class Display:
                 winner = '_'
 
             elem = {
-                'Total time': f"{tottime} s",
+                'Total time': f"{round(tottime / 60, 2)} min",
                 'Mode': ss_data.get('mode', '_'),
+                'Winner': winner,
                 'White': ss_data.get('p1', '_'),
                 'Black': ss_data.get('p2', '_'),
                 'Turn': ss_data.get('turn', '_'),
-                'dtime': f"{dtime} s",
+                'dtime': f"{round(dtime, 2)} s",
                 'Waiting': 'Black' if ss_data.get('player_idx', '_') else 'White',
-                'Winner': winner,
                 'Captures': ss_data.get('captures', '_'),
+                'Heuristic': ss_data.get('heuristic', '_'),
+                'Award': ss_data.get('award', '_'),
                 'Model confidence': ss_data.get('model_confidence', '_'),
                 'Best models': ss_data.get('nbr_best_models', '_'),
                 'Total self-play': ss_data.get('self_play', '_'),
                 'Total samples': ss_data.get('dataset_length', '_'),
-                'Heuristic': ss_data.get('heuristic', '_'),
-                'Award': ss_data.get('award', '_')
             }
             elem = {k: v for k, v in elem.items() if v != '_'}
 

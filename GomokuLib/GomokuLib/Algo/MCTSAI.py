@@ -82,7 +82,7 @@ class MCTSAI(MCTSEvalLazy):
         data = super().get_state_data(engine)
         data.update({
             'model_policy': state_data['Policy'],
-            'model_value': state_data['Value'][0],
+            'model_value': state_data['Value'],
             'model_confidence': self.model_confidence
         })
         return data
@@ -104,15 +104,15 @@ class MCTSAI(MCTSEvalLazy):
         return policy, value
 
     def _expand(self):
-        memory = super().expand()
         policy, value = self._get_model_policies()
+        memory = super().expand()
 
         policy = self.model_confidence * policy + self.model_confidence_inv * memory['Pruning']
-        value = self.model_confidence * value + self.model_confidence_inv * memory['Heuristic'][0]
+        value = self.model_confidence * value + self.model_confidence_inv * memory['Heuristic']
 
         memory.update({
             'Policy': policy,
-            'Value': [value, 1 - value]
+            'Value': value
         })
         return memory
 
@@ -125,11 +125,11 @@ class MCTSAI(MCTSEvalLazy):
         return memory
 
     def _expand_without_heuristic(self):
-        memory = super().expand()
         policy, value = self._get_model_policies()
+        memory = super().expand()
         memory.update({
             'Policy': policy,
-            'Value': [value, 1 - value]
+            'Value': value
         })
         return memory
 

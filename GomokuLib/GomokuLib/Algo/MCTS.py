@@ -114,7 +114,8 @@ class MCTS(AbstractAlgorithm):
         statehash = self.current_board.tobytes()
         self.bestGAction = None
         # print(f"statehash: {statehash.hex()}")
-        while statehash in self.states and not self.engine.isover():
+        self.end_game = self.engine.isover()
+        while statehash in self.states and not self.end_game:
 
             state_data = self.states[statehash]
 
@@ -128,8 +129,8 @@ class MCTS(AbstractAlgorithm):
             self.current_board = self.engine.state.board
             statehash = self.current_board.tobytes()
 
-        self.end_game = self.engine.isover()
-        # self.win = self.mcts_idx == self.engine.winner
+            self.end_game = self.engine.isover()
+
         self.draw = self.engine.winner == -1
 
         path.append(self.new_memory(statehash, None))

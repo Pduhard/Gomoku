@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import torch
 from datetime import datetime
@@ -25,7 +27,7 @@ class GomokuAgent(Bot):
     def __init__(self, RLengine: Gomoku,
                  model_interface: ModelInterface = None, dataset: GomokuDataset = None,
                  agent_to_load: str = None, model_name: str = None, dataset_name: str = None,
-                 mcts_iter: int = 500, model_confidence: float = 0,
+                 mcts_iter: int = 500, rollingout_turns: int = 0, model_confidence: float = 0,
                  mcts_pruning: bool = False, mcts_hard_pruning: bool = False,
                  batch_size: int = 64, shuffle: bool = True, mean_forward: bool = False,
                  rnd_first_turn: tuple = True, device: str = 'cpu',
@@ -38,6 +40,7 @@ class GomokuAgent(Bot):
         self.mcts_pruning = mcts_pruning
         self.mcts_hard_pruning = mcts_hard_pruning
         self.model_confidence = model_confidence
+        self.rollingout_turns = rollingout_turns
 
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -76,6 +79,7 @@ class GomokuAgent(Bot):
             self.model_interface,
             iter=self.mcts_iter,
             pruning=self.mcts_pruning,
+            rollingout_turns=self.rollingout_turns,
             hard_pruning=self.mcts_hard_pruning,
             model_confidence=self.model_confidence
         )
@@ -90,11 +94,14 @@ class GomokuAgent(Bot):
             self.best_model_interface,
             iter=self.mcts_iter,
             pruning=self.mcts_pruning,
+            rollingout_turns=self.rollingout_turns,
             hard_pruning=self.mcts_hard_pruning,
             model_confidence=self.model_confidence
         )
         super().__init__(self.best_model_mcts)         # Assign algo to best model mcts
 
+        self.rl_old_tottime = 0
+        self.rl_begin_time = time.time()
         self.training_loops = 0 # useless ?
         self.games_played = 0
         self.samples_used_to_train = 0
@@ -136,14 +143,16 @@ class GomokuAgent(Bot):
         self.mcts.mcts_pruning = False
         self.mcts.mcts_hard_pruning = True
         self.mcts.mcts_iter = self.model_comparison_mcts_iter
-        self.mcts.set_model_confidence(0.75)
+        self.mcts.rollingout_turns = 0
+        self.mcts.set_model_confidence(max(self.model_confidence, 0.5))
         self.model_interface.set_mean_forward(True)
 
         self.best_model_mcts.reset()
         self.best_model_mcts.mcts_pruning = False
         self.best_model_mcts.mcts_hard_pruning = True
         self.best_model_mcts.mcts_iter = self.model_comparison_mcts_iter
-        self.best_model_mcts.set_model_confidence(0.75)
+        self.best_model_mcts.rollingout_turns = 0
+        self.best_model_mcts.set_model_confidence(max(self.model_confidence, 0.5))
         self.best_model_interface.set_mean_forward(True)
 
         self.game_data_UI = {
@@ -175,12 +184,12 @@ class GomokuAgent(Bot):
         self.mcts.mcts_iter = self.mcts_iter
         self.mcts.mcts_pruning = self.mcts_pruning
         self.mcts.mcts_hard_pruning = self.mcts_hard_pruning
+        self.mcts.rollingout_turns = self.rollingout_turns
         self.mcts.set_model_confidence(self.model_confidence)
         self.model_interface.set_mean_forward(self.mean_forward)
 
         if self.rnd_first_turn:
             self._random_first_turn()
-
 
     def _self_play(self, tl_n_games):
 
@@ -214,7 +223,9 @@ class GomokuAgent(Bot):
                 # self.RLengine.next_turn(**turn_data)
                 self.RLengine.next_turn(
                     **turn_data,
-                    **self.game_data_UI
+                    **self.game_data_UI,
+                    before_next_turn_cb=[self.mcts.get_state_data_after_action],
+                    tottime=self.rl_old_tottime + time.time() - self.rl_begin_time
                 )
 
             __rewarding()
@@ -244,7 +255,9 @@ class GomokuAgent(Bot):
                 # self.RLengine.next_turn(**mcts_state_data)
                 self.RLengine.next_turn(
                     **mcts_state_data,
-                    **self.game_data_UI
+                    **self.game_data_UI,
+                    before_next_turn_cb=[mcts.get_state_data_after_action],
+                    tottime=self.rl_old_tottime + time.time() - self.rl_begin_time
                 )
 
             if self.RLengine.winner:
@@ -389,6 +402,7 @@ class GomokuAgent(Bot):
         torch.save(
             {
                 'name': self.model_interface.name,
+                'time': self.rl_old_tottime + time.time() - self.rl_begin_time,
                 'n_best_models': self.n_best_models,
                 'training_loops': self.training_loops,
                 'self_play': self.games_played,
@@ -418,6 +432,7 @@ class GomokuAgent(Bot):
 
         print(f"GomokuAgent._load_model() -> {model_path}")
         cp = torch.load(model_path)
+        self.rl_old_tottime = cp.get('time', 0)
         self.training_loops = cp.get('training_loops', None)
         self.games_played = cp.get('self_play', None)
         self.samples_used_to_train = cp.get('samples_used_to_train', None)

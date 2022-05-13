@@ -1,6 +1,7 @@
 import numpy as np
 
 import fastcore
+from GomokuLib.Game.GameEngine import Gomoku
 from fastcore._algo import ffi, lib as fastcore
 
 from .MCTS import MCTS
@@ -59,6 +60,7 @@ class MCTSEval(MCTS):
         self.hard_pruning = hard_pruning
         self.get_exp_rate = self._get_exp_rate_pruned if self.pruning or self.hard_pruning else super().get_exp_rate
         self.rollingout_turns = rollingout_turns
+        self.rollingout_engine = self.engine.clone()
 
         all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
         self.all_actions = np.array(all_actions).T.reshape(self.cells_count, 2) # Shape (361, 2): [(x, y), ...]
@@ -76,9 +78,9 @@ class MCTSEval(MCTS):
         })
         return data
 
-    def _pruning(self):
+    def _pruning(self, engine: Gomoku):
 
-        board = self.engine.state.full_board
+        board = engine.state.full_board
         n1 = get_neighbors_mask(board)                      # Get neightbors, depth=1
 
         if self.hard_pruning:
@@ -98,50 +100,51 @@ class MCTSEval(MCTS):
         return state_data['Pruning'] * super().get_exp_rate(state_data)
 
     def expand(self):
+        pruning = self._pruning(self.engine)
+        h_leaf = heuristic(self.engine)
+
         memory = super().expand()
 
+        if self.rollingout_turns:
+            self._random_rollingout(self.rollingout_turns)
+            if self.end_game:
+                if self.rollingout_engine.winner == -1: # DRAW
+                    h_leaf = 0.5
+                else:
+                    h_leaf = 1 if self.rollingout_engine.winner == self.rollingout_engine.player_idx else 0
+            else:
+                h = heuristic(self.rollingout_engine)
+                h_leaf = (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+
         memory.update({
-            'Pruning': self._pruning(),
-            'Heuristic': heuristic(self.engine),
+            'Pruning': pruning,
+            'Heuristic': h_leaf,
         })
         return memory
 
     def award(self):
-
-        h_leaf = self.states[self.engine.state.board.tobytes()]['Heuristic']
-
-        if self.rollingout_turns:
-            self._random_rollingout(n_turns=self.rollingout_turns)
-            if self.end_game:
-                if self.engine.winner == -1: # DRAW
-                    return 0.5
-                return 1 if self.engine.winner == self.engine.player_idx else 0
-            else:
-                h = heuristic(self.engine)
-                if self.rollingout_turns % 2:
-                    return (h_leaf + 1 - h) / 2
-                else:
-                    return (h_leaf + h) / 2
-
-        else:
-            return h_leaf
+        return self.states[self.engine.state.board.tobytes()]['Heuristic']
 
     def _random_rollingout(self, n_turns):
 
+        self.rollingout_engine.update(self.engine)
+        self.end_game = self.rollingout_engine.isover()
         turn = 0
         while not self.end_game and turn < n_turns:
 
-            pruning = self._pruning().flatten()
+            pruning = self._pruning(self.rollingout_engine).flatten()
             if pruning.any():
                 actions = self.all_actions[pruning > 0]
             else:
                 actions = self.all_actions.copy()
 
             i = np.random.randint(len(actions))
-            while not self.engine.is_valid_action(GomokuAction(*actions[i])):
+            gAction = GomokuAction(*actions[i])
+            while not self.rollingout_engine.is_valid_action(gAction):
                 i = np.random.randint(len(actions))
+                gAction = GomokuAction(*actions[i])
 
-            self.engine.apply_action(GomokuAction(*actions[i]))
-            self.engine.next_turn()
-            self.end_game = self.engine.isover() # For MCTS.evaluate()
+            self.rollingout_engine.apply_action(gAction)
+            self.rollingout_engine.next_turn()
+            self.end_game = self.rollingout_engine.isover() # For MCTS.evaluate()
             turn += 1

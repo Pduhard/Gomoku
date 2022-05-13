@@ -69,7 +69,7 @@ def duel():
 
     engine = GomokuLib.Game.GameEngine.GomokuGUI()
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
-    #         rules=['no double-threes']
+    #         rules=['Capture']
     # )
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
     #         rules=['Capture', 'Game-Ending Capture']
@@ -91,9 +91,9 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=2000,
+        iter=5000,
         hard_pruning=True,
-        rollingout_turns=2
+        rollingout_turns=3
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -105,7 +105,7 @@ def duel():
     # )
     # p2 = GomokuLib.Player.Bot(mcts_p2)
 
-    # p2 = GomokuLib.Player.Human()
+    p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
 
     profiler = cProfile.Profile()
@@ -126,18 +126,22 @@ def duel():
 
 def RLmain():
 
+    engine = GomokuLib.Game.GameEngine.GomokuGUI(
+            rules=['Capture']
+    )
     agent = GomokuLib.AI.Agent.GomokuAgent(
-        GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
+        RLengine=engine,
         # agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=1000,
+        mcts_iter=2500,
         mcts_hard_pruning=True,
         mean_forward=False,
+        rollingout_turns=3,
         device=device,
     )
 
     agent.training_loop(
         nbr_tl=-1,
-        nbr_tl_before_cmp=5,
+        nbr_tl_before_cmp=4,
         nbr_games_per_tl=4,
         epochs=10,
         save=False
@@ -200,6 +204,6 @@ def parrallel_test():
 
 if __name__ == '__main__':
     # duel()
-    # RLmain()
+    RLmain()
     # parrallel_test()
-    c_tests()
+    # c_tests()
