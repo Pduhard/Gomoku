@@ -1,6 +1,7 @@
 from typing import Any
 
 import fastcore
+import numpy as np
 from fastcore._rules import ffi, lib as fastcore
 
 from GomokuLib.Game.GameEngine import Gomoku
@@ -16,16 +17,16 @@ class Capture(AbstractRule):
 	def __init__(self, engine: Any) -> None:
 		super().__init__(engine)
 		# self.CAPTURE_MASK=init_capture_mask()
-		self.player_count_capture = [0, 0]
+		self.player_count_capture = np.array((0, 0), np.int8)
 
 	def endturn(self, action: GomokuAction):
 
 		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
-		y, x = action.action
+		ar, ac = action.action
 		gz = self.engine.get_game_zone()
 		# print(f"NEXT TURN CAPTURE")
 
-		count1 = fastcore.count_captures(c_board, y, x, gz[0], gz[1], gz[2], gz[3])
+		count1 = fastcore.count_captures(c_board, ar, ac, gz[0], gz[1], gz[2], gz[3])
 		self.player_count_capture[self.engine.player_idx] += count1
 
 	def winning(self, action: GomokuAction):
@@ -37,15 +38,19 @@ class Capture(AbstractRule):
 		return self.player_count_capture[::-1] if self.engine.player_idx else self.player_count_capture
 
 	def create_snapshot(self):
-		return {
-			'player_count_capture': self.player_count_capture.copy()
-		}
+		return self.player_count_capture.copy()
+		# return {
+		# 	'player_count_capture': self.player_count_capture.copy()
+		# }
 	
-	def update_from_snapshot(self, snapshot):
-		self.player_count_capture = snapshot['player_count_capture']
+	def update_from_snapshot(self, player_count_capture: np.ndarray):
+		self.player_count_capture[:] = player_count_capture
+		# self.player_count_capture[:] = snapshot['player_count_capture']
 
-	def update(self, engine: Gomoku, rule: AbstractRule):
-		newrule = Capture(engine)
-		newrule.player_count_capture = rule.player_count_capture.copy()
-		# print("copy: ", newrule.player_count_capture, rule.player_count_capture, rule)
-		return newrule
+	def update(self, rule: AbstractRule):
+		self.player_count_capture[:] = rule.player_count_capture
+
+	# def update(self, engine: Gomoku, rule: AbstractRule):
+	# 	newrule = Capture(engine)
+	# 	newrule.player_count_capture[:] = rule.player_count_capture
+	# 	return newrule

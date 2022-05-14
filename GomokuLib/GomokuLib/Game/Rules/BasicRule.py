@@ -35,8 +35,9 @@ class BasicRule(AbstractRule):
 	def update_from_snapshot(self, snapshot):
 		pass
 
-	def update(self, engine: Gomoku, rule: AbstractRule):
-		return BasicRule(engine)
+	def update(self, *args):
+		pass
+		# return BasicRule(engine)
 
 
 # @njit()

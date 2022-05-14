@@ -74,7 +74,7 @@ def duel():
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
     #         rules=['no double-threes']
     # )
-    engine=GomokuLib.Game.GameEngine.GomokuGUI()
+    engine=GomokuLib.Game.GameEngine.Gomoku()
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
             # rules=['Capture', 'Game-Ending Capture']
     # )
@@ -95,7 +95,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=3000,
+        iter=300,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -103,7 +103,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=3000,
+        iter=300,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -116,11 +116,12 @@ def duel():
         print("new p2")
         p2 = p1
 
+    winner = engine.run([p1, p2])  # White: 0 / Black: 1
+
     profiler = cProfile.Profile()
     profiler.enable()
 
-    for i in range(1):
-        winner = engine.run([p1, p2])  # White: 0 / Black: 1
+    winner = engine.run([p1, p2])  # White: 0 / Black: 1
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('tottime')
@@ -134,7 +135,7 @@ def RLtest():
     agent = GomokuLib.AI.Agent.GomokuAgent(
         GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
         # agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=500,
+        mcts_iter=1000,
         mcts_hard_pruning=True,
         mean_forward=False,
         device=device,

@@ -36,10 +36,11 @@ class GameEndingCaptureJit:
 		self.is_winning_cfunc = fastcore._rules.lib.is_winning
 
 	def winning(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
-		if self.stats[2][player_idx ^ 1] == 0: ## ca sert a rien ??!
+		if self.stats[2][player_idx ^ 1] == 0:
 			return 0
+		ar, ac = self.stats[player_idx ^ 1]
 
-		win = self.is_winning_cfunc(self._board_ptr, 361, self.stats[player_idx ^ 1][0], self.stats[player_idx  ^ 1][1], gz0, gz1, gz2, gz3)
+		win = self.is_winning_cfunc(self._board_ptr, 361, ar, ac, gz0, gz1, gz2, gz3)
 		if win:
 			return 3
 

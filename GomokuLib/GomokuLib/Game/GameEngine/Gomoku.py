@@ -19,6 +19,8 @@ from .AbstractGameEngine import AbstractGameEngine
 
 class Gomoku(AbstractGameEngine):
 
+    capture_class: object = Capture
+
     def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]] = None,
                  board_size: Union[int, tuple[int]] = 19,
                  rules: list[Union[str, AbstractRule]] = ['Capture', 'Game-Ending Capture', 'no double-threes'],
@@ -28,20 +30,18 @@ class Gomoku(AbstractGameEngine):
         self.board_size = (board_size, board_size) if type(board_size) == int else board_size
         self.rules_str = rules
         self.init_game()
-        self.capture_rule = None
 
     def init_game(self, **kwargs):
+        self.state = self.init_board()
+        self.C, self.H, self.W = self.state.board.shape
         self.turn = 0
         self.last_action = None
         self._isover = False
         self.winner = -1
         self.player_idx = 0
-        self.state = self.init_board()
-        self.C, self.H, self.W = self.state.board.shape
         self.rules_fn = self.init_rules_fn(self.rules_str.copy())
-        # self.history = np.zeros((1, self.C, self.H, self.W), dtype=int)
+        self._search_capture_rule()
         self.history = []
-        # self.game_zone_init = False
         self.game_zone = np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
 
     def set_rules_fn(self):
@@ -53,7 +53,7 @@ class Gomoku(AbstractGameEngine):
     def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
 
         tab_rules = {
-            'capture': Capture,
+            'capture': self.capture_class,
             'game-ending capture': GameEndingCapture,
             'no double-threes': NoDoubleThrees
         }
@@ -101,20 +101,23 @@ class Gomoku(AbstractGameEngine):
         self.update_game_zone(ar, ac)
         self.last_action = action
 
+    def _search_capture_rule(self):
+        for r in self.rules:
+            if isinstance(r, self.capture_class):
+                self.capture_rule = r
+        if self.capture_rule:
+            self.get_captures = self._get_captures_success
+        else:
+            self.get_captures = self._get_captures_failed
+
     def _get_captures_success(self) -> list:
         return self.capture_rule.get_current_player_captures(self.player_idx)
 
     def _get_captures_failed(self) -> list:
         return [0, 0]
 
-    def get_captures(self, capture_class: AbstractRule = Capture) -> list:
-        for r in self.rules:
-            if isinstance(r, capture_class):
-                self.capture_rule = r
-        if self.capture_rule:
-            self.get_captures = self._get_captures_success
-        else:
-            self.get_captures = self._get_captures_failed
+    def get_captures(self) -> list:
+        self._search_capture_rule()
         return self.get_captures()
 
     def get_history(self) -> np.ndarray:
@@ -148,8 +151,6 @@ class Gomoku(AbstractGameEngine):
         win = False
         for rule in self.rules_fn['winning']:
             flag = rule.winning(self.last_action)
-            if (flag != 0):
-                print(flag)
             if flag == 3:   # GameEndingCapture win
                 self._isover = True
                 self.winner = self.player_idx ^ 1
@@ -181,6 +182,7 @@ class Gomoku(AbstractGameEngine):
 
         if self.last_action is None:
             breakpoint()
+
         self._next_turn_rules()
 
         cb_return = {}
@@ -266,10 +268,9 @@ class Gomoku(AbstractGameEngine):
             rule.update_from_snapshot(snapshot['rules'][rule.name])
 
     def _update_rules(self, engine: Gomoku):
-        # for rule in engine.rules:
-        #     rule.update(self, rule)
-        self.rules = [rule.update(self, rule) for rule in engine.rules]
-        self.set_rules_fn()
+        for to_update, rule in zip(self.rules, engine.rules):
+            to_update.update(rule)
+        # self.rules = [rule.update(self, rule) for rule in engine.rules]
 
     def update(self, engine: Gomoku):
 
@@ -292,6 +293,7 @@ class Gomoku(AbstractGameEngine):
         # self.game_zone_init = engine.game_zone_init
 
         self._update_rules(engine)
+        self.set_rules_fn()
 
     def clone(self) -> Gomoku:
         engine = Gomoku(self.players, self.board_size, self.rules_str)

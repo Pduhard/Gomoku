@@ -19,6 +19,7 @@ from .GomokuJit import GomokuJit
 if TYPE_CHECKING:
     from ...Player.AbstractPlayer import AbstractPlayer
 
+# class GomokuGUI(Gomoku):
 class GomokuGUI(GomokuJit):
 
     def __init__(self,

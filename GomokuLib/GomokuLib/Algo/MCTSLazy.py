@@ -16,7 +16,6 @@ def valid_action(actions, policy):
         return 0
 
 
-# @njit(parallel=True, nogil=True)
 @njit()
 def test_selection_parallel(actions, policy):
     best_actions = np.zeros((362, 2), dtype=np.int32)
