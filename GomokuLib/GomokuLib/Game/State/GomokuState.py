@@ -25,7 +25,7 @@ def haswon(board):
 	return 0
 """
 
-class GomokuState(AbstractState):
+class GomokuState():
 
     def __init__(self, board_size : Union[int, tuple]):
         if isinstance(board_size, int):
@@ -36,24 +36,4 @@ class GomokuState(AbstractState):
             print('error board size')
             exit(0)
         self.board = np.zeros(board_size, dtype=np.int8, order='C')
-        self._full_board = None
-        self._full_board_uptodate = False
 
-    @property
-    def board(self):
-        # print("getter")
-        return self._board
-
-    @board.setter
-    def board(self, value):
-        # print("setter")
-        self._board = value
-        self._full_board_uptodate = False
-
-    @property
-    def full_board(self):
-        # print(f"self._full_board_uptodate={self._full_board_uptodate}")
-        if not self._full_board_uptodate:
-            self._full_board = self._board[0] | self._board[1]
-            self._full_board_uptodate = True
-        return self._full_board

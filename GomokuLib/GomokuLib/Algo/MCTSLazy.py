@@ -41,7 +41,6 @@ class MCTSLazy(MCTS):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        fastcore.init_random()
         self.best_actions_buffer = np.zeros((19 * 19, 2), dtype=np.int32)
         # self.random_buffer = np.zeros((19 * 19), dtype=np.int32)
         self.c_best_actions_buffer = ffi.cast("int *", self.best_actions_buffer.ctypes.data)
@@ -51,7 +50,7 @@ class MCTSLazy(MCTS):
         return f"MCTSLazy with: Progressive/Lazy valid action checking ({self.mcts_iter} iter)"
 
     def get_actions(self) -> np.ndarray:
-        return self.engine.state.full_board ^ 1
+        return (self.engine.state.board[0] | self.engine.state.board[0]).astype(np.int8) ^ 1
 
     def selection(self, policy: np.ndarray, state_data: list) -> tuple[int]:
 

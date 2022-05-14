@@ -79,6 +79,7 @@ def duel():
 
     # engine = GomokuLib.Game.GameEngine.Gomoku()
     runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    # runner=GomokuLib.Game.GameEngine.GomokuRunner()
     #         rules=['Capture']
     # )
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
@@ -101,7 +102,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=2500,
+        iter=200,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -109,7 +110,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=2500,
+        iter=200,
         hard_pruning=True,
         rollingout_turns=2
     )
