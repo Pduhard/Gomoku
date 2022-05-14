@@ -16,11 +16,10 @@ from .GomokuRunner import GomokuRunner
 
 class GomokuGUIRunner(GomokuRunner):
 
-    def __init__(self, board_size: Union[int, tuple[int]] = 19,
-                 win_size: Union[list[int], tuple[int]] = (1500, 1000),
+    def __init__(self, win_size: Union[list[int], tuple[int]] = (1500, 1000),
                  *args, **kwargs) -> None:
 
-        super().__init__(board_size, *args, **kwargs)
+        super().__init__()
         self.gui_outqueue = mp.Queue()
         self.gui_inqueue = mp.Queue()
 

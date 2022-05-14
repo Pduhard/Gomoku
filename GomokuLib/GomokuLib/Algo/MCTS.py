@@ -12,7 +12,6 @@ import numpy as np
 from GomokuLib.Player import Human
 
 from .AbstractAlgorithm import AbstractAlgorithm
-from ..Game.GameEngine import GomokuGUI
 from ..Game.GameEngine import Gomoku
 
 # @njit(fastmath=True)

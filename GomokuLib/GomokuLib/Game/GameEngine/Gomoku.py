@@ -5,25 +5,44 @@ import numpy as np
 import numba as nb
 from numba import njit
 
+from numba.experimental import jitclass
+
 from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule
 
-spec = [
-	('name', nb.types.string),
-	('board_size', nb.typeof((0, 0))),
-	('is_capture_active', nb.types.boolean),
-	('is_game_ending_capture_active', nb.types.boolean),
-	('is_no_double_threes_active', nb.types.boolean),
-	('_board_ptr', nb.types.CPointer(nb.types.int8)),
-]
+board_dtype = nb.types.Array(dtype=nb.int8, ndim=3, layout="C")
+game_zone_dtype = nb.types.Array(dtype=nb.int8, ndim=1, layout="C")
+tuple_dtype = nb.types.Array(dtype=nb.int8, ndim=1, layout="C")
 
-# @jitclass(spec)
+
+@jitclass()
 class Gomoku:
 
-    def __init__(self, board_size: Union[int, tuple[int]] = 19,
-                 is_capture_active: bool = True,
+    ## TYPING
+    name: nb.types.string
+    board_size: tuple_dtype
+    is_capture_active: nb.types.boolean
+    is_game_ending_capture_active: nb.types.boolean
+    is_no_double_threes_active: nb.types.boolean
+    board: board_dtype
+    turn: nb.types.int8
+    last_action: tuple_dtype
+    _isover: nb.types.boolean
+    winner: nb.types.int32
+    player_idx: nb.types.int32
+    history: nb.types.ListType(board_dtype)
+    game_zone: game_zone_dtype
+    _board_ptr: nb.types.CPointer(nb.types.int8)
+    capture: Capture
+    game_ending_capture: GameEndingCapture
+    no_double_threes: NoDoubleThrees
+    basic_rules: BasicRule
+    
+    ##########
+
+    def __init__(self, is_capture_active: bool = True,
                  is_game_ending_capture_active: bool = True,
                  is_no_double_threes_active: bool = True) -> None:
-        self.board_size = (board_size, board_size) if type(board_size) == int else board_size
+        self.board_size = np.array([19, 19])
         self.is_capture_active = is_capture_active
         self.is_game_ending_capture_active = is_game_ending_capture_active
         self.is_no_double_threes_active = is_no_double_threes_active
@@ -32,7 +51,7 @@ class Gomoku:
     def init_game(self):
         self.board = np.zeros((2, 19, 19), dtype=np.int8)
         self.turn = 0
-        self.last_action = (-1, -1)
+        self.last_action = np.array([-1, -1], dtype=np.int8)
         self._isover = False
         self.winner = -1
         self.player_idx = 0
@@ -61,7 +80,7 @@ class Gomoku:
             is_valid |= self.no_double_threes.is_valid(full_board, ar, ac)
         return is_valid
 
-    def apply_action(self, action: tuple[int]) -> None:
+    def apply_action(self, action) -> None:
         ar, ac = action
         if not self.is_valid_action(action):
             print(f"Not a fucking valid action: {ar} {ac}")
@@ -70,7 +89,7 @@ class Gomoku:
 
         self.board[0, ar, ac] = 1
         self.update_game_zone(ar, ac)
-        self.last_action = (ar, ac)
+        self.last_action = action.copy()
 
     def get_captures(self) -> list:
         if self.is_capture_active:
@@ -157,11 +176,10 @@ class Gomoku:
         return self._isover
 
     def create_snapshot(self):
-        ar, ac = self.last_action
         return {
             'history': self.history.copy(),
             # 'history': self.get_history(),
-            'last_action': (ar, ac),
+            'last_action': self.last_action.copy(),
             'board': self.board.copy(),
             'player_idx': self.player_idx,
             '_isover': self._isover,
@@ -176,10 +194,8 @@ class Gomoku:
         }
 
     def update_from_snapshot(self, snapshot):
-        ar, ac = snapshot['last_action']
-
         self.history = snapshot['history'].copy()
-        self.last_action = (ar, ac)
+        self.last_action = snapshot['last_action'].copy()
         self.board = snapshot['board'].copy()
         self.player_idx = snapshot['player_idx']
         self._isover = snapshot['_isover']
@@ -213,10 +229,8 @@ class Gomoku:
             self.no_double_threes.update_board_ptr(self.board)
 
     def update(self, engine: Gomoku):
-        ar, ac = engine.last_action
-
         self.history = engine.history.copy()
-        self.last_action = (ar, ac)
+        self.last_action = engine.last_action.copy()
         self.board = engine.board.copy()
 
         self.player_idx = engine.player_idx
@@ -228,7 +242,7 @@ class Gomoku:
         self._update_rules(engine)
 
     def clone(self) -> Gomoku:
-        engine = Gomoku(self.board_size, self.is_capture_active,
+        engine = Gomoku(self.is_capture_active,
             self.is_game_ending_capture_active, self.is_no_double_threes_active)
         engine.update(self)
         return engine

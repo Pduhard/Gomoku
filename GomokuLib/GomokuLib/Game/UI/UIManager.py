@@ -12,8 +12,6 @@ from .Board import Board
 from .Button import Button
 from .Display import Display
 
-# from GomokuLib.Game.GameEngine.GomokuGUI import GomokuGUI
-
 
 class UIManager:
 

@@ -5,15 +5,14 @@ from .Gomoku import Gomoku
 
 class GomokuRunner:
 
-    def __init__(self, board_size: Union[int, tuple[int]] = 19,
-                 rules: list[str] = ['Capture', 'Game-Ending-Capture', 'no-double-threes'],
+    def __init__(self, rules: list[str] = ['Capture', 'Game-Ending-Capture', 'no-double-threes'],
                  **kwargs) -> None:
         self.rules = [r.lower() for r in rules]
-        self.board_size = (board_size, board_size) if type(board_size) == int else board_size
-        self.engine = Gomoku(board_size,
+        self.engine = Gomoku(
             is_capture_active=('capture' in self.rules),
             is_game_ending_capture_active=('game-ending-capture' in self.rules),
-            is_no_double_threes_active='no-double-threes' in self.rules)
+            is_no_double_threes_active='no-double-threes' in self.rules
+        )
 
     def _run(self, players):
 
