@@ -166,59 +166,30 @@ def c_tests():
         0, 0, 18, 18
     )
     print(ret)
-    # profiler = cProfile.Profile()
-    # profiler.enable()
-
-    # t = time.time()
-    # for i in range(1000):
-    #     full_board = np.ascontiguousarray(board[0] | board[1]).astype(np.int8)
-    #     c_board = ffi.cast("char *", board.ctypes.data)
-    #     c_full_board = ffi.cast("char *", full_board.ctypes.data)
-    #     for r in range(19):
-    #         for c in range(19):
-    #             fastcore_algo.mcts_eval_heuristic(
-    #                 c_board, c_full_board,
-    #                 0, 0,
-    #                 0, 0, 18, 18
-    #             )
-    # dt = time.time() - t
-    # print(f"dtime={dt}")
-
-    # profiler.disable()
-    # stats = pstats.Stats(profiler).sort_stats('tottime')
-    # stats.print_stats()
-    # stats.dump_stats('tmp_profile_from_script.prof')
 
 def parrallel_test():
 
-    engine = GomokuLib.Game.GameEngine.Gomoku()
-    engine2 = GomokuLib.Game.GameEngine.Gomoku()
+    engine = GomokuLib.Algo.GomokuJit()
+    # engine = GomokuLib.Game.GameEngine.Gomoku()
 
-    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(engine=engine)
-    p1 = GomokuLib.Player.Bot(mcts_p1)
+    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(engine=engine)
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
 
-    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(engine=engine2)
-    p2 = GomokuLib.Player.Bot(mcts_p2)
-
-    mcts = GomokuLib.Algo.MCTSParallel(
+    mcts_p = GomokuLib.Algo.MCTSParallel(
         engine=engine,
         # mcts_iter=1000,
         num_workers=8,
         batch_size=100,
     )
+    # p1 = GomokuLib.Player.Bot(mcts_p)
 
+    ret = mcts_p()
+    # p2 = p1
+    # engine.run([p1, p2])
 
-    t = time.time()
-    with concurrent.futures.ThreadPoolExecutor() as ex:
-        ex.submit(engine.run, [p1, p1])
-        ex.submit(engine2.run, [p2, p2])
-
-    # ret = mcts(engine)
-    dt = time.time() - t
-    print(f"dtime={dt}")
 
 if __name__ == '__main__':
-    duel()
+    # duel()
     # RLmain()
-    # parrallel_test()
+    parrallel_test()
     # c_tests()

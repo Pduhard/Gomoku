@@ -125,9 +125,3 @@ class MCTSAI(MCTSEvalLazy):
             'Value': value
         })
         return memory
-
-    # def award(self) -> tuple:
-    #     value = self.states[self.current_board.tobytes()]['Value']
-    #     h_leaf = self.states[self.current_board.tobytes()]['Heuristic']
-    #     return self.model_confidence * value + self.model_confidence_inv * h_leaf
-    #     return 0.5
