@@ -137,8 +137,8 @@ class Board:
         state_data = hints_data['mcts_state_data']
         (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
 
-        if self.hint_type == 0 and 'Policy' in hints_data:
-            self.draw_model_hints(hints_data['Policy'])
+        if self.hint_type == 0 and 'Policy' in state_data:
+            self.draw_model_hints(state_data['Policy'])
         elif self.hint_type == 1:
             self.draw_mcts_hints(sa_n, sa_v)
         elif self.hint_type == 2:

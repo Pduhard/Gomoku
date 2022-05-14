@@ -76,34 +76,34 @@ def duel():
     # )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
     #
-    # agent = GomokuLib.AI.Agent.GomokuAgent(
-    #     RLengine=engine,
-    #     # agent_name="agent_23:04:2022_18:14:01",
-    #     # agent_name="agent_28:04:2022_20:39:46",
-    #     mcts_iter=1000,
-    #     mcts_hard_pruning=True,
-    #     mean_forward=True,
-    #     model_confidence=0,
-    #     device=device
-    # )
-    # p2 = agent
+    agent = GomokuLib.AI.Agent.GomokuAgent(
+        RLengine=engine,
+        # agent_name="agent_23:04:2022_18:14:01",
+        agent_name="agent_13:05:2022_20:50:50",
+        mcts_iter=1000,
+        mcts_hard_pruning=True,
+        mean_forward=True,
+        model_confidence=0.95,
+        device=device
+    )
+    p2 = agent
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=5000,
+        iter=1000,
         hard_pruning=True,
         rollingout_turns=2
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=engine,
-        iter=5000,
-        hard_pruning=True,
-        rollingout_turns=2
-    )
-    p2 = GomokuLib.Player.Bot(mcts_p2)
+    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+    #     engine=engine,
+    #     iter=1000,
+    #     hard_pruning=True,
+    #     rollingout_turns=2
+    # )
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
@@ -148,25 +148,41 @@ def RLmain():
 
 def c_tests():
 
+    board = np.zeros((2, 19, 19), dtype=np.int8)
+    board[1, 2, 2] = 1
+    board[1, 2, 3] = 1
+    board[1, 2, 4] = 1
+    board[1, 2, 5] = 1
+    # board[0, 2, 6] = 1
+    board[0, 2, 1] = 1
 
+    full_board = np.ascontiguousarray(board[0] | board[1]).astype(np.int8)
+
+    c_board = ffi.cast("char *", board.ctypes.data)
+    c_full_board = ffi.cast("char *", full_board.ctypes.data)
+    ret = fastcore_algo.mcts_eval_heuristic(
+        c_board, c_full_board,
+        2, 2,
+        0, 0, 18, 18
+    )
+    print(ret)
     # profiler = cProfile.Profile()
     # profiler.enable()
 
-    t = time.time()
-    for i in range(1000):
-        board = np.random.randint(0, 2, (2, 19, 19), dtype=np.int8)
-        full_board = np.ascontiguousarray(board[0] | board[1]).astype(np.int8)
-        c_board = ffi.cast("char *", board.ctypes.data)
-        c_full_board = ffi.cast("char *", full_board.ctypes.data)
-        for r in range(19):
-            for c in range(19):
-                fastcore_algo.mcts_eval_heuristic(
-                    c_board, c_full_board,
-                    0, 0,
-                    0, 0, 18, 18
-                )
-    dt = time.time() - t
-    print(f"dtime={dt}")
+    # t = time.time()
+    # for i in range(1000):
+    #     full_board = np.ascontiguousarray(board[0] | board[1]).astype(np.int8)
+    #     c_board = ffi.cast("char *", board.ctypes.data)
+    #     c_full_board = ffi.cast("char *", full_board.ctypes.data)
+    #     for r in range(19):
+    #         for c in range(19):
+    #             fastcore_algo.mcts_eval_heuristic(
+    #                 c_board, c_full_board,
+    #                 0, 0,
+    #                 0, 0, 18, 18
+    #             )
+    # dt = time.time() - t
+    # print(f"dtime={dt}")
 
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')
