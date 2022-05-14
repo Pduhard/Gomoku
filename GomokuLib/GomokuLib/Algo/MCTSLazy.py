@@ -22,20 +22,20 @@ def test_selection_parallel(actions, policy):
     best_actions = np.zeros((362, 2), dtype=np.int32)
 
     action_policy = valid_action(actions, policy)
+    max = np.amax(action_policy)
+    k = 0
     #
     # action_policy = policy * np.where(actions > 0, 1, 0)
     # tmp = np.argwhere(action_policy == np.amax(action_policy))
 
-    k = 0
-    max = np.amax(action_policy)
-    for i in prange(19):
-        for j in prange(19):
+    for i in range(19):
+        for j in range(19):
             if max == action_policy[i, j]:
                 best_actions[k][0] = i
                 best_actions[k][1] = j
                 k += 1
 
-    best_actions[-1, ...] = k
+    best_actions[-1, 0] = k
     return best_actions
 
 
@@ -63,12 +63,13 @@ class MCTSLazy(MCTS):
         while True:
             # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
             arr = test_selection_parallel(actions, policy)
-            len = arr[-1, 0]
-            arr = arr[:len]
-            np.random.shuffle(arr)
-            for e in arr:
-                x, y = e
 
+            len = arr[-1, 0]
+            arr_pick = np.arange(len)
+            # best_actions = np.argwhere(np.amax())
+            np.random.shuffle(arr_pick)
+            for e in arr_pick:
+                x, y = arr[e]
                 gAction = GomokuAction(x, y)
                 if actions[x, y] == 2:
                     return gAction
