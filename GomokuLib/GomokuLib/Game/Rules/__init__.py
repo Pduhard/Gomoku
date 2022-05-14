@@ -4,15 +4,11 @@ from .Capture import Capture
 
 from .NoDoubleThrees import NoDoubleThrees
 
-from .GameEndingCapture import GameEndingCapture, ForceWinPlayer, ForceWinOpponent
+from .GameEndingCapture import GameEndingCapture
 
 __all__ = [
     'BasicRule',
     'Capture',
     'GameEndingCapture',
     'NoDoubleThrees',
-    'ForceWinPlayer',
-    'ForceWinOpponent'
 ]
-
-RULES=['opening', 'restricting', 'endturn', 'winning', 'nowinning']

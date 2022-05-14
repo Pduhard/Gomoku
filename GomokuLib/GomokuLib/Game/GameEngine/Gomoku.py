@@ -5,8 +5,7 @@ import numpy as np
 import numba as nb
 from numba import njit
 
-from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, RULES
-from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
+from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule
 
 spec = [
 	('name', nb.types.string),

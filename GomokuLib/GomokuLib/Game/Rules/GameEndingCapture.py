@@ -11,17 +11,6 @@ ffi = _fastcore.ffi
 
 is_winning_ctype = cffi_utils.make_function_type(_rules.is_winning)
 
-class ForceWinOpponent(Exception):
-	def __init__(self, reason, *args: object) -> None:
-		super().__init__(args)
-		self.reason = reason or "No reason"
-
-class ForceWinPlayer(Exception):
-	def __init__(self, reason, *args: object) -> None:
-		super().__init__(args)
-		self.reason = reason or "No reason"
-
-
 spec = [
 	('name', nb.types.string),
 	('stats', nb.types.int8[:, :]),
