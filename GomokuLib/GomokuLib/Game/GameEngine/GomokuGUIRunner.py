@@ -12,32 +12,26 @@ import time
 
 from GomokuLib.Game.UI.UIManager import UIManager
 import GomokuLib
-from .Gomoku import Gomoku
+from .GomokuRunner import GomokuRunner
 
-if TYPE_CHECKING:
-    from ...Player.AbstractPlayer import AbstractPlayer
+class GomokuGUIRunner(GomokuRunner):
 
-# class GomokuGUI(Gomoku):
-class GomokuGUI(Gomoku):
-
-    def __init__(self,
-                 players: Union[list[AbstractPlayer], tuple[AbstractPlayer]] = None,
-                 board_size: Union[int, tuple[int]] = 19,
+    def __init__(self, board_size: Union[int, tuple[int]] = 19,
                  win_size: Union[list[int], tuple[int]] = (1500, 1000),
                  *args, **kwargs) -> None:
 
+        super().__init__(board_size, *args, **kwargs)
         self.gui_outqueue = mp.Queue()
         self.gui_inqueue = mp.Queue()
 
-        super().__init__(players, board_size, *args, **kwargs)
-
-        self.gui = UIManager(self, win_size)
+        # self.engine is defined in super
+        self.gui = UIManager(self.engine, win_size)
         self.gui_proc = Process(target=self.gui, args=(self.gui_outqueue, self.gui_inqueue))
         self.gui_proc.start()
 
         self.player_action = None
 
-        print("END __init__() Gomokugui\n")
+        print("END __init__() GomokuguiRunner\n")
 
     def update_UI(self, **kwargs):
         """
@@ -49,57 +43,46 @@ class GomokuGUI(Gomoku):
             'code': 'game-snapshot',
             'data': {
                 'time': time.time(),
-                'snapshot': self.create_snapshot(),
+                'snapshot': self.engine.create_snapshot(),
                 'ss_data': kwargs
             },
         })
 
-    def next_turn(self, mode: str = "GomokuGUI.run()", before_next_turn_cb=[], **kwargs) -> None:
-        """
-            All kwargs information will be sent to UIManager
-        """
-        cb_ret = super().next_turn(before_next_turn_cb=before_next_turn_cb)
+    def _run(self, players, mode: str = "GomokuGUIRunner.run()"):
 
-        if mode == "GomokuGUI.run()":
-            kwargs['p1'] = str(self.players[0])
-            kwargs['p2'] = str(self.players[1])
-
-        self.update_UI(
-            **cb_ret,
-            **kwargs,
-            mode=mode,
-            captures=self.get_captures()[::-1],
-            board=self.state.board,
-            turn=self.turn,
-            player_idx=self.player_idx,
-            winner=self.winner,
-        )
-        return cb_ret
-
-    def _run(self, players: AbstractPlayer) -> AbstractPlayer:
-
-        while not self.isover():
+        while not self.engine.isover():
             self.get_gui_input()
 
-            p = players[self.player_idx]
-            player_action = p.play_turn()
+            p = players[self.engine.player_idx]
+            player_action = p.play_turn(self.engine)
 
             if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
-                turn_data = p.algo.get_state_data(self)
-                self.apply_action(player_action)
+                turn_data = p.algo.get_state_data(self.engine)
+                self.engine.apply_action(player_action)
+
+                cb_ret = self.engine.next_turn(before_next_turn_cb=[p.algo.get_state_data_after_action])
+                if mode == "GomokuGUIRunner.run()":
+                    turn_data['p1'] = str(players[0])
+                    turn_data['p2'] = str(players[1])
                 # breakpoint()
-                self.next_turn(
+                self.update_UI(
+                    **cb_ret,
                     **turn_data,
-                    before_next_turn_cb=[p.algo.get_state_data_after_action]
+                    mode=mode,
+                    captures=self.engine.get_captures()[::-1],
+                    board=self.engine.state.board,
+                    turn=self.engine.turn,
+                    player_idx=self.engine.player_idx,
+                    winner=self.engine.winner,
                 )
 
             else:
-                self.apply_action(player_action)
-                self.next_turn()
+                self.engine.apply_action(player_action)
+                self.engine.next_turn()
             # print(f"Game zone: {self.game_zone[0]} {self.game_zone[1]} into {self.game_zone[2]} {self.game_zone[3]}")
 
 
-        print(f"Player {self.winner} win.")
+        print(f"Player {self.engine.winner} win.")
         # sleep(5)
 
     def get_gui_input(self):
@@ -117,7 +100,7 @@ class GomokuGUI(Gomoku):
                 
                 elif inpt['code'] == 'game-snapshot':
                     breakpoint()
-                    self.update_from_snapshot(inpt['data'])
+                    self.engine.update_from_snapshot(inpt['data'])
         except:
             pass
 

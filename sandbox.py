@@ -78,7 +78,7 @@ print(f"Device selected: {device}")
 def duel():
 
     # engine = GomokuLib.Game.GameEngine.Gomoku()
-    engine=GomokuLib.Game.GameEngine.GomokuGUI()
+    runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
     #         rules=['Capture']
     # )
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
@@ -100,7 +100,7 @@ def duel():
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=engine,
+        engine=runner.engine,
         iter=100,
         hard_pruning=True,
         rollingout_turns=2
@@ -108,7 +108,7 @@ def duel():
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=engine,
+        engine=runner.engine,
         iter=100,
         hard_pruning=True,
         rollingout_turns=2
@@ -122,12 +122,12 @@ def duel():
         print("new p2")
         p2 = p1
 
-    winner = engine.run([p1, p2])  # White: 0 / Black: 1
+    winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
     profiler = cProfile.Profile()
     profiler.enable()
 
-    winner = engine.run([p1, p2])  # White: 0 / Black: 1
+    winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('tottime')
