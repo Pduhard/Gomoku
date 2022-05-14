@@ -74,7 +74,7 @@ def duel():
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
     #         rules=['no double-threes']
     # )
-    engine=GomokuLib.Game.GameEngine.Gomoku()
+    engine=GomokuLib.Game.GameEngine.GomokuJit()
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
             # rules=['Capture', 'Game-Ending Capture']
     # )
@@ -95,7 +95,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=300,
+        iter=3000,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -103,7 +103,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=300,
+        iter=3000,
         hard_pruning=True,
         rollingout_turns=2
     )

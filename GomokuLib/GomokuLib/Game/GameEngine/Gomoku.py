@@ -233,13 +233,14 @@ class Gomoku(AbstractGameEngine):
 
         return {
             'history': self.history.copy(),
+            # 'history': self.get_history(),
             'last_action': None if self.last_action is None else GomokuAction(*self.last_action.action),
             'board': self.state.board.copy(),
             'player_idx': self.player_idx,
             '_isover': self._isover,
             'winner': self.winner,
             'turn': self.turn,
-            'game_zone': self.get_game_zone(),
+            'game_zone': self.get_game_zone(), # copy ???
             # 'game_zone_init': self.game_zone_init,
             'rules': {
                 rule.name: rule.create_snapshot() for rule in self.rules
