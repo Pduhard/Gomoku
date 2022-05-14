@@ -101,7 +101,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=100,
+        iter=2500,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -109,7 +109,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=100,
+        iter=2500,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -121,8 +121,6 @@ def duel():
     if 'p2' not in locals():
         print("new p2")
         p2 = p1
-
-    winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
     profiler = cProfile.Profile()
     profiler.enable()

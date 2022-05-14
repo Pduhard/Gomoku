@@ -32,6 +32,9 @@ class Capture():
 		self.player_count_capture = np.zeros(2, dtype=np.int8)
 		self._board_ptr = ffi.from_buffer(board)
 		self.count_captures_cfunc = _rules.count_captures
+	
+	def reset_values(self):
+		self.player_count_capture = np.zeros(2, dtype=np.int8)
 
 	def endturn(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
 

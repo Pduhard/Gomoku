@@ -2,6 +2,8 @@
 from __future__ import annotations
 from typing import Union, TYPE_CHECKING
 import numpy as np
+import numba as nb
+from numba import njit
 
 from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, RULES
 from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
@@ -11,18 +13,31 @@ from ..State.GomokuState import GomokuState
 if TYPE_CHECKING:
     from ..Rules.Capture import Capture
 
+spec = [
+	('name', nb.types.string),
+	('board_size', nb.typeof((0, 0))),
+	('is_capture_active', nb.types.boolean),
+	('is_game_ending_capture_active', nb.types.boolean),
+	('is_no_double_threes_active', nb.types.boolean),
+	('_board_ptr', nb.types.CPointer(nb.types.int8)),
+]
+
+# @jitclass(spec)
 class Gomoku:
 
     capture_class: object = Capture
 
     def __init__(self, board_size: Union[int, tuple[int]] = 19,
-                 rules: list[str] = ['Capture', 'Game-Ending Capture', 'no double-threes'],
-                 **kwargs) -> None:
+                 is_capture_active: bool = True,
+                 is_game_ending_capture_active: bool = True,
+                 is_no_double_threes_active: bool = True) -> None:
         self.board_size = (board_size, board_size) if type(board_size) == int else board_size
-        self.rules_str = rules
+        self.is_capture_active = is_capture_active
+        self.is_game_ending_capture_active = is_game_ending_capture_active
+        self.is_no_double_threes_active = is_no_double_threes_active
         self.init_game()
 
-    def init_game(self, **kwargs):
+    def init_game(self):
         self.state = self.init_board()
         self.C, self.H, self.W = self.state.board.shape
         self.turn = 0
@@ -30,35 +45,12 @@ class Gomoku:
         self._isover = False
         self.winner = -1
         self.player_idx = 0
-        self.rules_fn = self.init_rules_fn(self.rules_str.copy())
-        self._search_capture_rule()
         self.history = []
         self.game_zone = np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
-
-    def set_rules_fn(self):
-        self.rules_fn = {
-            k: [r for r in self.rules if (hasattr(r, k) and getattr(r, k) != None)]
-            for k in RULES
-        }
-
-    def init_rules_fn(self, rules: list[Union[str, object]]):
-
-        tab_rules = {
-            'capture': self.capture_class,
-            'game-ending capture': GameEndingCapture,
-            'no double-threes': NoDoubleThrees
-        }
-        rules.append(BasicRule(self.state.board))
-
-        self.rules = [
-            tab_rules[r.lower()](self.state.board)  # Attention ! Si la str n'est pas dans tab !
-            if isinstance(r, str)
-            else r
-            for r in rules
-        ]
-
-        self.set_rules_fn()
-        return self.rules_fn
+        self.capture = Capture(self.state.board)
+        self.game_ending_capture = GameEndingCapture(self.state.board)
+        self.no_double_threes = NoDoubleThrees(self.state.board)
+        self.basic_rules = BasicRule(self.state.board)
 
     def init_board(self):
         """
@@ -67,21 +59,22 @@ class Gomoku:
         return GomokuState(self.board_size)
 
     def get_actions(self) -> np.ndarray:
+        masks = np.ones((19, 19), dtype=np.int8)
 
-        masks = np.array([
-            # rule.get_valid(self.state.full_board)
-            rule.get_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8))
-            for rule in self.rules_fn['restricting']
-        ])
-        masks = np.bitwise_and.reduce(masks, axis=0)
+        full_board = (self.state.board[0] | self.state.board[1]).astype(np.int8)
+        masks |= self.basic_rules.get_valid(full_board)
+        if self.no_double_threes:
+            masks |= self.no_double_threes.get_valid(full_board)
         return masks
 
 
     def is_valid_action(self, action: tuple[int]) -> bool:
-        return all(
-            rule.is_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8), *action)
-            for rule in self.rules_fn['restricting']
-        )
+        ar, ac = action
+        full_board = (self.state.board[0] | self.state.board[1]).astype(np.int8)
+        is_valid = self.basic_rules.is_valid(full_board, ar, ac)
+        if self.no_double_threes:
+            is_valid |= self.no_double_threes.is_valid(full_board, ar, ac)
+        return is_valid
 
     def apply_action(self, action: tuple[int]) -> None:
         ar, ac = action
@@ -94,24 +87,10 @@ class Gomoku:
         self.update_game_zone(ar, ac)
         self.last_action = (ar, ac)
 
-    def _search_capture_rule(self):
-        for r in self.rules:
-            if isinstance(r, self.capture_class):
-                self.capture_rule = r
-        if self.capture_rule:
-            self.get_captures = self._get_captures_success
-        else:
-            self.get_captures = self._get_captures_failed
-
-    def _get_captures_success(self) -> list:
-        return self.capture_rule.get_current_player_captures(self.player_idx)
-
-    def _get_captures_failed(self) -> list:
-        return [0, 0]
-
     def get_captures(self) -> list:
-        self._search_capture_rule()
-        return self.get_captures()
+        if self.is_capture_active:
+            return self.capture.get_current_player_captures(self.player_idx)
+        return [0, 0]
 
     def get_history(self) -> np.ndarray:
         return np.array(self.history)
@@ -135,33 +114,24 @@ class Gomoku:
             self.game_zone = np.array((ar, ac, ar, ac), dtype=np.int8)
 
     def _next_turn_rules(self):
-        gz = self.get_game_zone()
-
-        for rule in self.rules_fn['endturn']:  # A mettre dans le apply_action ?
-            rule.endturn(self.player_idx, *self.last_action, gz[0], gz[1], gz[2], gz[3])
-
-        # print(self.rules_fn['winning'])
-
-        win = False
-        for rule in self.rules_fn['winning']:
-            flag = rule.winning(self.player_idx, *self.last_action, gz[0], gz[1], gz[2], gz[3])
-            if flag == 3:   # GameEndingCapture win
-                self._isover = True
-                self.winner = self.player_idx ^ 1
-                return
-            if flag == 1:   # BasicRule win
-                win = True
-            elif flag == 2:   # Capture win
+        gz0, gz1, gz2, gz3 = self.get_game_zone()
+        ar, ac = self.last_action
+        if self.is_capture_active:
+            self.capture.endturn(self.player_idx, ar, ac, gz0, gz1, gz2, gz3)
+            if self.capture.winning(self.player_idx):
                 self._isover = True
                 self.winner = self.player_idx
                 return
 
-        if (win and not any([   #  Ca setr à rien !!!!!!!!!!!!!!!!!
-            rule.nowinning(self.player_idx, self.last_action)
-            for rule in self.rules_fn['nowinning']
-        ])):
+        if self.is_game_ending_capture_active:
+            if self.game_ending_capture.winning(self.player_idx, ar, ac, gz0, gz1, gz2, gz3):
+                self._isover = True
+                self.winner = self.player_idx ^ 1
+                return
+            self.game_ending_capture.endturn(self.player_idx, ar, ac)
+        elif self.basic_rules.winning(self.player_idx, ar, ac, gz0, gz1, gz2, gz3):
             self._isover = True
-            self.winner = self.player_idx  # ????????????????????????????? Mouais
+            self.winner = self.player_idx
 
     def next_turn(self, before_next_turn_cb=[]) -> None:
 
@@ -189,23 +159,19 @@ class Gomoku:
         if not self.state.board.flags['C_CONTIGUOUS']:
             self.state.board = np.ascontiguousarray(self.state.board)
 
-        for rule in self.rules:
-            rule.update_board_ptr(self.state.board)
+        self.basic_rules.update_board_ptr(self.state.board)
+        if self.is_capture_active:
+            self.capture.update_board_ptr(self.state.board)
+        if self.is_game_ending_capture_active:
+            self.game_ending_capture.update_board_ptr(self.state.board)
+        if self.is_no_double_threes_active:
+            self.no_double_threes.update_board_ptr(self.state.board)
         return cb_return
 
-
     def isover(self):
-        # print(f"Gomoku(): isover() return {self._isover}")
         return self._isover
 
     def create_snapshot(self):
-        # for rule in self.rules:
-        #     ss = rule.create_snapshot()
-        #     if np.any(ss):
-        #         for k, v in ss.items():
-        #             print(k, v)
-        #             print(type(k), type(v))
-        #     print()
         ar, ac = self.last_action
         return {
             'history': self.history.copy(),
@@ -218,9 +184,10 @@ class Gomoku:
             'turn': self.turn,
             'game_zone': self.get_game_zone(), # copy ???
             # 'game_zone_init': self.game_zone_init,
-            'rules': {
-                rule.name: rule.create_snapshot() for rule in self.rules
-            }
+            'basic_rules_rules': self.basic_rules.create_snapshot(),
+            'capture_rules': self.capture.create_snapshot(),
+            'game_ending_capture_rules': self.game_ending_capture.create_snapshot(),
+            'no_double_threes_rules': self.no_double_threes.create_snapshot(),
         }
 
     def update_from_snapshot(self, snapshot):
@@ -235,21 +202,30 @@ class Gomoku:
         self.turn = snapshot['turn']
         self.game_zone[:] = snapshot['game_zone']
 
-        # if self.game_zone_init and snapshot['game_zone_init']:
-        #     self.game_zone[:] = snapshot['game_zone']
-        # elif snapshot['game_zone_init']:
-        #     self.game_zone = snapshot['game_zone'].copy()
-        # else:
-        #     self.game_zone = None
-        # self.game_zone_init = snapshot['game_zone_init']
-
-        for rule in self.rules:
-            rule.update_from_snapshot(snapshot['rules'][rule.name])
+        self.basic_rules.update_from_snapshot(snapshot['basic_rules_rules'])
+        self.basic_rules.update_board_ptr(self.state.board)
+        if self.is_capture_active:
+            self.capture.update_from_snapshot(snapshot['capture_rules'])
+            self.capture.update_board_ptr(self.state.board)
+        if self.is_game_ending_capture_active:
+            self.game_ending_capture.update_from_snapshot(snapshot['game_ending_capture_rules'])
+            self.game_ending_capture.update_board_ptr(self.state.board)
+        if self.is_no_double_threes_active:
+            self.no_double_threes.update_from_snapshot(snapshot['no_double_threes_rules'])
+            self.no_double_threes.update_board_ptr(self.state.board)
 
     def _update_rules(self, engine: Gomoku):
-        for to_update, rule in zip(self.rules, engine.rules):
-            to_update.update(rule)
-            to_update.update_board_ptr(self.state.board)
+        self.basic_rules.update(engine.basic_rules)
+        self.basic_rules.update_board_ptr(self.state.board)
+        if self.is_capture_active:
+            self.capture.update(engine.capture)
+            self.capture.update_board_ptr(self.state.board)
+        if self.is_game_ending_capture_active:
+            self.game_ending_capture.update(engine.game_ending_capture)
+            self.game_ending_capture.update_board_ptr(self.state.board)
+        if self.is_no_double_threes_active:
+            self.no_double_threes.update(engine.no_double_threes)
+            self.no_double_threes.update_board_ptr(self.state.board)
 
     def update(self, engine: Gomoku):
         ar, ac = engine.last_action
@@ -264,18 +240,10 @@ class Gomoku:
         self.turn = engine.turn
         self.game_zone[:] = engine.game_zone
 
-        # if self.game_zone_init and engine.game_zone_init:
-        #     self.game_zone[:] = engine.game_zone
-        # elif engine.game_zone_init:
-        #     self.game_zone = engine.game_zone.copy()
-        # else:
-        #     self.game_zone = None
-        # self.game_zone_init = engine.game_zone_init
-
         self._update_rules(engine)
-        self.set_rules_fn()
 
     def clone(self) -> Gomoku:
-        engine = Gomoku(self.board_size, self.rules_str)
+        engine = Gomoku(self.board_size, self.is_capture_active,
+            self.is_game_ending_capture_active, self.is_no_double_threes_active)
         engine.update(self)
         return engine

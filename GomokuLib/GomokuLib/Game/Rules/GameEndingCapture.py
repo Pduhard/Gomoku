@@ -11,7 +11,6 @@ ffi = _fastcore.ffi
 
 is_winning_ctype = cffi_utils.make_function_type(_rules.is_winning)
 
-
 class ForceWinOpponent(Exception):
 	def __init__(self, reason, *args: object) -> None:
 		super().__init__(args)
@@ -52,11 +51,9 @@ class GameEndingCapture:
 		self.stats[2][player_idx ^ 1] = 0
 		return 0
 
-	def nowinning(self, player_idx: int, last_action: tuple[int]):
-		ar, ac = last_action
+	def endturn(self, player_idx: int, ar: int, ac: int, *args):
 		self.stats[2][player_idx] = 1
 		self.stats[player_idx] = (ar, ac)
-		return True
 
 	def create_snapshot(self):
 		return self.stats
