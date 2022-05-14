@@ -75,7 +75,7 @@ class MCTS(AbstractAlgorithm):
             self.engine.update(game_engine)
             self.mcts(i)
 
-        state_data = self.states[game_engine.state.board.tobytes()]
+        state_data = self.states[game_engine.board.tobytes()]
         sa_n, sa_v = state_data['StateAction']
         # sa_n, sa_v = state_data[2]
 
@@ -93,7 +93,7 @@ class MCTS(AbstractAlgorithm):
 
     def get_state_data(self, engine):
         return {
-            'mcts_state_data': self.states[engine.state.board.tobytes()],
+            'mcts_state_data': self.states[engine.board.tobytes()],
         }
 
     def get_state_data_after_action(self, engine):
@@ -108,7 +108,7 @@ class MCTS(AbstractAlgorithm):
 
         path = []
         # self.mcts_idx = self.engine.player_idx
-        self.current_board = self.engine.state.board
+        self.current_board = self.engine.board
         statehash = self.current_board.tobytes()
         self.bestGAction = None
         # print(f"statehash: {statehash.hex()}")
@@ -124,7 +124,7 @@ class MCTS(AbstractAlgorithm):
             self.engine.apply_action(self.bestGAction)
             self.engine.next_turn()
 
-            self.current_board = self.engine.state.board
+            self.current_board = self.engine.board
             statehash = self.current_board.tobytes()
 
             self.end_game = self.engine.isover()

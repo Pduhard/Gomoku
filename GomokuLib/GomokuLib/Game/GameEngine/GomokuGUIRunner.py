@@ -70,7 +70,7 @@ class GomokuGUIRunner(GomokuRunner):
                     **turn_data,
                     mode=mode,
                     captures=self.engine.get_captures()[::-1],
-                    board=self.engine.state.board,
+                    board=self.engine.board,
                     turn=self.engine.turn,
                     player_idx=self.engine.player_idx,
                     winner=self.engine.winner,

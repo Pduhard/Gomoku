@@ -8,11 +8,6 @@ from numba import njit
 from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, RULES
 from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
 
-from ..State.GomokuState import GomokuState
-
-if TYPE_CHECKING:
-    from ..Rules.Capture import Capture
-
 spec = [
 	('name', nb.types.string),
 	('board_size', nb.typeof((0, 0))),
@@ -25,8 +20,6 @@ spec = [
 # @jitclass(spec)
 class Gomoku:
 
-    capture_class: object = Capture
-
     def __init__(self, board_size: Union[int, tuple[int]] = 19,
                  is_capture_active: bool = True,
                  is_game_ending_capture_active: bool = True,
@@ -38,8 +31,7 @@ class Gomoku:
         self.init_game()
 
     def init_game(self):
-        self.state = self.init_board()
-        self.C, self.H, self.W = self.state.board.shape
+        self.board = np.zeros((2, 19, 19), dtype=np.int8)
         self.turn = 0
         self.last_action = (-1, -1)
         self._isover = False
@@ -47,21 +39,15 @@ class Gomoku:
         self.player_idx = 0
         self.history = []
         self.game_zone = np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
-        self.capture = Capture(self.state.board)
-        self.game_ending_capture = GameEndingCapture(self.state.board)
-        self.no_double_threes = NoDoubleThrees(self.state.board)
-        self.basic_rules = BasicRule(self.state.board)
-
-    def init_board(self):
-        """
-            np array but we should go bitboards next
-        """
-        return GomokuState(self.board_size)
+        self.capture = Capture(self.board)
+        self.game_ending_capture = GameEndingCapture(self.board)
+        self.no_double_threes = NoDoubleThrees(self.board)
+        self.basic_rules = BasicRule(self.board)
 
     def get_actions(self) -> np.ndarray:
         masks = np.ones((19, 19), dtype=np.int8)
 
-        full_board = (self.state.board[0] | self.state.board[1]).astype(np.int8)
+        full_board = (self.board[0] | self.board[1]).astype(np.int8)
         masks |= self.basic_rules.get_valid(full_board)
         if self.no_double_threes:
             masks |= self.no_double_threes.get_valid(full_board)
@@ -70,7 +56,7 @@ class Gomoku:
 
     def is_valid_action(self, action: tuple[int]) -> bool:
         ar, ac = action
-        full_board = (self.state.board[0] | self.state.board[1]).astype(np.int8)
+        full_board = (self.board[0] | self.board[1]).astype(np.int8)
         is_valid = self.basic_rules.is_valid(full_board, ar, ac)
         if self.no_double_threes:
             is_valid |= self.no_double_threes.is_valid(full_board, ar, ac)
@@ -83,7 +69,7 @@ class Gomoku:
             breakpoint()
             raise Exception
 
-        self.state.board[0, ar, ac] = 1
+        self.board[0, ar, ac] = 1
         self.update_game_zone(ar, ac)
         self.last_action = (ar, ac)
 
@@ -135,10 +121,10 @@ class Gomoku:
 
     def next_turn(self, before_next_turn_cb=[]) -> None:
 
-        board = self.state.board if self.player_idx == 0 else self.state.board[::-1, ...]
+        board = self.board if self.player_idx == 0 else self.board[::-1, ...]
         self.history.append(board)
 
-        # if np.all(self.state.full_board != 0):
+        # if np.all(self.full_board != 0):
         #     print("DRAW")
         #     self._isover = True
         #     self.winner = -1
@@ -155,17 +141,17 @@ class Gomoku:
 
         self.turn += 1
         self.player_idx ^= 1
-        self.state.board = self.state.board[::-1, ...]
-        if not self.state.board.flags['C_CONTIGUOUS']:
-            self.state.board = np.ascontiguousarray(self.state.board)
+        self.board = self.board[::-1, ...]
+        if not self.board.flags['C_CONTIGUOUS']:
+            self.board = np.ascontiguousarray(self.board)
 
-        self.basic_rules.update_board_ptr(self.state.board)
+        self.basic_rules.update_board_ptr(self.board)
         if self.is_capture_active:
-            self.capture.update_board_ptr(self.state.board)
+            self.capture.update_board_ptr(self.board)
         if self.is_game_ending_capture_active:
-            self.game_ending_capture.update_board_ptr(self.state.board)
+            self.game_ending_capture.update_board_ptr(self.board)
         if self.is_no_double_threes_active:
-            self.no_double_threes.update_board_ptr(self.state.board)
+            self.no_double_threes.update_board_ptr(self.board)
         return cb_return
 
     def isover(self):
@@ -177,7 +163,7 @@ class Gomoku:
             'history': self.history.copy(),
             # 'history': self.get_history(),
             'last_action': (ar, ac),
-            'board': self.state.board.copy(),
+            'board': self.board.copy(),
             'player_idx': self.player_idx,
             '_isover': self._isover,
             'winner': self.winner,
@@ -195,7 +181,7 @@ class Gomoku:
 
         self.history = snapshot['history'].copy()
         self.last_action = (ar, ac)
-        self.state.board = snapshot['board'].copy()
+        self.board = snapshot['board'].copy()
         self.player_idx = snapshot['player_idx']
         self._isover = snapshot['_isover']
         self.winner = snapshot['winner']
@@ -203,36 +189,36 @@ class Gomoku:
         self.game_zone[:] = snapshot['game_zone']
 
         self.basic_rules.update_from_snapshot(snapshot['basic_rules_rules'])
-        self.basic_rules.update_board_ptr(self.state.board)
+        self.basic_rules.update_board_ptr(self.board)
         if self.is_capture_active:
             self.capture.update_from_snapshot(snapshot['capture_rules'])
-            self.capture.update_board_ptr(self.state.board)
+            self.capture.update_board_ptr(self.board)
         if self.is_game_ending_capture_active:
             self.game_ending_capture.update_from_snapshot(snapshot['game_ending_capture_rules'])
-            self.game_ending_capture.update_board_ptr(self.state.board)
+            self.game_ending_capture.update_board_ptr(self.board)
         if self.is_no_double_threes_active:
             self.no_double_threes.update_from_snapshot(snapshot['no_double_threes_rules'])
-            self.no_double_threes.update_board_ptr(self.state.board)
+            self.no_double_threes.update_board_ptr(self.board)
 
     def _update_rules(self, engine: Gomoku):
         self.basic_rules.update(engine.basic_rules)
-        self.basic_rules.update_board_ptr(self.state.board)
+        self.basic_rules.update_board_ptr(self.board)
         if self.is_capture_active:
             self.capture.update(engine.capture)
-            self.capture.update_board_ptr(self.state.board)
+            self.capture.update_board_ptr(self.board)
         if self.is_game_ending_capture_active:
             self.game_ending_capture.update(engine.game_ending_capture)
-            self.game_ending_capture.update_board_ptr(self.state.board)
+            self.game_ending_capture.update_board_ptr(self.board)
         if self.is_no_double_threes_active:
             self.no_double_threes.update(engine.no_double_threes)
-            self.no_double_threes.update_board_ptr(self.state.board)
+            self.no_double_threes.update_board_ptr(self.board)
 
     def update(self, engine: Gomoku):
         ar, ac = engine.last_action
 
         self.history = engine.history.copy()
         self.last_action = (ar, ac)
-        self.state.board = engine.state.board.copy()
+        self.board = engine.board.copy()
 
         self.player_idx = engine.player_idx
         self._isover = engine._isover

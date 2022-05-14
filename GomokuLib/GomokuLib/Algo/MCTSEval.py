@@ -11,14 +11,14 @@ from .MCTS import MCTS
 
 #njit() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 def heuristic(engine):
-    board = engine.state.board.astype(np.int8)
+    board = engine.board.astype(np.int8)
     full_board = (board[0] | board[1]).astype(np.int8)
-    # if not engine.state.board.flags['C_CONTIGUOUS']:
+    # if not engine.board.flags['C_CONTIGUOUS']:
     #     print(f"NOT continuoueo_iyfhg_uièyergbiuybziruygbirzuy")
-    #     engine.state.board = np.ascontiguousarray(engine.state.board)
-    # if not engine.state.full_board.flags['C_CONTIGUOUS']:
+    #     engine.board = np.ascontiguousarray(engine.board)
+    # if not engine.full_board.flags['C_CONTIGUOUS']:
     #     print(f"NOT continuoueo_iyfhg_uièyergbiuybziruygbirzuy 2")
-    #     engine.state.full_board = np.ascontiguousarray(engine.state.full_board)
+    #     engine.full_board = np.ascontiguousarray(engine.full_board)
 
     c_board = ffi.cast("char *", board.ctypes.data)
     c_full_board = ffi.cast("char *", full_board.ctypes.data)
@@ -84,7 +84,7 @@ class MCTSEval(MCTS):
 
     def _pruning(self, engine: Gomoku):
 
-        full_board =(engine.state.board[0] | engine.state.board[1]).astype(np.int8)
+        full_board =(engine.board[0] | engine.board[1]).astype(np.int8)
         n1 = get_neighbors_mask(full_board)                      # Get neightbors, depth=1
 
         if self.hard_pruning:
