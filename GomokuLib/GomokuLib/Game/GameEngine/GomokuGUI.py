@@ -14,13 +14,12 @@ from GomokuLib.Game.Action.GomokuAction import GomokuAction
 from GomokuLib.Game.UI.UIManager import UIManager
 import GomokuLib
 from .Gomoku import Gomoku
-from .GomokuJit import GomokuJit
 
 if TYPE_CHECKING:
     from ...Player.AbstractPlayer import AbstractPlayer
 
 # class GomokuGUI(Gomoku):
-class GomokuGUI(GomokuJit):
+class GomokuGUI(Gomoku):
 
     def __init__(self,
                  players: Union[list[AbstractPlayer], tuple[AbstractPlayer]] = None,

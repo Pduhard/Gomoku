@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Union, TYPE_CHECKING
 import numpy as np
 
-from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, BasicRuleJit, RULES
+from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule, RULES
 from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
 
 from ..State.GomokuState import GomokuState
@@ -50,17 +50,17 @@ class Gomoku(AbstractGameEngine):
             for k in RULES
         }
 
-    def init_rules_fn(self, rules: list[Union[str, AbstractRule]]):
+    def init_rules_fn(self, rules: list[Union[str, object]]):
 
         tab_rules = {
             'capture': self.capture_class,
             'game-ending capture': GameEndingCapture,
             'no double-threes': NoDoubleThrees
         }
-        rules.append(BasicRule(self))
+        rules.append(BasicRule(self.state.board))
 
         self.rules = [
-            tab_rules[r.lower()](self)  # Attention ! Si la str n'est pas dans tab !
+            tab_rules[r.lower()](self.state.board)  # Attention ! Si la str n'est pas dans tab !
             if isinstance(r, str)
             else r
             for r in rules
@@ -78,15 +78,17 @@ class Gomoku(AbstractGameEngine):
     def get_actions(self) -> np.ndarray:
 
         masks = np.array([
-            rule.get_valid()
+            # rule.get_valid(self.state.full_board)
+            rule.get_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8))
             for rule in self.rules_fn['restricting']
         ])
         masks = np.bitwise_and.reduce(masks, axis=0)
         return masks
 
+
     def is_valid_action(self, action: GomokuAction) -> bool:
         return all(
-            rule.is_valid(action)
+            rule.is_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8), *action.action)
             for rule in self.rules_fn['restricting']
         )
 
@@ -142,15 +144,16 @@ class Gomoku(AbstractGameEngine):
             self.game_zone = np.array((ar, ac, ar, ac), dtype=np.int8)
 
     def _next_turn_rules(self):
+        gz = self.get_game_zone()
 
         for rule in self.rules_fn['endturn']:  # A mettre dans le apply_action ?
-            rule.endturn(self.last_action)
+            rule.endturn(self.player_idx, *self.last_action.action, gz[0], gz[1], gz[2], gz[3])
 
         # print(self.rules_fn['winning'])
 
         win = False
         for rule in self.rules_fn['winning']:
-            flag = rule.winning(self.last_action)
+            flag = rule.winning(self.player_idx, *self.last_action.action, gz[0], gz[1], gz[2], gz[3])
             if flag == 3:   # GameEndingCapture win
                 self._isover = True
                 self.winner = self.player_idx ^ 1
@@ -163,7 +166,7 @@ class Gomoku(AbstractGameEngine):
                 return
 
         if (win and not any([   #  Ca setr à rien !!!!!!!!!!!!!!!!!
-            rule.nowinning(self.last_action)
+            rule.nowinning(self.player_idx, self.last_action.action)
             for rule in self.rules_fn['nowinning']
         ])):
             self._isover = True
@@ -195,7 +198,10 @@ class Gomoku(AbstractGameEngine):
         if not self.state.board.flags['C_CONTIGUOUS']:
             self.state.board = np.ascontiguousarray(self.state.board)
 
+        for rule in self.rules:
+            rule.update_board_ptr(self.state.board)
         return cb_return
+
 
     def isover(self):
         # print(f"Gomoku(): isover() return {self._isover}")
@@ -271,7 +277,7 @@ class Gomoku(AbstractGameEngine):
     def _update_rules(self, engine: Gomoku):
         for to_update, rule in zip(self.rules, engine.rules):
             to_update.update(rule)
-        # self.rules = [rule.update(self, rule) for rule in engine.rules]
+            to_update.update_board_ptr(self.state.board)
 
     def update(self, engine: Gomoku):
 

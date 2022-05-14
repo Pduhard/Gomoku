@@ -1,85 +1,70 @@
-import fastcore
-from fastcore._rules import ffi, lib as fastcore
-
-from GomokuLib.Game.Action import GomokuAction
 import numpy as np
+import numba as nb
+from numba.core.typing import cffi_utils
+from numba.experimental import jitclass
 
-from GomokuLib.Game.GameEngine import Gomoku
+import fastcore
+import cffi
+ffi = cffi.FFI()
 
-from .AbstractRule import AbstractRule
-
-
-class ForceWinPlayer(Exception):
-    def __init__(self, reason="No reason", *args: object) -> None:
-        super().__init__(args)
-        self.reason = reason
+cffi_utils.register_module(fastcore._rules)
+is_winning_ctype = cffi_utils.make_function_type(fastcore._rules.lib.is_winning)
 
 
 class ForceWinOpponent(Exception):
-    def __init__(self, reason="No reason", *args: object) -> None:
-        super().__init__(args)
-        self.reason = reason
+	def __init__(self, reason, *args: object) -> None:
+		super().__init__(args)
+		self.reason = reason or "No reason"
+
+class ForceWinPlayer(Exception):
+	def __init__(self, reason, *args: object) -> None:
+		super().__init__(args)
+		self.reason = reason or "No reason"
 
 
-class GameEndingCapture(AbstractRule):
+spec = [
+	('name', nb.types.string),
+	('stats', nb.types.int8[:, :]),
+	('_board_ptr', nb.types.CPointer(nb.types.int8)),
+	('is_winning_cfunc', is_winning_ctype),
+	# ('_full_board_ptr', nb.types.CPointer(nb.types.int8)),
+]
 
-	name = 'GameEndingCapture'
 
-	def __init__(self, engine: Gomoku) -> None:
-		super().__init__(engine)
+@jitclass(spec)
+class GameEndingCapture:
+
+	def __init__(self, board: np.ndarray):
+		self.name = 'GameEndingCapture'
 		self.stats = np.zeros((3, 2), dtype=np.int8)
+		self._board_ptr = ffi.from_buffer(board)
+		self.is_winning_cfunc = fastcore._rules.lib.is_winning
 
-	def winning(self, action):
-		if self.stats[2][self.engine.player_idx ^ 1] == 0:
+	def winning(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
+		if self.stats[2][player_idx ^ 1] == 0:
 			return 0
+		ar, ac = self.stats[player_idx ^ 1]
 
-		ar, ac = self.stats[self.engine.player_idx ^ 1]
-		gz = self.engine.get_game_zone()
-
-		board = self.engine.state.board
-		if not board.flags['C_CONTIGUOUS']:
-			board = np.ascontiguousarray(board)
-			print("NOT CONTIGUOUS ARRAY !!!!!!")
-		c_board = ffi.cast("char *", board.ctypes.data)
-
-		# win = fastcore.basic_rule_winning(c_board, ar, ac)
-		win = fastcore.is_winning(c_board, 361, ar, ac, gz[0], gz[1], gz[2], gz[3])
-
+		win = self.is_winning_cfunc(self._board_ptr, 361, ar, ac, gz0, gz1, gz2, gz3)
 		if win:
 			return 3
 
-		self.stats[2][self.engine.player_idx ^ 1] = 0
+		self.stats[2][player_idx ^ 1] = 0
 		return 0
 
-	def nowinning(self, last_action: GomokuAction):
-		self.stats[2][self.engine.player_idx] = 1
-		self.stats[self.engine.player_idx] = last_action.action
+	def nowinning(self, player_idx: int, last_action: tuple):
+		self.stats[2][player_idx] = 1
+		self.stats[player_idx] = last_action
 		return True
 
 	def create_snapshot(self):
 		return self.stats
-		# return {
-		# 	'last_capture': [GomokuAction(*c.action) if c is not None else c for c in self.last_capture],
-		# 	'check_ending_capture': self.check_ending_capture.copy()
-		# }
 
-	def update_from_snapshot(self, stats: np.ndarray):
+	def update_from_snapshot(self, stats: np.ndarray):	# Remove these copy()
 		self.stats[...] = stats
-		# self.last_capture = [GomokuAction(*c.action) if c is not None else c for c in snapshot['last_capture']]
-		# self.check_ending_capture = snapshot['check_ending_capture'].copy()
 
-
-	def update(self, rule: AbstractRule):
+	def update(self, rule):
 		self.stats[...] = rule.stats
 
-	# def update(self, engine: Gomoku, _: AbstractRule):
-	# 	rule = GameEndingCapture(engine)
-	# 	rule.stats[...] = self.stats
-	# 	# rule.last_capture = [
-	# 	# 	GomokuAction(*c.action)
-	# 	# 	if c is not None
-	# 	# 	else c
-	# 	# 	for c in self.last_capture
-	# 	# ]
-	# 	# rule.check_ending_capture = self.check_ending_capture.copy()
-	# 	return rule
+	def update_board_ptr(self, board):
+		self._board_ptr = ffi.from_buffer(board)

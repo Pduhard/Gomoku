@@ -1,83 +1,48 @@
-from GomokuLib.Game.Action import GomokuAction
+import numba as nb
+import numpy as np
+from numba.core.typing import cffi_utils
+from numba.experimental import jitclass
 
-from GomokuLib.Game.GameEngine import Gomoku
-from .AbstractRule import AbstractRule
-from fastcore._rules import ffi, lib as fastcore
+import fastcore._rules as c_rules
 
-from numba import njit
-
-
-class BasicRule(AbstractRule):
-
-	name = 'BasicRule'
-	restricting = True  # Imply existing methods get_valid() and is_valid()
-
-	def get_valid(self):
-		return self.engine.state.full_board ^ 1
-
-	def is_valid(self, action: GomokuAction):
-		# return njit_is_valid(self.engine.state.full_board, *action.action)
-		return self.engine.state.full_board[action.action] == 0
-
-	def winning(self, action: GomokuAction):
-
-		# win = njit_is_align(self.engine.state.board, *action.action)
-
-		ar, ac = action.action
-		gz = self.engine.get_game_zone()
-		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
-		win = fastcore.is_winning(c_board, 0, ar, ac, gz[0], gz[1], gz[2], gz[3])
-		return win
-
-	def create_snapshot(self):
-		return {}
-
-	def update_from_snapshot(self, snapshot):
-		pass
-
-	def update(self, *args):
-		pass
-		# return BasicRule(engine)
+cffi_utils.register_module(c_rules)
+is_winning_ctype = cffi_utils.make_function_type(c_rules.lib.is_winning)
 
 
-# @njit()
-# def njit_is_align(board, ar, ac, p_id: int = 0, n_align: int = 5):
-#
-# 	branch_align = n_align - 1
-# 	ways = [
-# 		(-1, -1),
-# 		(-1, 0),
-# 		(-1, 1),
-# 		(0, -1)
-# 	]
-#
-# 	# 4 direction
-# 	for rway, cway in ways:
-#
-# 		# Slide 4 times
-# 		r1, c1 = ar, ac
-# 		count1 = branch_align
-# 		i = 0
-# 		while (i < branch_align and count1 == branch_align):
-#
-# 			r1 += rway
-# 			c1 += cway
-# 			if (r1 < 0 or r1 >= 19 or c1 < 0 or c1 >= 19 or board[p_id, r1, c1] == 0):
-# 				count1 = i
-# 			i += 1
-#
-# 		r2, c2 = ar, ac
-# 		count2 = branch_align
-# 		i = 0
-# 		while (i < branch_align and count2 == branch_align):
-# 			r2 -= rway
-# 			c2 -= cway
-# 			if (r2 < 0 or r2 >= 19 or c2 < 0 or c2 >= 19 or board[p_id, r2, c2] == 0):
-# 				count2 = i
-# 			i += 1
-#
-# 		# print(f"dir {rway} {cway}: {count1} + {count2} + 1")
-# 		if (count1 + count2 + 1 >= n_align):
-# 			return True
-#
-# 	return False
+spec = [
+    ('name', nb.types.string),
+    ('restricting', nb.types.boolean),
+    ('_winning_cfunc', is_winning_ctype),
+    ('_board_ptr', nb.types.CPointer(nb.types.int8)),
+    # ('_full_board_ptr', nb.types.CPointer(nb.types.int8)),
+]
+
+@jitclass(spec)
+class BasicRule:
+
+    def __init__(self, board: np.ndarray):
+        self.name = 'BasicRule'
+        self.restricting = True  # Imply existing methods get_valid() and is_valid()
+        self._winning_cfunc = c_rules.lib.is_winning
+        self._board_ptr = c_rules.ffi.from_buffer(board)
+
+    def get_valid(self, full_board: np.ndarray):
+        return full_board ^ 1
+
+    def is_valid(self, full_board: np.ndarray, ar: int, ac: int):
+        return full_board[ar, ac] == 0
+
+    def winning(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
+        return self._winning_cfunc(self._board_ptr, 0, ar, ac, gz0, gz1, gz2, gz3)
+
+    def create_snapshot(self):
+        return 0
+
+    def update_from_snapshot(self, *args):
+        pass
+
+    def update(self, *args):
+        pass
+
+    def update_board_ptr(self, board):
+        self._board_ptr = c_rules.ffi.from_buffer(board)

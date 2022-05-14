@@ -87,22 +87,22 @@ def duel():
     # )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
     #
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        RLengine=engine,
-        # agent_name="agent_23:04:2022_18:14:01",
-        agent_name="agent_13:05:2022_20:50:50",
-        mcts_iter=1000,
-        mcts_hard_pruning=True,
-        mean_forward=True,
-        model_confidence=0.95,
-        device=device
-    )
-    p2 = agent
+    # agent = GomokuLib.AI.Agent.GomokuAgent(
+    #     RLengine=engine,
+    #     # agent_name="agent_23:04:2022_18:14:01",
+    #     agent_name="agent_13:05:2022_20:50:50",
+    #     mcts_iter=1000,
+    #     mcts_hard_pruning=True,
+    #     mean_forward=True,
+    #     model_confidence=0.95,
+    #     device=device
+    # )
+    # p2 = agent
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=1000,
+        iter=2000,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -110,7 +110,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=3000,
+        iter=2000,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -189,121 +189,6 @@ def RLmain():
         nbr_games_per_tl=10,
         epochs=2
     )
-
-def c_tests():
-
-
-    """
-    1000 iter
-        Python with njit_is_align -> 26.2
-        Python with C is_align    -> 2.2
-        jitclass                  -> 1.4
-        
-    """
-
-    a = np.array([[
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-
-       [[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]],
-        dtype=np.int8,
-        order='C')
-
-    a = np.ascontiguousarray(a)
-
-
-    full_a = np.int64(a[0] | a[1])
-    full_a = np.ascontiguousarray(full_a)
-
-    c_board = ffi.cast("char *", a.ctypes.data)
-    c_full_board = ffi.cast("long *", full_a.ctypes.data)
-
-    print(f"All True: {[fastcore.is_double_threes(c_board, c_full_board, 4, 4) for i in range(100)]}")
-
-    exit(0)
-
-
-    engine = GomokuLib.Game.GameEngine.Gomoku()
-
-    rule = GomokuLib.Game.Rules.NoDoubleThrees(engine)
-    ruleJit = GomokuLib.Game.Rules.NoDoubleThreesJit(engine.state.board)
-
-    for i in range(1000):
-        board = np.random.randint(0, 2, (2, 19, 19))
-        engine.state.board = board
-        for a in range(19):
-            for b in range(19):
-
-                action = GomokuLib.Game.Action.GomokuAction(a, b)
-                full_board = board[0] | board[1]
-
-                # rj_ret = ruleJit.get_valid(full_board)
-                # r_ret = rule.get_valid()
-                # if np.any(rj_ret != r_ret):
-                #     print(f"ERROR get_validJit: {a}\n{b}")
-                #     breakpoint()
-
-                rj_ret = ruleJit.is_valid(full_board, a, b)
-                r_ret = rule.is_valid(action)
-                if np.any(rj_ret != r_ret):
-                    print(f"ERROR get_validJit: {a}\n{b}")
-                    breakpoint()
-
-                # # ruleJit.winning(np.int64(0), np.int64(5), np.int64(0), np.int64(0), np.int64(18), np.int64(18))
-                # rj_ret = ruleJit.winning(a, b, *engine.game_zone)
-                # r_ret = rule.winning(action)
-                # if rj_ret != r_ret:
-                #     print(f"ERROR get_validJit: {a}\n{b}")
-                #     breakpoint()
-
-        print(f"Valid board: {board}")
-
-
-    # t = time.time()
-    # dt = time.time() - t
-    # print(f"dtime BasicRule={dt} s")
-
-    # profiler = cProfile.Profile()
-    # profiler.enable()
-    # profiler.disable()
-    # stats = pstats.Stats(profiler).sort_stats('tottime')
-    # # stats.print_stats()
-    # stats.dump_stats('tmp_profile_from_script.prof')
 
 def numba_tests():
     spec = [
