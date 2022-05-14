@@ -450,7 +450,7 @@ class GomokuAgent(Bot):
             del cp['model_state_dict']
         if 'optimizer_state_dict' in cp:
             del cp['optimizer_state_dict']
-        print(cp)
+        # print(cp)
 
     def _load_dataset(self, dataset_path):
 
@@ -477,7 +477,6 @@ class GomokuAgent(Bot):
             Can load specific agent's model or agent's dataset
             Can load only model or only dataset
         """
-
         agent_path = os.path.join(self.saving_path, agent_to_load)
 
         files = [
@@ -486,9 +485,9 @@ class GomokuAgent(Bot):
         ]   # Get all files
         files.sort(key=lambda f: os.path.getmtime(os.path.join(agent_path, f))) # Sort by date
         for f in files[::-1]:
-            if "_model" in f and not model_name:        # Save latest model created
+            if "_model" in f and not model_name:        # Load latest model created
                 model_name = f
-            if "_dataset" in f and not dataset_name:    # Save lastest dataset created
+            if "_dataset" in f and not dataset_name:    # Load lastest dataset created
                 dataset_name = f
 
         if model_name and load_model:

@@ -78,12 +78,12 @@ def duel():
     #
     agent = GomokuLib.AI.Agent.GomokuAgent(
         RLengine=engine,
-        # agent_name="agent_23:04:2022_18:14:01",
-        agent_name="agent_13:05:2022_20:50:50",
+        agent_to_load="agent_13:05:2022_20:50:50",
         mcts_iter=1000,
         mcts_hard_pruning=True,
         mean_forward=True,
-        model_confidence=0.95,
+        model_confidence=0.75,
+        rollingout_turns=2,
         device=device
     )
     p2 = agent
@@ -131,7 +131,7 @@ def RLmain():
     )
     agent = GomokuLib.AI.Agent.GomokuAgent(
         RLengine=engine,
-        # agent_name="agent_28:04:2022_20:39:46",
+        # agent_to_load="agent_28:04:2022_20:39:46",
         mcts_iter=2500,
         mcts_hard_pruning=True,
         mean_forward=False,
