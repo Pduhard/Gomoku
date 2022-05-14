@@ -10,7 +10,6 @@ import multiprocessing as mp
 import threading
 import time
 
-from GomokuLib.Game.Action.GomokuAction import GomokuAction
 from GomokuLib.Game.UI.UIManager import UIManager
 import GomokuLib
 from .Gomoku import Gomoku
@@ -110,7 +109,8 @@ class GomokuGUI(Gomoku):
                 inpt = self.gui_inqueue.get_nowait() # raise Empty Execption
 
                 if inpt['code'] == 'response-player-action':
-                    self.player_action = inpt['data']
+                    ar, ac = inpt['data']
+                    self.player_action = (ar, ac)
 
                 elif inpt['code'] == 'shutdown':
                     exit(0)

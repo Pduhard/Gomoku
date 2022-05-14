@@ -3,18 +3,19 @@ import numpy as np
 from numba.core.typing import cffi_utils
 from numba.experimental import jitclass
 
-import fastcore._rules as c_rules
+import fastcore._rules as _fastcore
 
-cffi_utils.register_module(c_rules)
-is_winning_ctype = cffi_utils.make_function_type(c_rules.lib.is_winning)
+cffi_utils.register_module(_fastcore)
+_rules = _fastcore.lib
+ffi = _fastcore.ffi
 
+is_winning_ctype = cffi_utils.make_function_type(_rules.is_winning)
 
 spec = [
     ('name', nb.types.string),
     ('restricting', nb.types.boolean),
     ('_winning_cfunc', is_winning_ctype),
     ('_board_ptr', nb.types.CPointer(nb.types.int8)),
-    # ('_full_board_ptr', nb.types.CPointer(nb.types.int8)),
 ]
 
 @jitclass(spec)
@@ -23,8 +24,8 @@ class BasicRule:
     def __init__(self, board: np.ndarray):
         self.name = 'BasicRule'
         self.restricting = True  # Imply existing methods get_valid() and is_valid()
-        self._winning_cfunc = c_rules.lib.is_winning
-        self._board_ptr = c_rules.ffi.from_buffer(board)
+        self._winning_cfunc = _rules.is_winning
+        self._board_ptr = ffi.from_buffer(board)
 
     def get_valid(self, full_board: np.ndarray):
         return full_board ^ 1
@@ -45,4 +46,4 @@ class BasicRule:
         pass
 
     def update_board_ptr(self, board):
-        self._board_ptr = c_rules.ffi.from_buffer(board)
+        self._board_ptr = ffi.from_buffer(board)

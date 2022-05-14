@@ -8,7 +8,6 @@ from fastcore._algo import ffi, lib as fastcore
 from numba import njit
 
 from .MCTS import MCTS
-from ..Game.Action import GomokuAction
 
 #njit() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 def heuristic(engine):
@@ -144,10 +143,12 @@ class MCTSEval(MCTS):
                 actions = self.all_actions.copy()
 
             i = np.random.randint(len(actions))
-            gAction = GomokuAction(*actions[i])
+            ar, ac = actions[i]
+            gAction = (ar, ac)
             while not self.engine.is_valid_action(gAction):
                 i = np.random.randint(len(actions))
-                gAction = GomokuAction(*actions[i])
+                ar, ac = actions[i]
+                gAction = (ar, ac)
 
             self.engine.apply_action(gAction)
             self.engine.next_turn()

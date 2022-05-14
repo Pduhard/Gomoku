@@ -5,7 +5,6 @@ import numpy as np
 
 if TYPE_CHECKING:
     from ...Player.AbstractPlayer import AbstractPlayer
-    from ..Action.AbstractAction import AbstractAction
     from ..State.AbstractState import AbstractState
 
 
@@ -22,7 +21,7 @@ class AbstractGameEngine(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def apply_action(self, action: AbstractAction) -> None:
+    def apply_action(self, action: tuple[int]) -> None:
         pass
 
     @abstractmethod

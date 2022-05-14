@@ -4,7 +4,6 @@ import numpy as np
 from numba import njit, prange
 
 from .MCTS import MCTS
-from ..Game.Action.GomokuAction import GomokuAction
 from fastcore._algo import ffi, lib as fastcore
 
 
@@ -54,7 +53,7 @@ class MCTSLazy(MCTS):
     def get_actions(self) -> np.ndarray:
         return self.engine.state.full_board ^ 1
 
-    def selection(self, policy: np.ndarray, state_data: list) -> GomokuAction:
+    def selection(self, policy: np.ndarray, state_data: list) -> tuple[int]:
 
         actions = state_data['Actions']
         # action_policy = action_policy.astype(np.float64)
@@ -69,7 +68,7 @@ class MCTSLazy(MCTS):
             np.random.shuffle(arr_pick)
             for e in arr_pick:
                 x, y = arr[e]
-                gAction = GomokuAction(x, y)
+                gAction = (x, y)
                 if actions[x, y] == 2:
                     return gAction
                 elif self.engine.is_valid_action(gAction):

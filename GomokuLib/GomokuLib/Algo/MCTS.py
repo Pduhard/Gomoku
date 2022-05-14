@@ -11,8 +11,6 @@ import numpy as np
 
 from GomokuLib.Player import Human
 
-from GomokuLib.Game.Action import GomokuAction
-
 from .AbstractAlgorithm import AbstractAlgorithm
 from ..Game.GameEngine import GomokuGUI
 from ..Game.GameEngine import Gomoku
@@ -88,8 +86,8 @@ class MCTS(AbstractAlgorithm):
         self.gAction = None
         while not (self.gAction and game_engine.is_valid_action(self.gAction)):
             self.gAction = self.selection(self.mcts_policy, state_data)
-            print(f"Ultimate __call__() selection:\n{self.gAction.action}")
-            # print(f"Ultimate __call__() selection:\n{self.gAction.action} with self.mcts_policy={self.mcts_policy[self.gAction.action]}")
+            print(f"Ultimate __call__() selection:\n{self.gAction}")
+            # print(f"Ultimate __call__() selection:\n{self.gAction} with self.mcts_policy={self.mcts_policy[self.gAction]}")
 
         return self.mcts_policy, self.gAction
 
@@ -168,7 +166,8 @@ class MCTS(AbstractAlgorithm):
         policy *= state_data['Actions']     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
         bestaction = bestactions[np.random.randint(len(bestactions))]
-        return GomokuAction(*bestaction)
+        ar, ac = bestaction
+        return (ar, ac)
 
     def expand(self):
         actions = self.get_actions()
@@ -200,7 +199,7 @@ class MCTS(AbstractAlgorithm):
         if bestaction is None:
             return
 
-        r, c = bestaction.action
+        r, c = bestaction
         state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
     def award(self):

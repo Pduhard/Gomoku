@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..Game.GameEngine.AbstractGameEngine import AbstractGameEngine
     from ..Game.State.AbstractState import AbstractState
-    from ..Game.Action.AbstractAction import AbstractAction
 
 class AbstractPlayer(metaclass=ABCMeta):
 
@@ -20,5 +19,5 @@ class AbstractPlayer(metaclass=ABCMeta):
         self.engine = engine
 
     @abstractmethod
-    def play_turn(self) -> AbstractAction:
+    def play_turn(self) -> tuple[int]:
         pass

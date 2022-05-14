@@ -8,11 +8,8 @@ from GomokuLib.Game.Rules import ForceWinOpponent, ForceWinPlayer
 
 from ..State.GomokuState import GomokuState
 
-from ..Action.GomokuAction import GomokuAction
 if TYPE_CHECKING:
     from ..Rules.Capture import Capture
-    # from ..Action.GomokuAction import GomokuAction
-    from ..Rules.AbstractRule import AbstractRule
     from ...Player.AbstractPlayer import AbstractPlayer
 
 from .AbstractGameEngine import AbstractGameEngine
@@ -23,7 +20,7 @@ class Gomoku(AbstractGameEngine):
 
     def __init__(self, players: Union[list[AbstractPlayer], tuple[AbstractPlayer]] = None,
                  board_size: Union[int, tuple[int]] = 19,
-                 rules: list[Union[str, AbstractRule]] = ['Capture', 'Game-Ending Capture', 'no double-threes'],
+                 rules: list[str] = ['Capture', 'Game-Ending Capture', 'no double-threes'],
                  **kwargs) -> None:
         super().__init__(players)
 
@@ -35,7 +32,7 @@ class Gomoku(AbstractGameEngine):
         self.state = self.init_board()
         self.C, self.H, self.W = self.state.board.shape
         self.turn = 0
-        self.last_action = None
+        self.last_action = (-1, -1)
         self._isover = False
         self.winner = -1
         self.player_idx = 0
@@ -86,14 +83,14 @@ class Gomoku(AbstractGameEngine):
         return masks
 
 
-    def is_valid_action(self, action: GomokuAction) -> bool:
+    def is_valid_action(self, action: tuple[int]) -> bool:
         return all(
-            rule.is_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8), *action.action)
+            rule.is_valid(np.ascontiguousarray(self.state.board[0] | self.state.board[1]).astype(np.int8), *action)
             for rule in self.rules_fn['restricting']
         )
 
-    def apply_action(self, action: GomokuAction) -> None:
-        ar, ac = action.action
+    def apply_action(self, action: tuple[int]) -> None:
+        ar, ac = action
         if not self.is_valid_action(action):
             print(f"Not a fucking valid action: {ar} {ac}")
             breakpoint()
@@ -101,7 +98,7 @@ class Gomoku(AbstractGameEngine):
 
         self.state.board[0, ar, ac] = 1
         self.update_game_zone(ar, ac)
-        self.last_action = action
+        self.last_action = (ar, ac)
 
     def _search_capture_rule(self):
         for r in self.rules:
@@ -147,13 +144,13 @@ class Gomoku(AbstractGameEngine):
         gz = self.get_game_zone()
 
         for rule in self.rules_fn['endturn']:  # A mettre dans le apply_action ?
-            rule.endturn(self.player_idx, *self.last_action.action, gz[0], gz[1], gz[2], gz[3])
+            rule.endturn(self.player_idx, *self.last_action, gz[0], gz[1], gz[2], gz[3])
 
         # print(self.rules_fn['winning'])
 
         win = False
         for rule in self.rules_fn['winning']:
-            flag = rule.winning(self.player_idx, *self.last_action.action, gz[0], gz[1], gz[2], gz[3])
+            flag = rule.winning(self.player_idx, *self.last_action, gz[0], gz[1], gz[2], gz[3])
             if flag == 3:   # GameEndingCapture win
                 self._isover = True
                 self.winner = self.player_idx ^ 1
@@ -166,7 +163,7 @@ class Gomoku(AbstractGameEngine):
                 return
 
         if (win and not any([   #  Ca setr à rien !!!!!!!!!!!!!!!!!
-            rule.nowinning(self.player_idx, self.last_action.action)
+            rule.nowinning(self.player_idx, self.last_action)
             for rule in self.rules_fn['nowinning']
         ])):
             self._isover = True
@@ -183,7 +180,7 @@ class Gomoku(AbstractGameEngine):
         #     self.winner = -1
         #     return
 
-        if self.last_action is None:
+        if self.last_action[0] == -1:
             breakpoint()
 
         self._next_turn_rules()
@@ -236,11 +233,11 @@ class Gomoku(AbstractGameEngine):
         #             print(k, v)
         #             print(type(k), type(v))
         #     print()
-
+        ar, ac = self.last_action
         return {
             'history': self.history.copy(),
             # 'history': self.get_history(),
-            'last_action': None if self.last_action is None else GomokuAction(*self.last_action.action),
+            'last_action': (ar, ac),
             'board': self.state.board.copy(),
             'player_idx': self.player_idx,
             '_isover': self._isover,
@@ -254,8 +251,10 @@ class Gomoku(AbstractGameEngine):
         }
 
     def update_from_snapshot(self, snapshot):
+        ar, ac = snapshot['last_action']
+
         self.history = snapshot['history'].copy()
-        self.last_action = None if snapshot['last_action'] is None else GomokuAction(*snapshot['last_action'].action)
+        self.last_action = (ar, ac)
         self.state.board = snapshot['board'].copy()
         self.player_idx = snapshot['player_idx']
         self._isover = snapshot['_isover']
@@ -280,9 +279,10 @@ class Gomoku(AbstractGameEngine):
             to_update.update_board_ptr(self.state.board)
 
     def update(self, engine: Gomoku):
+        ar, ac = engine.last_action
 
         self.history = engine.history.copy()
-        self.last_action = None if engine.last_action is None else GomokuAction(*engine.last_action.action)
+        self.last_action = (ar, ac)
         self.state.board = engine.state.board.copy()
 
         self.player_idx = engine.player_idx

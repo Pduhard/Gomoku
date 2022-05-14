@@ -5,7 +5,6 @@ import pygame
 from pygame import event
 
 if TYPE_CHECKING:
-    from GomokuLib.Game.Action.AbstractAction import AbstractAction
     from GomokuLib.Game.State.AbstractState import AbstractState
 
 from GomokuLib.Player.AbstractPlayer import AbstractPlayer
@@ -18,6 +17,6 @@ class Human(AbstractPlayer):
     def __str__(self):
         return f"Human"
 
-    def play_turn(self) -> AbstractAction:
+    def play_turn(self) -> tuple[int]:
         return self.engine.wait_player_action()
 

@@ -14,7 +14,6 @@ setup(
         'GomokuLib.AI.Dataset',
         'GomokuLib.Algo',
         'GomokuLib.Game',
-        'GomokuLib.Game.Action',
         'GomokuLib.Game.GameEngine',
         'GomokuLib.Game.Rules',
         'GomokuLib.Game.State',

@@ -1,6 +1,5 @@
 import GomokuLib
 from GomokuLib.Game.GameEngine.Gomoku import Gomoku
-from GomokuLib.Game.Action.GomokuAction import GomokuAction
 from GomokuLib.Player.Human import Human
 
 if __name__ == "__main__":
@@ -12,4 +11,3 @@ if __name__ == "__main__":
 
     # gomoku.register((p1, p2))
     gomoku.run()
-    # action = GomokuAction(1, 1)

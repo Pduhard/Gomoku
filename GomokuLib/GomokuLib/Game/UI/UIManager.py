@@ -8,8 +8,6 @@ import time
 
 from ..GameEngine.Gomoku import Gomoku
 
-from ..Action.GomokuAction import GomokuAction
-
 from .Board import Board
 from .Button import Button
 from .Display import Display
@@ -117,7 +115,7 @@ class UIManager:
 
             elif code == 'board-click':
                 x, y = input['data']
-                self.board_clicked_action = GomokuAction(x, y)
+                self.board_clicked_action = (x, y)
                 print(input, x, y, self.board_clicked_action)
 
             elif code == 'game-snapshot':

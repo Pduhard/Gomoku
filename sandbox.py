@@ -50,7 +50,6 @@ from fastcore._algo import lib as fastcore_algo
         Passer le model loading dans le ModelInterface et pas dans l'Agent !
             Sinon on peut pas load un model pour le jouer avec un MCTSIA classique 
 
-        ENELVER LE ***** DE GOMOKUACTION -> C'est juste un tuple !
         Rename GameEngine -> Engine
 
 
@@ -102,7 +101,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=2000,
+        iter=100,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -110,7 +109,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=2000,
+        iter=100,
         hard_pruning=True,
         rollingout_turns=2
     )

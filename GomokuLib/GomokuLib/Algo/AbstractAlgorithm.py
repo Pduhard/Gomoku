@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Union, Dict
 
 if TYPE_CHECKING:
-    from GomokuLib.Game.Action.AbstractAction import AbstractAction
     from GomokuLib.Game.GameEngine.AbstractGameEngine import AbstractGameEngine
 
 from abc import abstractmethod, abstractproperty, ABCMeta
@@ -16,16 +15,5 @@ class AbstractAlgorithm(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def __call__(self, game_engine: AbstractGameEngine) -> Dict[AbstractAction, float]:
+    def __call__(self, game_engine: AbstractGameEngine) -> Dict[tuple[int], float]:
         pass
-
-    # def __call__(self, state: AbstractState, actions: list[AbstractAction]) -> Dict[AbstractAction, float]:
-    #     res = self.run(state, actions)
-    #     assert len(res) == len(actions)
-    #     return {a: r for a, r in zip(actions, res)}
-
-    # def run(self, state: AbstractState, actions: list[AbstractAction]) -> list[AbstractAction]:
-    # """
-    #     Run() have to score respectively each actions 
-    # """
-    #     pass

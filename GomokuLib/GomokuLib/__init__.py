@@ -3,7 +3,6 @@ from . import Algo
 from . import Game
 from . import Player
 
-from GomokuLib.Game.Action.AbstractAction import AbstractAction
 from GomokuLib.Game.State.AbstractState import AbstractState
 from GomokuLib.Game.GameEngine.AbstractGameEngine import AbstractGameEngine
 
@@ -13,6 +12,5 @@ __all__ = [
     'Game',
     'Player',
     # 'AbstractGameEngine',
-    # 'AbstractAction',
     # 'AbstractState'
 ]
