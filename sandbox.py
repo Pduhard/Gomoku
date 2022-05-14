@@ -67,8 +67,8 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    engine = GomokuLib.Game.GameEngine.GomokuGUI()
-    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
+    # engine = GomokuLib.Game.GameEngine.Gomoku()
+    engine=GomokuLib.Game.GameEngine.GomokuGUI()
     #         rules=['Capture']
     # )
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
@@ -91,7 +91,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=2000,
+        iter=5000,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -99,9 +99,9 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=2000,
+        iter=5000,
         hard_pruning=True,
-        rollingout_turns=1
+        rollingout_turns=2
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
@@ -132,7 +132,7 @@ def RLmain():
     agent = GomokuLib.AI.Agent.GomokuAgent(
         RLengine=engine,
         # agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=1500,
+        mcts_iter=2500,
         mcts_hard_pruning=True,
         mean_forward=False,
         rollingout_turns=2,
@@ -141,9 +141,9 @@ def RLmain():
 
     agent.training_loop(
         nbr_tl=-1,
-        nbr_tl_before_cmp=3,
-        nbr_games_per_tl=3,
-        epochs=5
+        nbr_tl_before_cmp=5,
+        nbr_games_per_tl=10,
+        epochs=2
     )
 
 def c_tests():

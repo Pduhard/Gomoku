@@ -115,8 +115,8 @@ class GomokuAgent(Bot):
         # Put these config numbers in an agent_config file
         self.n_model_inhibition = 0
         self.n_best_models = 0
-        self.samples_per_epoch = 1500
-        self.dataset_max_length = 4000
+        self.samples_per_epoch = 500
+        self.dataset_max_length = 2000
         self.last_n_indices = np.arange(-1, -self.dataset_max_length - 1, -1)
         # self.self_play_n_games = 10
         # self.epochs = 10
