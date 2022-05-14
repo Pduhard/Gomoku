@@ -65,11 +65,11 @@ class UIManager:
         self.main_board = Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size)
         self.components = [
             self.main_board,
-            Display(self.win, origin=(1000, 350), size=(450, 450)),
+            Display(self.win, origin=(1000, 350), size=(450, 600)),
             Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255)),
             Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0)),
             Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255)),
-            Button(self.win, origin=(1200, 850), size=(100, 100), event_code='switch-hint', color=(50, 50, 200)),
+            Button(self.win, origin=(1050, 225), size=(100, 100), event_code='switch-hint', color=(50, 50, 200)),
             Button(self.win, origin=(1350, 225), size=(100, 100), event_code='step-uptodate', color=(50, 200, 200)),
         ]
         for c in self.components:
@@ -126,7 +126,7 @@ class UIManager:
                     prev_sp_time = self.game_snapshots[-1]['time']
                 else:
                     prev_sp_time = time.time()
-                input['data']['dtime'] = round(input['data']['time'] - prev_sp_time, 3)
+                input['data']['dtime'] = input['data']['time'] - prev_sp_time
 
                 self.game_snapshots.append(input['data'])
                 print(f"New snapshot receive, pause={self.pause}\t, dtime={input['data']['dtime']}")
@@ -174,7 +174,7 @@ class UIManager:
             ss = self.game_snapshots[self.current_snapshot_idx]
             ss_data = ss['ss_data']
             dtime = ss['dtime']
-            tottime = ss['time'] - self.init_time
+            tottime = ss.get('tottime', ss['time'] - self.init_time)
             for o in self.components:
                 o.draw(ss_data=ss_data, dtime=dtime, tottime=tottime)
 

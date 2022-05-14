@@ -1,4 +1,5 @@
 from ctypes import c_buffer
+import concurrent
 import time
 from time import sleep
 
@@ -23,6 +24,13 @@ from fastcore._algo import lib as fastcore_algo
     Today :
 
         Worker
+    
+    
+        Les captures sont dans le endturn du next_turn() donc quand
+        on compute l'heuristic pour l'UI, le nbr de capture n'est pas update
+            Add callbacks to next_turn
+        
+        Reward du mcts doit diminuer dans la backprop ?
 
     TODO (Important):
 
@@ -70,32 +78,31 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # engine = GomokuLib.Game.GameEngine.GomokuGUI()
-    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
-    #         rules=['no double-threes']
+    # engine = GomokuLib.Game.GameEngine.Gomoku()
+    engine=GomokuLib.Game.GameEngine.GomokuGUI()
+    #         rules=['Capture']
     # )
-    engine=GomokuLib.Game.GameEngine.GomokuJit()
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
-            # rules=['Capture', 'Game-Ending Capture']
+    #         rules=['Capture', 'Game-Ending Capture']
     # )
     # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
     #
-    # agent = GomokuLib.AI.Agent.GomokuAgent(
-    #     RLengine=engine,
-    #     # agent_name="agent_23:04:2022_18:14:01",
-    #     # agent_name="agent_28:04:2022_20:39:46",
-    #     mcts_iter=1000,
-    #     mcts_hard_pruning=True,
-    #     mean_forward=True,
-    #     model_confidence=0,
-    #     device=device
-    # )
-    # p2 = agent
+    agent = GomokuLib.AI.Agent.GomokuAgent(
+        RLengine=engine,
+        # agent_name="agent_23:04:2022_18:14:01",
+        agent_name="agent_13:05:2022_20:50:50",
+        mcts_iter=1000,
+        mcts_hard_pruning=True,
+        mean_forward=True,
+        model_confidence=0.95,
+        device=device
+    )
+    p2 = agent
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=engine,
-        iter=3000,
+        iter=1000,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -163,33 +170,25 @@ def RLtest():
 
 def RLmain():
 
+    engine = GomokuLib.Game.GameEngine.GomokuGUI(
+        rules=['Capture']
+    )
     agent = GomokuLib.AI.Agent.GomokuAgent(
-        GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
+        RLengine=engine,
         # agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=1000,
+        mcts_iter=2500,
         mcts_hard_pruning=True,
         mean_forward=False,
+        rollingout_turns=2,
         device=device,
     )
 
     agent.training_loop(
         nbr_tl=-1,
         nbr_tl_before_cmp=5,
-        nbr_games_per_tl=4,
-        epochs=10,
-        save=False
+        nbr_games_per_tl=10,
+        epochs=2
     )
-
-def tmp():
-
-    for i in range(100000):
-        rd = np.random.random_integers(0, 1, size=(19, 19))
-        c_rd = ffi.cast("char *", rd.ctypes.data)
-
-        for y in range(19):
-            for x in range(19):
-                fastcore.is_winning(c_rd, y, x)
-                fastcore.basic_rule_winning(c_rd, y, x)
 
 def c_tests():
 
@@ -353,7 +352,7 @@ def numba_tests():
 
 if __name__ == '__main__':
     duel()
-    # RLmain()
     # RLtest()
     # numba_tests()
+    # parrallel_test()
     # c_tests()

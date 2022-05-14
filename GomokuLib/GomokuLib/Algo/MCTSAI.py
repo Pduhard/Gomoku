@@ -74,15 +74,8 @@ class MCTSAI(MCTSEvalLazy):
 
     def get_state_data(self, engine):
 
-        # model_inputs = self.model_interface.prepare(engine)
-        # model_policy, model_value = self.model_interface.forward(model_inputs)
-
-        state_data = self.states[self.current_board.tobytes()]
-
         data = super().get_state_data(engine)
         data.update({
-            'model_policy': state_data['Policy'],
-            'model_value': state_data['Value'][0],
             'model_confidence': self.model_confidence
         })
         return data
@@ -104,34 +97,37 @@ class MCTSAI(MCTSEvalLazy):
         return policy, value
 
     def _expand(self):
-        memory = super().expand()
         policy, value = self._get_model_policies()
 
+        memory = super().expand()
+
         policy = self.model_confidence * policy + self.model_confidence_inv * memory['Pruning']
-        value = self.model_confidence * value + self.model_confidence_inv * memory['Heuristic'][0]
+        self.reward = self.model_confidence * value + self.model_confidence_inv * self.reward
 
         memory.update({
             'Policy': policy,
-            'Value': [value, 1 - value]
+            'Value': value,
         })
         return memory
 
     def _expand_without_model(self):
         memory = super().expand()
         memory.update({
-            'Policy': memory['Pruning'],
-            'Value': memory['Heuristic']
+            'Policy': memory['Pruning']
         })
         return memory
 
     def _expand_without_heuristic(self):
-        memory = super().expand()
         policy, value = self._get_model_policies()
+        memory = super().expand()
         memory.update({
             'Policy': policy,
-            'Value': [value, 1 - value]
+            'Value': value
         })
         return memory
 
-    def award(self) -> tuple:
-        return self.states[self.current_board.tobytes()]['Value']
+    # def award(self) -> tuple:
+    #     value = self.states[self.current_board.tobytes()]['Value']
+    #     h_leaf = self.states[self.current_board.tobytes()]['Heuristic']
+    #     return self.model_confidence * value + self.model_confidence_inv * h_leaf
+    #     return 0.5

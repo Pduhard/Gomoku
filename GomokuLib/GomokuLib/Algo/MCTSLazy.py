@@ -78,5 +78,4 @@ class MCTSLazy(MCTS):
                 else:
                     actions[x, y] = 0
 
-
         raise Exception("No valid action to select.")
