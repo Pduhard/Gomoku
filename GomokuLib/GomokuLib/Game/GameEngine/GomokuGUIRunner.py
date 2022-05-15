@@ -62,9 +62,11 @@ class GomokuGUIRunner(GomokuRunner):
                 self.engine._next_turn_rules()
                 turn_data.update(p.algo.get_state_data_after_action(self.engine))
                 self.engine._shift_board()
+
                 if mode == "GomokuGUIRunner.run()":
                     turn_data['p1'] = str(players[0])
                     turn_data['p2'] = str(players[1])
+
                 # breakpoint()
                 self.update_UI(
                     **turn_data,

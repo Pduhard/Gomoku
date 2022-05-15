@@ -226,6 +226,19 @@ class GomokuAgent(Bot):
                     tottime=self.rl_old_tottime + time.time() - self.rl_begin_time
                 )
 
+                self.RLengine._next_turn_rules()
+                turn_data.update(self.mcts.get_state_data_after_action(self.RLengine))
+                self.RLengine._shift_board()
+                self.update_UI(
+                    **turn_data,
+                    mode=mode,
+                    captures=self.engine.get_captures()[::-1],
+                    board=self.engine.board,
+                    turn=self.engine.turn,
+                    player_idx=self.engine.player_idx,
+                    winner=self.engine.winner,
+                )
+
             __rewarding()
 
             self.memory.extend(self.current_memory)

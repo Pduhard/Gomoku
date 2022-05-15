@@ -78,8 +78,8 @@ print(f"Device selected: {device}")
 def duel():
 
     # engine = GomokuLib.Game.GameEngine.Gomoku()
-    # runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
-    runner=GomokuLib.Game.GameEngine.GomokuRunner()
+    runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    # runner=GomokuLib.Game.GameEngine.GomokuRunner()
     #         rules=['Capture']
     # )
     # engine=GomokuLib.Game.GameEngine.GomokuGUI(
@@ -104,7 +104,7 @@ def duel():
         engine=runner.engine,
         iter=100,
         hard_pruning=True,
-        rollingout_turns=3
+        rollingout_turns=5
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -112,7 +112,7 @@ def duel():
         engine=runner.engine,
         iter=100,
         hard_pruning=True,
-        rollingout_turns=3
+        rollingout_turns=5
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 

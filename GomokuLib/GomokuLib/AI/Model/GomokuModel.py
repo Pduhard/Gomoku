@@ -1,7 +1,9 @@
 from .model_utils import *
 
 
-class GomokuModel(torch.nn.Module):
+import torch
+
+class GomokuModel():
 
     def __init__(self, channels, width, height,
                  kernel_size=3, conv_filters=64,
@@ -11,7 +13,7 @@ class GomokuModel(torch.nn.Module):
                 Après un flatten les shape ne sont plus compatible
                 Mauvaise prise en compte de la reduction des shape du à un kernel_size plus grand ?
         """
-        super().__init__()
+        # super().__init__()
 
         self.width = width
         self.height = height

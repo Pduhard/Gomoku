@@ -141,6 +141,7 @@ class Gomoku:
         self.player_idx ^= 1
         self.board[...] = self.board[::-1, :, :]
         # self.board = np.ascontiguousarray(self.board)
+
         self.basic_rules.update_board_ptr(self.board)
         if self.is_capture_active:
             self.capture.update_board_ptr(self.board)

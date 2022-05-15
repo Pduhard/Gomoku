@@ -67,7 +67,7 @@ def njit_rollingout(n_turns, engine, all_actions):
     gAction = np.zeros(2, dtype=np.int32)
     turn = 0
     
-    while not engine.isover() and turn < n_turns:
+    while not engine.isover():
 
         pruning = njit_prunning(engine).flatten().astype(np.bool8)
         if pruning.any():
@@ -154,8 +154,11 @@ class MCTSEval(MCTS):
 
     def award(self):
 
-        h_leaf = heuristic(self.engine)
-
+        self._random_rollingout(self.rollingout_turns)
+        if self.engine.winner == -1: # DRAW
+            return 0.5
+        return 1 if self.engine.winner == self.engine.player_idx else 0
+           
         if self.rollingout_turns:
             self._random_rollingout(self.rollingout_turns)
             if self.engine.isover():
