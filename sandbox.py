@@ -1,9 +1,15 @@
+from ctypes import c_buffer
 import concurrent
 import time
 from time import sleep
 
+import numba
+from numba import typed, njit, prange
+from numba.core import types
+
 import numpy as np
 import torch.cuda
+from numba.experimental import jitclass
 
 import GomokuLib
 
@@ -16,6 +22,8 @@ from fastcore._algo import lib as fastcore_algo
 """
 
     Today :
+
+        Worker
     
     
         Les captures sont dans le endturn du next_turn() donc quand
@@ -26,19 +34,22 @@ from fastcore._algo import lib as fastcore_algo
 
     TODO (Important):
 
+        
         Dupliquer l'heuristic pour valoriser les coups de l'adversaire (Qui ne sont pas les même)
-        UI fonction pour afficher un board 
+            Valoriser les alignement de 4 ou il en manque qu'un !
+        
+        UI fonction pour afficher un board
+
 
     TODO (Pas très important):
 
         Faire un config file avec toute les constantes du RL
-        afficher le nbr de train / epochs effectué / nbr de best model
+        afficher le nbr de train / epochs effectué 
 
         Graph du winrate OMG 
         Passer le model loading dans le ModelInterface et pas dans l'Agent !
             Sinon on peut pas load un model pour le jouer avec un MCTSIA classique 
 
-        ENELVER LE ***** DE GOMOKUACTION -> C'est juste un tuple !
         Rename GameEngine -> Engine
 
 
@@ -58,7 +69,6 @@ from fastcore._algo import lib as fastcore_algo
 
     Notes:
 
-
 """
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -67,66 +77,74 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # engine = GomokuLib.Game.GameEngine.Gomoku()
-    engine=GomokuLib.Game.GameEngine.GomokuGUI()
-    #         rules=['Capture']
-    # )
-    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
-    #         rules=['Capture', 'Game-Ending Capture']
-    # )
-    # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
-    #
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        RLengine=engine,
-        agent_to_load="agent_13:05:2022_20:50:50",
-        mcts_iter=1000,
-        mcts_hard_pruning=True,
-        mean_forward=True,
-        model_confidence=0.75,
-        rollingout_turns=2,
-        device=device
+    # runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    # runner=GomokuLib.Game.GameEngine.GomokuRunner()
+
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner(
+        rules=['Capture']
     )
-    p2 = agent
+    # agent = GomokuLib.AI.Agent.GomokuAgent(
+    #     RLengine=engine,
+    #     # agent_name="agent_23:04:2022_18:14:01",
+    #     agent_name="agent_13:05:2022_20:50:50",
+    #     mcts_iter=1000,
+    #     mcts_hard_pruning=True,
+    #     mean_forward=True,
+    #     model_confidence=0.95,
+    #     device=device
+    # )
+    # p2 = agent
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=engine,
-        iter=1000,
+        engine=runner.engine,
+        iter=2000,
         hard_pruning=True,
-        rollingout_turns=2
+        rollingout_turns=5
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-    #     engine=engine,
-    #     iter=1000,
-    #     hard_pruning=True,
-    #     rollingout_turns=2
-    # )
-    # p2 = GomokuLib.Player.Bot(mcts_p2)
+    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=runner.engine,
+        iter=2000,
+        hard_pruning=True,
+        rollingout_turns=5
+    )
+    p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
 
-    profiler = cProfile.Profile()
-    profiler.enable()
-
     if 'p2' not in locals():
         print("new p2")
         p2 = p1
-    for i in range(1):
-        winner = engine.run([p1, p2])  # White: 0 / Black: 1
+
+    old1 = mcts_p1.mcts_iter
+    old2 = mcts_p2.mcts_iter
+
+    mcts_p1.mcts_iter = 100
+    mcts_p2.mcts_iter = 100
+
+    winner = runner.run([p1, p2])  # White: 0 / Black: 1
+    mcts_p1.mcts_iter = old1
+    mcts_p2.mcts_iter = old2
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+
+    winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('tottime')
-    stats.print_stats()
+    # stats.print_stats()
     stats.dump_stats('tmp_profile_from_script.prof')
 
     print(f"Winner is {winner}")
+    breakpoint()
 
 def RLmain():
 
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(
+    engine = GomokuLib.Game.GameEngine.GomokuGUIRunner(
         rules=['Capture']
     )
     agent = GomokuLib.AI.Agent.GomokuAgent(
@@ -146,50 +164,55 @@ def RLmain():
         epochs=2
     )
 
-def c_tests():
+def numba_tests():
+    spec = [
+        ('d', numba.typeof(typed.Dict.empty(types.string, types.int64))),
+    ]
 
-    board = np.zeros((2, 19, 19), dtype=np.int8)
-    board[1, 2, 2] = 1
-    board[1, 2, 3] = 1
-    board[1, 2, 4] = 1
-    board[1, 2, 5] = 1
-    # board[0, 2, 6] = 1
-    board[0, 2, 1] = 1
+    @njit(parallel=True, nogil=True)
+    def par(d, value):
+        for i in prange(100000):
+            d[str(hash(str(i)))]
+            d[str(i) * 722]
 
-    full_board = np.ascontiguousarray(board[0] | board[1]).astype(np.int8)
+    @jitclass(spec)
+    class A:
+        def __init__(self):
+            self.d = typed.Dict.empty(types.string, types.int64)
 
-    c_board = ffi.cast("char *", board.ctypes.data)
-    c_full_board = ffi.cast("char *", full_board.ctypes.data)
-    ret = fastcore_algo.mcts_eval_heuristic(
-        c_board, c_full_board,
-        2, 2,
-        0, 0, 18, 18
-    )
-    print(ret)
+        def run(self, value):
+            par(self.d, value)
 
-def parrallel_test():
+    class B:
+        def __init__(self):
+            self.d = {}
 
-    engine = GomokuLib.Algo.GomokuJit()
-    # engine = GomokuLib.Game.GameEngine.Gomoku()
+    a = A()
+    b = B()
 
-    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(engine=engine)
-    # p2 = GomokuLib.Player.Bot(mcts_p2)
+    value = np.random.randint(10)
+    a.d[str(-1) * 722] = value
+    b.d[str(-1) * 722] = value
+    a.run(value)
 
-    mcts_p = GomokuLib.Algo.MCTSParallel(
-        engine=engine,
-    )
-    # p1 = GomokuLib.Player.Bot(mcts_p)
-
-    # ret = mcts_p()
+    t = time.time()
+    a.run(value)
+    dt = time.time() - t
+    print(f"dtime {a}={dt} s")
 
     mcts_p.test()
 
-    # p2 = p1
-    # engine.run([p1, p2])
+    t = time.time()
+    for i in range(100000):
+        b.d[str(hash(str(i)))]
+        b.d[str(i) * 722]
 
+    dt = time.time() - t
+    print(f"dtime {b}={dt} s")
 
 if __name__ == '__main__':
-    # duel()
-    # RLmain()
-    parrallel_test()
+    duel()
+    # RLtest()
+    # numba_tests()
+    # parrallel_test()
     # c_tests()

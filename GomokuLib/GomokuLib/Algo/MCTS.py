@@ -10,11 +10,9 @@ import numpy as np
 # from numba import njit
 
 from GomokuLib.Player import Human
-
-from GomokuLib.Game.Action import GomokuAction
+from GomokuLib import Typing
 
 from .AbstractAlgorithm import AbstractAlgorithm
-from ..Game.GameEngine import GomokuGUI
 from ..Game.GameEngine import Gomoku
 
 # @njit(fastmath=True)
@@ -59,6 +57,7 @@ class MCTS(AbstractAlgorithm):
         self.c = c
         self.mcts_iter = iter
 
+        # breakpoint()
         self.board_size = self.engine.board_size
         self.brow, self.bcol = self.engine.board_size
         self.cells_count = self.brow * self.bcol
@@ -77,7 +76,7 @@ class MCTS(AbstractAlgorithm):
             self.engine.update(game_engine)
             self.mcts(i)
 
-        state_data = self.states[game_engine.state.board.tobytes()]
+        state_data = self.states[game_engine.board.tobytes()]
         sa_n, sa_v = state_data['StateAction']
         # sa_n, sa_v = state_data[2]
 
@@ -85,17 +84,13 @@ class MCTS(AbstractAlgorithm):
         # print("self.mcts_policy (rewards sum / visit count):\n", self.mcts_policy)
 
         self.engine.update(game_engine)
-        self.gAction = None
-        while not (self.gAction and game_engine.is_valid_action(self.gAction)):
-            self.gAction = self.selection(self.mcts_policy, state_data)
-            print(f"Ultimate __call__() selection:\n{self.gAction.action}")
-            # print(f"Ultimate __call__() selection:\n{self.gAction.action} with self.mcts_policy={self.mcts_policy[self.gAction.action]}")
+        self.gAction = self.selection(self.mcts_policy, state_data)
 
         return self.mcts_policy, self.gAction
 
     def get_state_data(self, engine):
         return {
-            'mcts_state_data': self.states[engine.state.board.tobytes()],
+            'mcts_state_data': self.states[engine.board.tobytes()],
         }
 
     def get_state_data_after_action(self, engine):
@@ -110,7 +105,7 @@ class MCTS(AbstractAlgorithm):
 
         path = []
         # self.mcts_idx = self.engine.player_idx
-        self.current_board = self.engine.state.board
+        self.current_board = self.engine.board
         statehash = self.current_board.tobytes()
         self.bestGAction = None
         # print(f"statehash: {statehash.hex()}")
@@ -126,7 +121,7 @@ class MCTS(AbstractAlgorithm):
             self.engine.apply_action(self.bestGAction)
             self.engine.next_turn()
 
-            self.current_board = self.engine.state.board
+            self.current_board = self.engine.board
             statehash = self.current_board.tobytes()
 
             self.end_game = self.engine.isover()
@@ -168,7 +163,7 @@ class MCTS(AbstractAlgorithm):
         policy *= state_data['Actions']     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
         bestaction = bestactions[np.random.randint(len(bestactions))]
-        return GomokuAction(*bestaction)
+        return np.array(bestaction, dtype=Typing.TupleDtype)
 
     def expand(self):
         actions = self.get_actions()
@@ -200,7 +195,7 @@ class MCTS(AbstractAlgorithm):
         if bestaction is None:
             return
 
-        r, c = bestaction.action
+        r, c = bestaction
         state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
     def award(self):

@@ -7,14 +7,11 @@ import pygame
 import time
 
 from ..GameEngine.Gomoku import Gomoku
-
-from ..Action.GomokuAction import GomokuAction
+from ..GameEngine.Snapshot import Snapshot
 
 from .Board import Board
 from .Button import Button
 from .Display import Display
-
-# from GomokuLib.Game.GameEngine.GomokuGUI import GomokuGUI
 
 
 class UIManager:
@@ -117,7 +114,7 @@ class UIManager:
 
             elif code == 'board-click':
                 x, y = input['data']
-                self.board_clicked_action = GomokuAction(x, y)
+                self.board_clicked_action = (x, y)
                 print(input, x, y, self.board_clicked_action)
 
             elif code == 'game-snapshot':
@@ -155,7 +152,9 @@ class UIManager:
     def update(self):
 
         if self.snapshot_idx_modified:
-            self.engine.update_from_snapshot(self.game_snapshots[self.current_snapshot_idx]['snapshot'])  # Update local engine to draw
+            Snapshot.update_from_snapshot(
+                self.engine,
+                self.game_snapshots[self.current_snapshot_idx]['snapshot'])  # Update local engine to draw
             self.snapshot_idx_modified = False
 
         if self.request_player_action and self.board_clicked_action and not self.pause:
@@ -184,7 +183,7 @@ class UIManager:
         self.inputs = []
 
     def update_engines(self, snapshot):
-        self.engine.update_from_snapshot(snapshot['snapshot'])  # Update local engine to draw
+        Snapshot.update_from_snapshot(self.engine, snapshot['snapshot']) # Update local engine to draw
         self.outqueue.put({                   # Update GUI engine to re-continue with new state
             'code': 'game-snapshot',
             'data': snapshot['snapshot']

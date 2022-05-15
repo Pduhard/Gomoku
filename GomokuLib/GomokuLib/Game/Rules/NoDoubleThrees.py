@@ -1,58 +1,55 @@
-from pickletools import uint8
-from time import perf_counter
-from typing import Any
-
-import fastcore
-from fastcore._rules import ffi, lib as fastcore
-
-from GomokuLib.Game.State import GomokuState
-from numba import njit
 import numpy as np
+import numba as nb
+from numba.core.typing import cffi_utils
+from numba.experimental import jitclass
 
-from GomokuLib.Game.Action import GomokuAction
+import fastcore._rules as _fastcore
 
-from GomokuLib.Game.GameEngine import Gomoku
-from .AbstractRule import AbstractRule
+from GomokuLib import Typing
 
+cffi_utils.register_module(_fastcore)
+_rules = _fastcore.lib
+ffi = _fastcore.ffi
 
-class NoDoubleThrees(AbstractRule):
+is_double_threes_ctype = cffi_utils.make_function_type(_rules.is_double_threes)
 
-	restricting = True # Imply existing methods get_valid() and is_valid()
-	name = 'NoDoubleThrees'
+@jitclass
+class NoDoubleThrees:
 
-	def __init__(self, engine: Any) -> None:
-		super().__init__(engine)
+	name:  nb.types.string
+	restricting:  nb.types.boolean
+	_is_double_threes_cfunc:  is_double_threes_ctype
+	_board_ptr:  Typing.nbBoardFFI
 
-	def get_valid(self):
-		"""
-			Need to find an optimized way to compute that
-		"""
-		actions = np.empty_like(self.engine.state.full_board)
-		for r in range(self.engine.board_size[0]):
-			for c in range(self.engine.board_size[1]):
-				actions[r, c] = self.is_valid(GomokuAction(r, c))
-		return actions
+	def __init__(self, board):
+		self.name = 'NoDoubleThrees'
+		self.restricting = True  # Imply existing methods get_valid() and is_valid()
+		# self.FT_IDENT = init_ft_ident()
+		self._is_double_threes_cfunc = _rules.is_double_threes
+		self._board_ptr = ffi.from_buffer(board)
 
-	def is_valid(self, action: GomokuAction):
+	def get_valid(self, full_board: np.ndarray):
+		# return njit_get_valid(board, self.FT_IDENT)
+		a = np.zeros_like(full_board, dtype=np.int8)
+		for r in range(19):
+			for c in range(19):
+				a[r, c] = self.is_valid(full_board, r, c)
 
-		if not self.engine.state.board.flags['C_CONTIGUOUS']:
-			print(f"AHH LA ***** DE SA ***** de ùùùùùùù")
-			self.engine.state.board = np.ascontiguousarray(self.engine.state.board)
+	def is_valid(self, full_board: np.ndarray, ar: int, ac: int):
+		# return 1
+		# return njit_is_valid(board, ac, ar, self.FT_IDENT)
+		full_board_ptr = ffi.from_buffer(full_board)
+		ret = self._is_double_threes_cfunc(self._board_ptr, full_board_ptr, ar, ac)
+		return False if ret else True
 
-		full_board = self.engine.state.full_board.astype(np.int8)
-
-		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
-		c_full_board = ffi.cast("char *", full_board.ctypes.data)
-		return not fastcore.is_double_threes(c_board, c_full_board, *action.action)
-	
 	def create_snapshot(self):
-		return {}
+		return 0
 
-	def update_from_snapshot(self, snapshot):
+	def update_from_snapshot(self, *args):
 		pass
 
 	def update(self, *args):
 		pass
 
-	# def update(self, engine: Gomoku, rule: AbstractRule):
-	# 	return NoDoubleThrees(engine)
+	def update_board_ptr(self, board):
+		self._board_ptr = ffi.from_buffer(board)

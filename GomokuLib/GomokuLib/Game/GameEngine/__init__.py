@@ -1,7 +1,11 @@
 from .Gomoku import Gomoku
-from .GomokuGUI import GomokuGUI
+from .GomokuRunner import GomokuRunner
+from .GomokuGUIRunner import GomokuGUIRunner
+from .Snapshot import Snapshot
 
 __all__ = [
     'Gomoku',
-    'GomokuGUI'
+    'GomokuRunner',
+    'GomokuGUIRunner',
+    'Snapshot',
 ]
