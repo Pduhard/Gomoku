@@ -13,6 +13,7 @@ import time
 from GomokuLib.Game.UI.UIManager import UIManager
 import GomokuLib
 from .GomokuRunner import GomokuRunner
+from .Snapshot import Snapshot
 
 class GomokuGUIRunner(GomokuRunner):
 
@@ -42,7 +43,7 @@ class GomokuGUIRunner(GomokuRunner):
             'code': 'game-snapshot',
             'data': {
                 'time': time.time(),
-                'snapshot': self.engine.create_snapshot(),
+                'snapshot': Snapshot.create_snapshot(self.engine),
                 'ss_data': kwargs
             },
         })
@@ -99,7 +100,7 @@ class GomokuGUIRunner(GomokuRunner):
                 
                 elif inpt['code'] == 'game-snapshot':
                     breakpoint()
-                    self.engine.update_from_snapshot(inpt['data'])
+                    Snapshot.update_from_snapshot(self.engine, inpt['data'])
         except:
             pass
 

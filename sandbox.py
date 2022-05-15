@@ -102,7 +102,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=3000,
+        iter=100,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -110,7 +110,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=3000,
+        iter=100,
         hard_pruning=True,
         rollingout_turns=2
     )
@@ -123,6 +123,10 @@ def duel():
         print("new p2")
         p2 = p1
 
+    winner = runner.run([p1, p2])  # White: 0 / Black: 1
+    mcts_p1.mcts_iter = 4000
+    mcts_p2.mcts_iter = 4000
+
     profiler = cProfile.Profile()
     profiler.enable()
 
@@ -134,6 +138,7 @@ def duel():
     stats.dump_stats('tmp_profile_from_script.prof')
 
     print(f"Winner is {winner}")
+    breakpoint()
 
 def RLtest():
 
