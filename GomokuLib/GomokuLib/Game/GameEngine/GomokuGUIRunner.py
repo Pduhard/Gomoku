@@ -58,14 +58,14 @@ class GomokuGUIRunner(GomokuRunner):
             if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
                 turn_data = p.algo.get_state_data(self.engine)
                 self.engine.apply_action(player_action)
-
-                cb_ret = self.engine.next_turn(before_next_turn_cb=[p.algo.get_state_data_after_action])
+                self.engine._next_turn_rules()
+                turn_data.update(p.algo.get_state_data_after_action(self.engine))
+                self.engine._shift_board()
                 if mode == "GomokuGUIRunner.run()":
                     turn_data['p1'] = str(players[0])
                     turn_data['p2'] = str(players[1])
                 # breakpoint()
                 self.update_UI(
-                    **cb_ret,
                     **turn_data,
                     mode=mode,
                     captures=self.engine.get_captures()[::-1],

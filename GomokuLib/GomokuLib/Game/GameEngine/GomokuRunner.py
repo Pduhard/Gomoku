@@ -8,10 +8,13 @@ class GomokuRunner:
     def __init__(self, rules: list[str] = ['Capture', 'Game-Ending-Capture', 'no-double-threes'],
                  **kwargs) -> None:
         self.rules = [r.lower() for r in rules]
+        is_capture_active = True if 'capture' in self.rules else False
+        is_game_ending_capture_active = True if 'game-ending-capture' in self.rules else False
+        is_no_double_threes_active = True if 'no-double-threes' in self.rules else False
         self.engine = Gomoku(
-            is_capture_active=('capture' in self.rules),
-            is_game_ending_capture_active=('game-ending-capture' in self.rules),
-            is_no_double_threes_active='no-double-threes' in self.rules
+            is_capture_active,
+            is_game_ending_capture_active,
+            is_no_double_threes_active,
         )
 
     def _run(self, players):

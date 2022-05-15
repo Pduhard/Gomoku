@@ -55,6 +55,7 @@ class MCTSLazy(MCTS):
     def selection(self, policy: np.ndarray, state_data: list) -> tuple[int]:
 
         actions = state_data['Actions']
+        gAction = np.zeros(2, dtype=np.int32)
         # action_policy = action_policy.astype(np.float64)
         # c_policy = ffi.cast("double *", action_policy.ctypes.data)
         while True:
@@ -67,7 +68,7 @@ class MCTSLazy(MCTS):
             np.random.shuffle(arr_pick)
             for e in arr_pick:
                 x, y = arr[e]
-                gAction = (x, y)
+                gAction[:] = (x, y)
                 if actions[x, y] == 2:
                     return gAction
                 elif self.engine.is_valid_action(gAction):

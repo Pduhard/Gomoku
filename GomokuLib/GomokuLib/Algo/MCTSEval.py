@@ -144,12 +144,10 @@ class MCTSEval(MCTS):
                 actions = self.all_actions.copy()
 
             i = np.random.randint(len(actions))
-            ar, ac = actions[i]
-            gAction = (ar, ac)
+            gAction = np.array(actions[i], dtype=np.int32)
             while not self.engine.is_valid_action(gAction):
                 i = np.random.randint(len(actions))
-                ar, ac = actions[i]
-                gAction = (ar, ac)
+                gAction[:] = np.array(actions[i], dtype=np.int32)
 
             self.engine.apply_action(gAction)
             self.engine.next_turn()

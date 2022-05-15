@@ -56,6 +56,7 @@ class MCTS(AbstractAlgorithm):
         self.c = c
         self.mcts_iter = iter
 
+        # breakpoint()
         self.board_size = self.engine.board_size
         self.brow, self.bcol = self.engine.board_size
         self.cells_count = self.brow * self.bcol
@@ -82,11 +83,7 @@ class MCTS(AbstractAlgorithm):
         # print("self.mcts_policy (rewards sum / visit count):\n", self.mcts_policy)
 
         self.engine.update(game_engine)
-        self.gAction = None
-        while not (self.gAction and game_engine.is_valid_action(self.gAction)):
-            self.gAction = self.selection(self.mcts_policy, state_data)
-            print(f"Ultimate __call__() selection:\n{self.gAction}")
-            # print(f"Ultimate __call__() selection:\n{self.gAction} with self.mcts_policy={self.mcts_policy[self.gAction]}")
+        self.gAction = self.selection(self.mcts_policy, state_data)
 
         return self.mcts_policy, self.gAction
 
@@ -165,8 +162,7 @@ class MCTS(AbstractAlgorithm):
         policy *= state_data['Actions']     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
         bestaction = bestactions[np.random.randint(len(bestactions))]
-        ar, ac = bestaction
-        return (ar, ac)
+        return np.array(bestaction, dtype=np.int32)
 
     def expand(self):
         actions = self.get_actions()
