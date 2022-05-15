@@ -1,10 +1,4 @@
-from GomokuLib.Player.AbstractPlayer import AbstractPlayer
+class HumanIA:
 
-
-class HumanIA(AbstractPlayer):
-
-    def __init__(self) -> None:
-        pass
-
-    def __str__(self):
+    def __str__(self, *args):
         return f"Human with AI hints"

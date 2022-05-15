@@ -1,85 +1,56 @@
-import fastcore
-from fastcore._rules import ffi, lib as fastcore
-
-from GomokuLib.Game.Action import GomokuAction
 import numpy as np
+import numba as nb
+from numba.core.typing import cffi_utils
+from numba.experimental import jitclass
 
-from GomokuLib.Game.GameEngine import Gomoku
+import fastcore._rules as _fastcore
+from GomokuLib import Typing
 
-from .AbstractRule import AbstractRule
+cffi_utils.register_module(_fastcore)
+_rules = _fastcore.lib
+ffi = _fastcore.ffi
 
-
-class ForceWinPlayer(Exception):
-    def __init__(self, reason="No reason", *args: object) -> None:
-        super().__init__(args)
-        self.reason = reason
-
-
-class ForceWinOpponent(Exception):
-    def __init__(self, reason="No reason", *args: object) -> None:
-        super().__init__(args)
-        self.reason = reason
+is_winning_ctype = cffi_utils.make_function_type(_rules.is_winning)
 
 
-class GameEndingCapture(AbstractRule):
+@jitclass
+class GameEndingCapture:
 
-	name = 'GameEndingCapture'
+	name: nb.types.string
+	stats: nb.types.int8[:, :]
+	_board_ptr: Typing.nbBoardFFI
+	is_winning_cfunc: is_winning_ctype
 
-	def __init__(self, engine: Gomoku) -> None:
-		super().__init__(engine)
+	def __init__(self, board: np.ndarray):
+		self.name = 'GameEndingCapture'
 		self.stats = np.zeros((3, 2), dtype=np.int8)
+		self._board_ptr = ffi.from_buffer(board)
+		self.is_winning_cfunc = _rules.is_winning
 
-	def winning(self, action):
-		if self.stats[2][self.engine.player_idx ^ 1] == 0:
+	def winning(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
+		if self.stats[2][player_idx ^ 1] == 0:
 			return 0
+		ar, ac = self.stats[player_idx ^ 1]
 
-		ar, ac = self.stats[self.engine.player_idx ^ 1]
-		gz = self.engine.get_game_zone()
-
-		board = self.engine.state.board
-		if not board.flags['C_CONTIGUOUS']:
-			board = np.ascontiguousarray(board)
-			print("NOT CONTIGUOUS ARRAY !!!!!!")
-		c_board = ffi.cast("char *", board.ctypes.data)
-
-		# win = fastcore.basic_rule_winning(c_board, ar, ac)
-		win = fastcore.is_winning(c_board, 361, ar, ac, gz[0], gz[1], gz[2], gz[3])
-
+		win = self.is_winning_cfunc(self._board_ptr, 361, ar, ac, gz0, gz1, gz2, gz3)
 		if win:
 			return 3
 
-		self.stats[2][self.engine.player_idx ^ 1] = 0
+		self.stats[2][player_idx ^ 1] = 0
 		return 0
 
-	def nowinning(self, last_action: GomokuAction):
-		self.stats[2][self.engine.player_idx] = 1
-		self.stats[self.engine.player_idx] = last_action.action
-		return True
+	def endturn(self, player_idx: int, ar: int, ac: int, *args):
+		self.stats[2][player_idx] = 1
+		self.stats[player_idx] = (ar, ac)
 
 	def create_snapshot(self):
 		return self.stats
-		# return {
-		# 	'last_capture': [GomokuAction(*c.action) if c is not None else c for c in self.last_capture],
-		# 	'check_ending_capture': self.check_ending_capture.copy()
-		# }
 
-	def update_from_snapshot(self, stats: np.ndarray):
-		self.stats[...] = stats
-		# self.last_capture = [GomokuAction(*c.action) if c is not None else c for c in snapshot['last_capture']]
-		# self.check_ending_capture = snapshot['check_ending_capture'].copy()
+	def update_from_snapshot(self, stats: np.ndarray):	# Remove these copy()
+		self.stats = np.copy(stats)
 
+	def update(self, rule):
+		self.stats = np.copy(rule.stats)
 
-	def update(self, rule: AbstractRule):
-		self.stats[...] = rule.stats
-
-	# def update(self, engine: Gomoku, _: AbstractRule):
-	# 	rule = GameEndingCapture(engine)
-	# 	rule.stats[...] = self.stats
-	# 	# rule.last_capture = [
-	# 	# 	GomokuAction(*c.action)
-	# 	# 	if c is not None
-	# 	# 	else c
-	# 	# 	for c in self.last_capture
-	# 	# ]
-	# 	# rule.check_ending_capture = self.check_ending_capture.copy()
-	# 	return rule
+	def update_board_ptr(self, board):
+		self._board_ptr = ffi.from_buffer(board)

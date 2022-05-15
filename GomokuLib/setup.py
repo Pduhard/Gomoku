@@ -14,13 +14,12 @@ setup(
         'GomokuLib.AI.Dataset',
         'GomokuLib.Algo',
         'GomokuLib.Game',
-        'GomokuLib.Game.Action',
         'GomokuLib.Game.GameEngine',
         'GomokuLib.Game.Rules',
-        'GomokuLib.Game.State',
         'GomokuLib.Game.UI',
         'GomokuLib.Media',
-        'GomokuLib.Player'
+        'GomokuLib.Player',
+        'GomokuLib.Typing'
     ],
     cffi_modules=[
         "./GomokuLib/Game/Rules/C/_build.py:ffibuilder",

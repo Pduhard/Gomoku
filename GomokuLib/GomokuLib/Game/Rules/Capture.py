@@ -1,56 +1,54 @@
-from typing import Any
-
-import fastcore
+import numba as nb
 import numpy as np
-from fastcore._rules import ffi, lib as fastcore
+from numba import njit
+from numba.core.typing import cffi_utils
+from numba.experimental import jitclass
 
-from GomokuLib.Game.GameEngine import Gomoku
-from GomokuLib.Game.Action import GomokuAction
-from GomokuLib.Game.Rules.AbstractRule import AbstractRule
-from GomokuLib.Game.Rules.GameEndingCapture import ForceWinPlayer
+import fastcore._rules as _fastcore
+
+from GomokuLib import Typing
+
+cffi_utils.register_module(_fastcore)
+_rules = _fastcore.lib
+ffi = _fastcore.ffi
+
+count_captures_ctype = cffi_utils.make_function_type(_rules.count_captures)
 
 
-class Capture(AbstractRule):
+@jitclass
+class Capture():
+	name: nb.types.string
+	player_count_capture: Typing.nbTuple
+	_board_ptr: Typing.nbBoardFFI
+	count_captures_cfunc: count_captures_ctype
 
-	name = 'Capture'
+	def __init__(self, board) -> None:
+		self.name = 'Capture'
+		self.player_count_capture = np.zeros(2, dtype=Typing.TupleDtype)
+		self._board_ptr = ffi.from_buffer(board)
+		self.count_captures_cfunc = _rules.count_captures
+	
+	def endturn(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
 
-	def __init__(self, engine: Any) -> None:
-		super().__init__(engine)
-		# self.CAPTURE_MASK=init_capture_mask()
-		self.player_count_capture = np.array((0, 0), np.int8)
+		count1 = self.count_captures_cfunc(self._board_ptr, ar, ac, gz0, gz1, gz2, gz3)
+		self.player_count_capture[player_idx] += count1
 
-	def endturn(self, action: GomokuAction):
-
-		c_board = ffi.cast("char *", self.engine.state.board.ctypes.data)
-		ar, ac = action.action
-		gz = self.engine.get_game_zone()
-		# print(f"NEXT TURN CAPTURE")
-
-		count1 = fastcore.count_captures(c_board, ar, ac, gz[0], gz[1], gz[2], gz[3])
-		self.player_count_capture[self.engine.player_idx] += count1
-
-	def winning(self, action: GomokuAction):
-		if self.player_count_capture[self.engine.player_idx] >= 5:
+	def winning(self, player_idx: int, *args):
+		if self.player_count_capture[player_idx] >= 5:
 			return 2
 		return 0
 
-	def get_current_player_captures(self, *args):
-		return self.player_count_capture[::-1] if self.engine.player_idx else self.player_count_capture
+	def get_current_player_captures(self, player_idx: int):
+		return self.player_count_capture[::-1] if player_idx else self.player_count_capture
 
 	def create_snapshot(self):
-		return self.player_count_capture.copy()
-		# return {
-		# 	'player_count_capture': self.player_count_capture.copy()
-		# }
-	
-	def update_from_snapshot(self, player_count_capture: np.ndarray):
-		self.player_count_capture[:] = player_count_capture
-		# self.player_count_capture[:] = snapshot['player_count_capture']
+		return self.player_count_capture
 
-	def update(self, rule: AbstractRule):
-		self.player_count_capture[:] = rule.player_count_capture
+	def update_from_snapshot(self, player_count_capture):
+		self.player_count_capture = np.copy(player_count_capture)
 
-	# def update(self, engine: Gomoku, rule: AbstractRule):
-	# 	newrule = Capture(engine)
-	# 	newrule.player_count_capture[:] = rule.player_count_capture
-	# 	return newrule
+	def update(self, rule):
+		self.player_count_capture = np.copy(rule.player_count_capture)
+
+	def update_board_ptr(self, board):
+		self._board_ptr = ffi.from_buffer(board)
