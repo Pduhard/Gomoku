@@ -36,6 +36,29 @@ def test_selection_parallel(actions, policy):
     best_actions[-1, 0] = k
     return best_actions
 
+@njit()
+def njit_selection_test(actions, policy, engine):
+    gAction = np.zeros(2, dtype=np.int32)
+    # action_policy = action_policy.astype(np.float64)
+    # c_policy = ffi.cast("double *", action_policy.ctypes.data)
+    while True:
+        # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
+        arr = test_selection_parallel(actions, policy)
+
+        len = arr[-1, 0]
+        arr_pick = np.arange(len)
+        # best_actions = np.argwhere(np.amax())
+        np.random.shuffle(arr_pick)
+        for e in arr_pick:
+            x, y = arr[e]
+            gAction[:] = (x, y)
+            if actions[x, y] == 2:
+                return gAction
+            elif engine.is_valid_action(gAction):
+                actions[x, y] = 2
+                return gAction
+            else:
+                actions[x, y] = 0
 
 class MCTSLazy(MCTS):
 
@@ -55,6 +78,7 @@ class MCTSLazy(MCTS):
     def selection(self, policy: np.ndarray, state_data: list) -> tuple[int]:
 
         actions = state_data['Actions']
+        return njit_selection_test(actions, policy, self.engine)
         gAction = np.zeros(2, dtype=np.int32)
         # action_policy = action_policy.astype(np.float64)
         # c_policy = ffi.cast("double *", action_policy.ctypes.data)

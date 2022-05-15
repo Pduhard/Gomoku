@@ -104,7 +104,7 @@ def duel():
         engine=runner.engine,
         iter=100,
         hard_pruning=True,
-        rollingout_turns=2
+        rollingout_turns=5
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -112,7 +112,7 @@ def duel():
         engine=runner.engine,
         iter=100,
         hard_pruning=True,
-        rollingout_turns=2
+        rollingout_turns=5
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
@@ -124,8 +124,8 @@ def duel():
         p2 = p1
 
     winner = runner.run([p1, p2])  # White: 0 / Black: 1
-    mcts_p1.mcts_iter = 4000
-    mcts_p2.mcts_iter = 4000
+    mcts_p1.mcts_iter = 2000
+    mcts_p2.mcts_iter = 2000
 
     profiler = cProfile.Profile()
     profiler.enable()
