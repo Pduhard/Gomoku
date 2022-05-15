@@ -73,7 +73,7 @@ def njit_rollingout(n_turns, engine, all_actions):
         if pruning.any():
             actions = all_actions[pruning > 0]
         else:
-            actions = all_actions.copy()
+            actions = all_actions
         
         action_number = len(actions)
         i = np.random.randint(action_number)

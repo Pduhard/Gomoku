@@ -104,7 +104,7 @@ def duel():
         engine=runner.engine,
         iter=100,
         hard_pruning=True,
-        rollingout_turns=5
+        rollingout_turns=3
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -112,7 +112,7 @@ def duel():
         engine=runner.engine,
         iter=100,
         hard_pruning=True,
-        rollingout_turns=5
+        rollingout_turns=3
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
