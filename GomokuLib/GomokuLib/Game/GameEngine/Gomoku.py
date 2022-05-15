@@ -52,16 +52,16 @@ class Gomoku:
         # self.history = []
         self.game_zone = np.array(
             [0, 0, self.board_size[0] - 1, self.board_size[1] - 1],
-            dtype=np.int8)
+            dtype=Typing.GameZoneDtype)
         self.capture = Capture(self.board)
         self.game_ending_capture = GameEndingCapture(self.board)
         self.no_double_threes = NoDoubleThrees(self.board)
         self.basic_rules = BasicRule(self.board)
 
     def get_actions(self) -> np.ndarray:
-        masks = np.ones((19, 19), dtype=np.int8)
+        masks = np.ones((19, 19), dtype=Typing.ActionDtype)
 
-        full_board = (self.board[0] | self.board[1]).astype(np.int8)
+        full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         masks |= self.basic_rules.get_valid(full_board)
         if self.no_double_threes:
             masks |= self.no_double_threes.get_valid(full_board)
@@ -70,7 +70,7 @@ class Gomoku:
 
     def is_valid_action(self, action: np.ndarray) -> bool:
         ar, ac = action
-        full_board = (self.board[0] | self.board[1]).astype(np.int8)
+        full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         is_valid = self.basic_rules.is_valid(full_board, ar, ac)
         if self.is_no_double_threes_active:
             is_valid |= self.no_double_threes.is_valid(full_board, ar, ac)
@@ -91,7 +91,7 @@ class Gomoku:
     def get_captures(self) -> list:
         if self.is_capture_active:
             return self.capture.get_current_player_captures(self.player_idx)
-        return np.array([0, 0], dtype=np.int8)
+        return np.array([0, 0], dtype=Typing.TupleDtype)
 
     # def get_history(self) -> np.ndarray:
     #     return np.array(self.history)
@@ -112,7 +112,7 @@ class Gomoku:
                 self.game_zone[3] = ac
         else:
             # self.game_zone_init = True
-            self.game_zone = np.array((ar, ac, ar, ac), dtype=np.int8)
+            self.game_zone = np.array((ar, ac, ar, ac), dtype=Typing.GameZoneDtype)
 
     def _next_turn_rules(self):
         gz0, gz1, gz2, gz3 = self.get_game_zone()
@@ -140,8 +140,6 @@ class Gomoku:
         self.turn += 1
         self.player_idx ^= 1
         self.board = np.copy(self.board[::-1, :, :])
-
-        # self.board = np.ascontiguousarray(self.board)
         self.update_board_ptr()
     
     def update_board_ptr(self):

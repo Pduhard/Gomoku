@@ -6,25 +6,25 @@ from numba.experimental import jitclass
 
 import fastcore._rules as _fastcore
 
+from GomokuLib import Typing
+
 cffi_utils.register_module(_fastcore)
 _rules = _fastcore.lib
 ffi = _fastcore.ffi
 
 count_captures_ctype = cffi_utils.make_function_type(_rules.count_captures)
 
-spec = [
-	('name', nb.types.string),
-	('player_count_capture', nb.types.int8[:]),
-	('_board_ptr', nb.types.CPointer(nb.types.int8)),
-	('count_captures_cfunc', count_captures_ctype),
-]
 
-@jitclass(spec)
+@jitclass
 class Capture():
+	name: nb.types.string
+	player_count_capture: Typing.nbTuple
+	_board_ptr: Typing.nbBoardFFI
+	count_captures_cfunc: count_captures_ctype
 
 	def __init__(self, board) -> None:
 		self.name = 'Capture'
-		self.player_count_capture = np.zeros(2, dtype=np.int8)
+		self.player_count_capture = np.zeros(2, dtype=Typing.TupleDtype)
 		self._board_ptr = ffi.from_buffer(board)
 		self.count_captures_cfunc = _rules.count_captures
 	

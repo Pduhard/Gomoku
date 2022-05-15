@@ -5,19 +5,21 @@ from numba.experimental import jitclass
 
 import fastcore._rules as _fastcore
 
+from GomokuLib import Typing
+
 cffi_utils.register_module(_fastcore)
 _rules = _fastcore.lib
 ffi = _fastcore.ffi
 
 is_winning_ctype = cffi_utils.make_function_type(_rules.is_winning)
 
-@jitclass()
+@jitclass
 class BasicRule:
 
     name: nb.types.string
     restricting: nb.types.boolean
     _winning_cfunc: is_winning_ctype
-    _board_ptr: nb.types.CPointer(nb.types.int8)
+    _board_ptr: Typing.nbBoardFFI
 
     def __init__(self, board):
         self.name = 'BasicRule'
