@@ -20,7 +20,7 @@ class GomokuGUIRunner(GomokuRunner):
     def __init__(self, win_size: Union[list[int], tuple[int]] = (1500, 1000),
                  *args, **kwargs) -> None:
 
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.gui_outqueue = mp.Queue()
         self.gui_inqueue = mp.Queue()
 

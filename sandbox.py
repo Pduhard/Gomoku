@@ -77,16 +77,12 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # engine = GomokuLib.Game.GameEngine.Gomoku()
-    runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    # runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
     # runner=GomokuLib.Game.GameEngine.GomokuRunner()
-    #         rules=['Capture']
-    # )
-    # engine=GomokuLib.Game.GameEngine.GomokuGUI(
-    #         rules=['Capture', 'Game-Ending Capture']
-    # )
-    # engine = GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture'])
-    #
+
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner(
+        rules=['Capture']
+    )
     # agent = GomokuLib.AI.Agent.GomokuAgent(
     #     RLengine=engine,
     #     # agent_name="agent_23:04:2022_18:14:01",
@@ -102,17 +98,17 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=4000,
+        iter=2000,
         hard_pruning=True,
-        rollingout_turns=3
+        rollingout_turns=5
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=4000,
+        iter=2000,
         hard_pruning=True,
-        rollingout_turns=3
+        rollingout_turns=5
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
@@ -146,40 +142,9 @@ def duel():
     print(f"Winner is {winner}")
     breakpoint()
 
-def RLtest():
-
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        GomokuLib.Game.GameEngine.GomokuGUI(rules=['Capture']),
-        # agent_name="agent_28:04:2022_20:39:46",
-        mcts_iter=1000,
-        mcts_hard_pruning=True,
-        mean_forward=False,
-        device=device,
-    )
-    agent.evaluation_n_games = 0
-    agent.model_comparison_mcts_iter = 500
-    # agent.samples_per_epoch = 50
-    # agent.dataset_max_length = 100
-
-    profiler = cProfile.Profile()
-    profiler.enable()
-
-    agent.training_loop(
-        nbr_tl=1,
-        nbr_tl_before_cmp=1,
-        nbr_games_per_tl=1,
-        epochs=10
-    )
-    agent.save()
-
-    profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('cumtime')
-    stats.print_stats()
-    stats.dump_stats('tmp_profile_from_script.prof')
-
 def RLmain():
 
-    engine = GomokuLib.Game.GameEngine.GomokuGUI(
+    engine = GomokuLib.Game.GameEngine.GomokuGUIRunner(
         rules=['Capture']
     )
     agent = GomokuLib.AI.Agent.GomokuAgent(
