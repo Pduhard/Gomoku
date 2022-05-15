@@ -177,13 +177,13 @@ def parrallel_test():
 
     mcts_p = GomokuLib.Algo.MCTSParallel(
         engine=engine,
-        # mcts_iter=1000,
-        num_workers=8,
-        batch_size=100,
     )
     # p1 = GomokuLib.Player.Bot(mcts_p)
 
-    ret = mcts_p()
+    # ret = mcts_p()
+
+    mcts_p.test()
+
     # p2 = p1
     # engine.run([p1, p2])
 

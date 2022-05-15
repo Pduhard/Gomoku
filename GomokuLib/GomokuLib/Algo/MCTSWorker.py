@@ -30,26 +30,39 @@ class GomokuJit:
 # Gomoku_type = deferred_type()
 # Gomoku_type.define(GomokuJit.class_type.instance_type) # Ne marchera que quand Gomoku sera jit
 
-state_data_dtype = np.dtype([
+
+path_dtype = np.dtype([
+    ('statehash', np.dtype('<U361')),
+    ('player_idx', np.int32),
+    ('bestaction', np.int32, (2,)),
+])
+path_nb_dtype = nb.from_dtype(path_dtype)
+
+path_array_dtype = nb.types.Array(dtype=path_dtype, ndim=361, layout='C')
+print(path_array_dtype)
+
+leaf_data_dtype = np.dtype([
     ('Visits', np.int32),
     ('Rewards', np.float32),
     ('StateAction', np.float32, (2, 19, 19)),
     ('Actions', np.int32, (2, 19, 19)),
 ])
-state_data_nb_type = nb.typeof(np.zeros(1, dtype=state_data_dtype))
+leaf_data_nb_dtype = nb.from_dtype(leaf_data_dtype)
 
-states_dtype = nb.typeof(nb.typed.Dict.empty(
+states_nb_dtype = nb.typeof(nb.typed.Dict.empty(
     key_type=nb.types.unicode_type,
-    # value_type=nb.types.float32
-    value_type=state_data_nb_type
+    value_type=leaf_data_nb_dtype
 ))
 
+worker_ret_dtype = np.dtype([
+    ('worker_id', np.int32),
+    ('leaf_data', leaf_data_dtype),
+    ('path', path_array_dtype),
+    ('depth', np.int32)
+])
+worker_ret_dtype = np.int64
+worker_ret_nb_dtype = nb.from_dtype(worker_ret_dtype)
 
-# spec = {
-#     'id': nb.types.int32,
-#     'engine': GomokuJit.class_type.instance_type,
-#     'states': states_dtype,
-# }
 
 @jitclass()
 class MCTSWorker:
@@ -59,51 +72,51 @@ class MCTSWorker:
 
     id: nb.types.int32
     engine: GomokuJit
-    states: states_dtype
     c: nb.types.float32
-    
-    best_action: nb.typeof(nb.types.Tuple)
-    # path_player_idx: nb.types.Array(np.int32, 361, 'C')
-    # path_: nb.types.Array(np.int32, 361, 'C')
-    # path_player_idx: nb.types.Array(np.int32, 361, 'C')
 
+    # states: states_nb_dtype
+    state_data_buff: worker_ret_nb_dtype
+
+    # end_game: nb.types.boolean
 
     def __init__(self, 
                 engine: GomokuJit,
-                id: nb.types.int32 = None):
+                id: nb.types.int32,
+                ):
         print(f"Worker id={self.id} __init__()\n")
 
         self.id = id
         self.engine = engine.clone()
-        self.states = {'a': 0}
-        # self.states = {self.engine.state.board: None}
         self.c = np.sqrt(2)
 
-    def __str__(self):
-        return f"MCTSWorker id={self.id} ( iter)"
+        # self.states = {'a': np.zeros((), dtype=leaf_data_dtype)}
 
-    def do_your_fck_work(self,
-                game_engine: GomokuJit,
-                global_states: states_dtype,
-                mcts_iter: nb.types.int32) -> tuple:
+        self.state_data_buff = np.zeros(1, dtype=worker_ret_dtype)
+        # self.state_data_buff = np.arange(np.int64(1), dtype=worker_ret_dtype)
+        # self.state_data_buff['worker_id'] = self.id
+
+    def __str__(self):
+        return f"MCTSWorker id={self.id}"
+
+    def do_your_fck_work(self) -> tuple:
         print(f"Worker id={self.id} do_your_fck_work()")
 
-        self.states = global_states
-        self.engine.update(game_engine)
+        self.state_data_buff['leaf_data']['Visits'] = 111111
+        self.state_data_buff['path'][0]['statehash'] = 'blablablablabla'
+        self.state_data_buff['depth'] = 1
 
-        worker_data = self.mcts(mcts_iter)
+        # return self.state_data_buff
+        return 1
 
-        return self, self.id, worker_data
-
-    def mcts(self, mcts_iter: int):
+    def mcts(self):
 
         # print(f"\n[MCTS function {mcts_iter}]\n")
 
         # self.path_player_idx = [0]
         self.best_action = (0, 0)
 
-        # statehash = self.engine.state.board.tobytes()
-        # self.end_game = self.engine.isover()
+        statehash = self.engine.board.tobytes()
+        self.end_game = self.engine.isover()
         # while statehash in self.states and not self.end_game:
 
         #     state_data = self.states[statehash]
@@ -124,15 +137,13 @@ class MCTSWorker:
         # self.best_action = None
         # path.append(self.new_memory(statehash))
 
-        # return self.expand()
-
         # sleep(2)
         return 0
 
     def get_actions(self) -> nb.int32[:, :]:
         return self.engine.full_board ^ 1
 
-    def get_policy(self, state_data: state_data_nb_type) -> nb.int32[:, :]:
+    def get_policy(self, state_data) -> nb.int32[:, :]:
         """
             ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
 
@@ -145,26 +156,20 @@ class MCTSWorker:
         sa_v = sa_v + 1
         return sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
 
-    # def selection(self, policy: np.ndarray, state_data: list) -> tuple:
+    def expand(self):
+        actions = self.get_actions()
+        self.reward = self.award_end_game() if self.end_game else self.award()
+        return {
+            'Visits': 1,
+            'Rewards': 0,
+            'StateAction': np.zeros((2, self.brow, self.bcol)),
+            'Actions': actions,
+        }
 
-    #     actions = state_data['Actions']
-    #     while True:
-    #         # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
-    #         arr = test_selection_parallel(actions, policy)
-    #         len = arr[-1, 0]
-    #         arr_pick = np.arange(len)
-    #         np.random.shuffle(arr_pick)
+    def award(self):
+        return 0.5
 
-    #         for e in arr_pick:
-    #             x, y = arr[e]
-    #             gAction = (x, y)
-
-    #             if actions[x, y] == 2:
-    #                 return gAction
-    #             elif self.engine.is_valid_action(gAction):
-    #                 actions[x, y] = 2
-    #                 return gAction
-    #             else:
-    #                 actions[x, y] = 0
-
-    #     raise Exception("No valid action to select.")
+    def award_end_game(self):
+        if self.draw:
+            return 0.5
+        return 1 if self.engine.winner == self.engine.player_idx else 0
