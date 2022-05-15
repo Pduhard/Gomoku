@@ -12,11 +12,6 @@ ffi = _fastcore.ffi
 
 count_captures_ctype = cffi_utils.make_function_type(_rules.count_captures)
 
-class ForceWinPlayer(Exception):
-    def __init__(self, reason="No reason", *args: object) -> None:
-        super().__init__(args)
-        self.reason = reason
-
 spec = [
 	('name', nb.types.string),
 	('player_count_capture', nb.types.int8[:]),
@@ -27,15 +22,12 @@ spec = [
 @jitclass(spec)
 class Capture():
 
-	def __init__(self, board: np.ndarray) -> None:
+	def __init__(self, board) -> None:
 		self.name = 'Capture'
 		self.player_count_capture = np.zeros(2, dtype=np.int8)
 		self._board_ptr = ffi.from_buffer(board)
 		self.count_captures_cfunc = _rules.count_captures
 	
-	def reset_values(self):
-		self.player_count_capture = np.zeros(2, dtype=np.int8)
-
 	def endturn(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
 
 		count1 = self.count_captures_cfunc(self._board_ptr, ar, ac, gz0, gz1, gz2, gz3)
@@ -53,11 +45,10 @@ class Capture():
 		return self.player_count_capture
 
 	def update_from_snapshot(self, player_count_capture):
-		self.player_count_capture[0] = player_count_capture[0]
-		self.player_count_capture[1] = player_count_capture[1]
+		self.player_count_capture = np.copy(player_count_capture)
 
 	def update(self, rule):
-		self.player_count_capture[:] = rule.player_count_capture
+		self.player_count_capture = np.copy(rule.player_count_capture)
 
 	def update_board_ptr(self, board):
 		self._board_ptr = ffi.from_buffer(board)

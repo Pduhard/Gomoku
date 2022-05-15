@@ -21,7 +21,7 @@ spec = [
 @jitclass(spec)
 class NoDoubleThrees:
 
-	def __init__(self, board: np.ndarray):
+	def __init__(self, board):
 		self.name = 'NoDoubleThrees'
 		self.restricting = True  # Imply existing methods get_valid() and is_valid()
 		# self.FT_IDENT = init_ft_ident()

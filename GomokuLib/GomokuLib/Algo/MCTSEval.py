@@ -4,6 +4,7 @@ import numpy as np
 
 import fastcore
 from GomokuLib.Game.GameEngine import Gomoku
+from GomokuLib import Typing
 from fastcore._algo import ffi, lib as fastcore
 from numba import njit
 
@@ -11,8 +12,10 @@ from .MCTS import MCTS
 
 njit()
 def heuristic(engine):
-    board = engine.board.astype(np.int8)
-    full_board = (board[0] | board[1]).astype(np.int8)
+    board = engine.board
+    full_board = (board[0] | board[1]).astype(Typing.BoardDtype)
+    c_board = ffi.cast("char *", board.ctypes.data)
+    c_full_board = ffi.cast("char *", full_board.ctypes.data)
     # if not engine.board.flags['C_CONTIGUOUS']:
     #     print(f"NOT continuoueo_iyfhg_uièyergbiuybziruygbirzuy")
     #     engine.board = np.ascontiguousarray(engine.board)
@@ -20,8 +23,6 @@ def heuristic(engine):
     #     print(f"NOT continuoueo_iyfhg_uièyergbiuybziruygbirzuy 2")
     #     engine.full_board = np.ascontiguousarray(engine.full_board)
 
-    c_board = ffi.cast("char *", board.ctypes.data)
-    c_full_board = ffi.cast("char *", full_board.ctypes.data)
     x = fastcore.mcts_eval_heuristic(
         c_board, c_full_board,
         *engine.get_captures(),
@@ -50,7 +51,7 @@ def get_neighbors_mask(board):
 @njit()
 def njit_prunning(engine, hard_pruning = True):
 
-    full_board =(engine.board[0] | engine.board[1]).astype(np.bool8)
+    full_board = (engine.board[0] | engine.board[1]).astype(np.bool8)
     n1 = get_neighbors_mask(full_board)                      # Get neightbors, depth=1
 
     if hard_pruning:
@@ -64,10 +65,10 @@ def njit_prunning(engine, hard_pruning = True):
 
 @njit()
 def njit_rollingout(n_turns, engine, all_actions):
-    gAction = np.zeros(2, dtype=np.int32)
+    gAction = np.zeros(2, dtype=Typing.TupleDtype)
     turn = 0
     
-    while not engine.isover():
+    while not engine.isover() and turn < n_turns:
 
         pruning = njit_prunning(engine).flatten().astype(np.bool8)
         if pruning.any():
@@ -77,10 +78,10 @@ def njit_rollingout(n_turns, engine, all_actions):
         
         action_number = len(actions)
         i = np.random.randint(action_number)
-        gAction[:] = actions[i]
+        gAction = actions[i]
         while not engine.is_valid_action(gAction):
             i = np.random.randint(action_number)
-            gAction[:] = actions[i]
+            gAction = actions[i]
 
         engine.apply_action(gAction)
         engine.next_turn()
@@ -154,11 +155,7 @@ class MCTSEval(MCTS):
 
     def award(self):
 
-        self._random_rollingout(self.rollingout_turns)
-        if self.engine.winner == -1: # DRAW
-            return 0.5
-        return 1 if self.engine.winner == self.engine.player_idx else 0
-           
+        h_leaf = heuristic(self.engine)
         if self.rollingout_turns:
             self._random_rollingout(self.rollingout_turns)
             if self.engine.isover():
@@ -187,10 +184,10 @@ class MCTSEval(MCTS):
         #         actions = self.all_actions.copy()
 
         #     i = np.random.randint(len(actions))
-        #     gAction = np.array(actions[i], dtype=np.int32)
+        #     gAction = np.array(actions[i], dtype=Typing.TupleDtype)
         #     while not self.engine.is_valid_action(gAction):
         #         i = np.random.randint(len(actions))
-        #         gAction[:] = np.array(actions[i], dtype=np.int32)
+        #         gAction[:] = np.array(actions[i], dtype=Typing.TupleDtype)
 
         #     self.engine.apply_action(gAction)
         #     self.engine.next_turn()

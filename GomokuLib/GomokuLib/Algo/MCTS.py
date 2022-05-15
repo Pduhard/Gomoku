@@ -10,6 +10,7 @@ import numpy as np
 # from numba import njit
 
 from GomokuLib.Player import Human
+from GomokuLib import Typing
 
 from .AbstractAlgorithm import AbstractAlgorithm
 from ..Game.GameEngine import Gomoku
@@ -162,7 +163,7 @@ class MCTS(AbstractAlgorithm):
         policy *= state_data['Actions']     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
         bestaction = bestactions[np.random.randint(len(bestactions))]
-        return np.array(bestaction, dtype=np.int32)
+        return np.array(bestaction, dtype=Typing.TupleDtype)
 
     def expand(self):
         actions = self.get_actions()

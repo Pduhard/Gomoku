@@ -8,24 +8,24 @@ from numba import njit
 from numba.experimental import jitclass
 
 from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule
+import GomokuLib.Typing as Typing
 
 @jitclass()
 class Gomoku:
 
     ## TYPING
-    board_size: nb.types.int32[:]
+    board_size: Typing.nbTuple
     is_capture_active: nb.types.boolean
     is_game_ending_capture_active: nb.types.boolean
     is_no_double_threes_active: nb.types.boolean
-    board: nb.types.Array(dtype=nb.int8, ndim=3, layout="C")
+    board: Typing.nbBoard
     turn: nb.types.int8
-    last_action: nb.types.int32[:]
+    last_action: Typing.nbTuple
     _isover: nb.types.boolean
     winner: nb.types.int32
     player_idx: nb.types.int32
     # history: nb.types.ListType(board_dtype)
-    game_zone: nb.types.int8[:]
-    # _board_ptr: nb.types.CPointer(nb.types.int8)
+    game_zone: Typing.nbGameZone
     capture: Capture
     game_ending_capture: GameEndingCapture
     no_double_threes: NoDoubleThrees
@@ -36,16 +36,16 @@ class Gomoku:
     def __init__(self, is_capture_active: bool = True,
                  is_game_ending_capture_active: bool = True,
                  is_no_double_threes_active: bool = True) -> None:
-        self.board_size = np.array([19, 19], dtype=np.int32)
+        self.board_size = np.array([19, 19], dtype=Typing.TupleDtype)
         self.is_capture_active = is_capture_active
         self.is_game_ending_capture_active = is_game_ending_capture_active
         self.is_no_double_threes_active = is_no_double_threes_active
         self.init_game()
 
     def init_game(self):
-        self.board = np.zeros(shape=(2, 19, 19), dtype=np.int8)
+        self.board = np.zeros(shape=(2, 19, 19), dtype=Typing.BoardDtype)
         self.turn = 0
-        self.last_action = np.array([-1, -1], dtype=np.int32)
+        self.last_action = np.array([-1, -1], dtype=Typing.TupleDtype)
         self._isover = False
         self.winner = -1
         self.player_idx = 0
@@ -139,9 +139,12 @@ class Gomoku:
 
         self.turn += 1
         self.player_idx ^= 1
-        self.board[...] = self.board[::-1, :, :]
-        # self.board = np.ascontiguousarray(self.board)
+        self.board = np.copy(self.board[::-1, :, :])
 
+        # self.board = np.ascontiguousarray(self.board)
+        self.update_board_ptr()
+    
+    def update_board_ptr(self):
         self.basic_rules.update_board_ptr(self.board)
         if self.is_capture_active:
             self.capture.update_board_ptr(self.board)
@@ -160,27 +163,23 @@ class Gomoku:
 
     def _update_rules(self, engine: Gomoku):
         self.basic_rules.update(engine.basic_rules)
-        self.basic_rules.update_board_ptr(self.board)
         if self.is_capture_active:
             self.capture.update(engine.capture)
-            self.capture.update_board_ptr(self.board)
         if self.is_game_ending_capture_active:
             self.game_ending_capture.update(engine.game_ending_capture)
-            self.game_ending_capture.update_board_ptr(self.board)
         if self.is_no_double_threes_active:
             self.no_double_threes.update(engine.no_double_threes)
-            self.no_double_threes.update_board_ptr(self.board)
 
     def update(self, engine: Gomoku):
         # self.history = engine.history.copy()
-        self.last_action = engine.last_action.copy()
-        self.board = engine.board.copy()
-
+        self.last_action = np.copy(engine.last_action)
+        self.board = np.copy(engine.board)
+        self.update_board_ptr()
         self.player_idx = engine.player_idx
         self._isover = engine._isover
         self.winner = engine.winner
         self.turn = engine.turn
-        self.game_zone[:] = engine.game_zone
+        self.game_zone = np.copy(engine.game_zone)
 
         self._update_rules(engine)
 

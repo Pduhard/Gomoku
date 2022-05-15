@@ -48,10 +48,10 @@ class GameEndingCapture:
 		return self.stats
 
 	def update_from_snapshot(self, stats: np.ndarray):	# Remove these copy()
-		self.stats[...] = stats
+		self.stats = np.copy(stats)
 
 	def update(self, rule):
-		self.stats[...] = rule.stats
+		self.stats = np.copy(rule.stats)
 
 	def update_board_ptr(self, board):
 		self._board_ptr = ffi.from_buffer(board)

@@ -11,17 +11,15 @@ ffi = _fastcore.ffi
 
 is_winning_ctype = cffi_utils.make_function_type(_rules.is_winning)
 
-spec = [
-    ('name', nb.types.string),
-    ('restricting', nb.types.boolean),
-    ('_winning_cfunc', is_winning_ctype),
-    ('_board_ptr', nb.types.CPointer(nb.types.int8)),
-]
-
-@jitclass(spec)
+@jitclass()
 class BasicRule:
 
-    def __init__(self, board: np.ndarray):
+    name: nb.types.string
+    restricting: nb.types.boolean
+    _winning_cfunc: is_winning_ctype
+    _board_ptr: nb.types.CPointer(nb.types.int8)
+
+    def __init__(self, board):
         self.name = 'BasicRule'
         self.restricting = True  # Imply existing methods get_valid() and is_valid()
         self._winning_cfunc = _rules.is_winning

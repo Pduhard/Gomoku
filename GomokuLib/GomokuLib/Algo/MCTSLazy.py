@@ -6,6 +6,7 @@ from numba import njit, prange
 from .MCTS import MCTS
 from fastcore._algo import ffi, lib as fastcore
 
+from GomokuLib import Typing
 
 @numba.vectorize('float64(int8, float64)')
 def valid_action(actions, policy):
@@ -17,7 +18,7 @@ def valid_action(actions, policy):
 
 @njit()
 def test_selection_parallel(actions, policy):
-    best_actions = np.zeros((362, 2), dtype=np.int32)
+    best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
 
     action_policy = valid_action(actions, policy)
     max = np.amax(action_policy)
@@ -38,7 +39,7 @@ def test_selection_parallel(actions, policy):
 
 @njit()
 def njit_selection_test(actions, policy, engine):
-    gAction = np.zeros(2, dtype=np.int32)
+    gAction = np.zeros(2, dtype=Typing.TupleDtype)
     # action_policy = action_policy.astype(np.float64)
     # c_policy = ffi.cast("double *", action_policy.ctypes.data)
     while True:
@@ -64,8 +65,8 @@ class MCTSLazy(MCTS):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.best_actions_buffer = np.zeros((19 * 19, 2), dtype=np.int32)
-        # self.random_buffer = np.zeros((19 * 19), dtype=np.int32)
+        self.best_actions_buffer = np.zeros((19 * 19, 2), dtype=Typing.TupleDtype)
+        # self.random_buffer = np.zeros((19 * 19), dtype=Typing.TupleDtype)
         self.c_best_actions_buffer = ffi.cast("int *", self.best_actions_buffer.ctypes.data)
         # self.c_random_buffer = ffi.cast("int *", self.random_buffer.ctypes.data)
 
@@ -79,7 +80,7 @@ class MCTSLazy(MCTS):
 
         actions = state_data['Actions']
         return njit_selection_test(actions, policy, self.engine)
-        gAction = np.zeros(2, dtype=np.int32)
+        gAction = np.zeros(2, dtype=Typing.TupleDtype)
         # action_policy = action_policy.astype(np.float64)
         # c_policy = ffi.cast("double *", action_policy.ctypes.data)
         while True:
