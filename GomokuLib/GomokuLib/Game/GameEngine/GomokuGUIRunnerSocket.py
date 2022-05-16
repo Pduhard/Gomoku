@@ -18,11 +18,13 @@ from .Snapshot import Snapshot
 class GomokuGUIRunner(GomokuRunner):
 
     def __init__(self, win_size: Union[list[int], tuple[int]] = (1500, 1000),
+                 ui_refresh_time: float = 1,
                  *args, **kwargs) -> None:
 
         super().__init__(*args, **kwargs)
-        self.gui_outqueue = mp.Queue()
-        self.gui_inqueue = mp.Queue()
+        self.gui_outqueue = []
+        self.gui_inqueue = []
+        self.ui_refresh_time = ui_refresh_time
 
         # self.engine is defined in super
         self.gui = UIManager(self.engine, win_size)
@@ -39,9 +41,9 @@ class GomokuGUIRunner(GomokuRunner):
         """
             All kwargs information will be sent to UIManager with new snapshot
         """
-        print(f"New snapshot created")
+        print(f"New snapshot add to socket queue")
 
-        self.gui_outqueue.put({
+        self.gui_outqueue.append({
             'code': 'game-snapshot',
             'data': {
                 'time': time.time(),
@@ -89,24 +91,39 @@ class GomokuGUIRunner(GomokuRunner):
         print(f"Player {self.engine.winner} win.")
         # sleep(5)
 
-    def get_gui_input(self):
 
-        try:
-            while True:
-                inpt = self.gui_inqueue.get_nowait() # raise Empty Execption
 
-                if inpt['code'] == 'response-player-action':
-                    ar, ac = inpt['data']
-                    self.player_action = (ar, ac)
+    def _send_data_to_UI(self):
+        self.ui_refresh_time
 
-                elif inpt['code'] == 'shutdown':
-                    exit(0)
-                
-                elif inpt['code'] == 'game-snapshot':
-                    breakpoint()
-                    Snapshot.update_from_snapshot(self.engine, inpt['data'])
-        except:
-            pass
+    def _recv_data_from_UI(self):
+
+
+    def _handle_gui_inputs(self):
+
+        for inpt in self.gui_inqueue:
+
+            if inpt['code'] == 'response-player-action':
+                ar, ac = inpt['data']
+                self.player_action = (ar, ac)
+
+            elif inpt['code'] == 'shutdown':
+                exit(0)
+
+            elif inpt['code'] == 'game-snapshot':
+                breakpoint()
+                Snapshot.update_from_snapshot(self.engine, inpt['data'])
+
+
+    def GUI_loop(self):
+
+        while True:
+
+            self._recv_data_from_UI()
+            if len(self.gui_inqueue):
+                self._handle_gui_inputs()
+
+            self._send_data_to_UI()
 
     def wait_player_action(self):
         self.gui_outqueue.put({

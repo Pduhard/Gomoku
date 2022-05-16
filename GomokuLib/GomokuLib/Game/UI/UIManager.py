@@ -160,8 +160,12 @@ class UIManager:
         if self.request_player_action and self.board_clicked_action and not self.pause:
             if self.engine.is_valid_action(self.board_clicked_action):
 
-                if self.current_snapshot_idx != len(self.game_snapshots) - 1:   # Nes state never seen
-                    self.update_engines(self.game_snapshots[self.current_snapshot_idx])
+                if self.current_snapshot_idx != len(self.game_snapshots) - 1:  # New state never seen
+                    self.outqueue.put({  # Update GUI engine to re-continue with new state
+                        'code': 'game-snapshot',
+                        'data': self.game_snapshots[self.current_snapshot_idx]['snapshot']
+                    })
+                    del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
 
                 self.request_player_action = False
                 self.outqueue.put({
@@ -182,11 +186,11 @@ class UIManager:
         self.board_clicked_action = None
         self.inputs = []
 
-    def update_engines(self, snapshot):
-        Snapshot.update_from_snapshot(self.engine, snapshot['snapshot']) # Update local engine to draw
-        self.outqueue.put({                   # Update GUI engine to re-continue with new state
-            'code': 'game-snapshot',
-            'data': snapshot['snapshot']
-        })
-        del self.game_snapshots[self.current_snapshot_idx + 1:]
-        self.snapshot_idx_modified = False
+    # def update_engines(self, snapshot):
+    #     Snapshot.update_from_snapshot(self.engine, snapshot['snapshot']) # Update local engine to draw
+    #     self.outqueue.put({                   # Update GUI engine to re-continue with new state
+    #         'code': 'game-snapshot',
+    #         'data': snapshot['snapshot']
+    #     })
+    #     del self.game_snapshots[self.current_snapshot_idx + 1:]
+    #     self.snapshot_idx_modified = False
