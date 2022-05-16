@@ -7,12 +7,16 @@ BUFF_SIZE = 4096
 
 def listen():
 
-    s = UISocket()
-    s.start_server()
+    s = UISocket(as_server=True)
 
-    while True:
-        data = s.listen()
-        print(f"New data: {data}")
+    try:
+        while True:
+            data = s.listen()
+            print(f"New data: {data}")
+            # s.send(data)
+
+    finally:
+        s.disconnect()
 
 if __name__ == "__main__":
     listen()

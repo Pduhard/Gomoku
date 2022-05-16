@@ -28,19 +28,17 @@ PORT = 65430  # Port to listen on (non-privileged ports are > 1023)
 
 def send():
 
-    s = UISocket()
-    s.connect()
+    s = UISocket(as_client=True)
 
     try:
-        for i in range(3):
+        for i in range(5):
             msg = {'0123': np.random.randint(0, 2, (3, 3), dtype=np.int32)}
             s.send(msg)
+            # s.listen()
             time.sleep(1)
 
-    except Exception as e:
-        print(e)
-
-    s.disconnect()
+    finally:
+        s.disconnect()
 
 
 if __name__ == "__main__":
