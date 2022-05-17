@@ -1,17 +1,11 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING
+from GomokuLib.Game.GameEngine.GomokuRunner import GomokuRunner
 
-import pygame
-from pygame import event
-
-if TYPE_CHECKING:
-    from GomokuLib.Game.State.AbstractState import AbstractState
 
 class Human:
 
     def __str__(self):
         return f"Human"
 
-    def play_turn(self, engine) -> tuple[int]:
-        return engine.wait_player_action()
-
+    def play_turn(self, runner: GomokuRunner, **kwargs) -> tuple[int]:
+        return runner.wait_player_action()

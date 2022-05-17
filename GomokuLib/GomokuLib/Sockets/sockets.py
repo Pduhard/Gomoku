@@ -23,9 +23,6 @@ import numpy as np
 
 from UISocket import UISocket
 
-HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
-PORT = 65430  # Port to listen on (non-privileged ports are > 1023)
-
 def send():
 
     # s = UISocket(host="192.168.1.6", as_client=True)
@@ -59,5 +56,20 @@ def send():
         s.disconnect()
 
 
+def UI_program():
+
+    try:
+        print(f"UISocket GUI start init")
+        uisock = UISocket(as_server=True, name="UIProgram")
+        uisock.start_sock_thread()
+        print(f"UISocket GUI end init")
+
+    except Exception as e:
+        print(f"UI program exception: {e}")
+        uisock.stop_sock_thread()
+        uisock.disconnect()
+
+
 if __name__ == "__main__":
-    send()
+    # send()
+    UI_program()

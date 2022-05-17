@@ -81,54 +81,42 @@ def duel():
     # runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
     # runner=GomokuLib.Game.GameEngine.GomokuRunner()
 
-    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner(
-        rules=['Capture']
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
+        rules=[]
     )
-    # agent = GomokuLib.AI.Agent.GomokuAgent(
-    #     RLengine=engine,
-    #     # agent_name="agent_23:04:2022_18:14:01",
-    #     agent_name="agent_13:05:2022_20:50:50",
-    #     mcts_iter=1000,
-    #     mcts_hard_pruning=True,
-    #     mean_forward=True,
-    #     model_confidence=0.95,
-    #     device=device
-    # )
-    # p2 = agent
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=2000,
+        iter=1000,
         hard_pruning=True,
-        rollingout_turns=5
+        rollingout_turns=10
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=2000,
+        iter=1000,
         hard_pruning=True,
-        rollingout_turns=5
+        rollingout_turns=10
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
+    # if 'p2' not in locals():
+    #     print("new p2")
+    #     p2 = p1
+    #     mcts_p2 = mcts_p1
+    #
+    # old1 = mcts_p1.mcts_iter
+    # old2 = mcts_p2.mcts_iter
+    # mcts_p1.mcts_iter = 100
+    # mcts_p2.mcts_iter = 100
+    # winner = runner.run([p1, p2])  # White: 0 / Black: 1
+    # mcts_p1.mcts_iter = old1
+    # mcts_p2.mcts_iter = old2
+
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
-
-    if 'p2' not in locals():
-        print("new p2")
-        p2 = p1
-
-    old1 = mcts_p1.mcts_iter
-    old2 = mcts_p2.mcts_iter
-
-    mcts_p1.mcts_iter = 100
-    mcts_p2.mcts_iter = 100
-
-    winner = runner.run([p1, p2])  # White: 0 / Black: 1
-    mcts_p1.mcts_iter = old1
-    mcts_p2.mcts_iter = old2
 
     profiler = cProfile.Profile()
     profiler.enable()
@@ -141,7 +129,7 @@ def duel():
     stats.dump_stats('tmp_profile_from_script.prof')
 
     print(f"Winner is {winner}")
-    breakpoint()
+    # breakpoint()
 
 
 def RLmain():
@@ -217,14 +205,17 @@ def UI_tests():
 
     runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
 
-    p1 = GomokuLib.Player.RandomPlayer()
-    p2 = GomokuLib.Player.RandomPlayer()
+    mcts_1 = GomokuLib.Algo.MCTSEvalLazy()
+    mcts_2 = GomokuLib.Algo.MCTSEvalLazy()
+
+    p1 = GomokuLib.Player.Bot(mcts_1)
+    p2 = GomokuLib.Player.Bot(mcts_2)
 
     runner.run((p1, p2))
 
 
 if __name__ == '__main__':
-    # duel()
+    duel()
     # RLtest()
     # numba_tests()
-    UI_tests()
+    # UI_tests()

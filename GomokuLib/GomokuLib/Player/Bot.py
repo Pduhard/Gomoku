@@ -16,5 +16,5 @@ class Bot:
     def __str__(self):
         return f"Bot with algo: {str(self.algo)}"
 
-    def play_turn(self, engine) -> tuple[int]:
+    def play_turn(self, engine, **kwargs) -> tuple[int]:
         return self.algo(engine)[1]
