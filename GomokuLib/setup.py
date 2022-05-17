@@ -19,7 +19,8 @@ setup(
         'GomokuLib.Game.UI',
         'GomokuLib.Media',
         'GomokuLib.Player',
-        'GomokuLib.Typing'
+        'GomokuLib.Typing',
+        'GomokuLib.Sockets',
     ],
     cffi_modules=[
         "./GomokuLib/Game/Rules/C/_build.py:ffibuilder",

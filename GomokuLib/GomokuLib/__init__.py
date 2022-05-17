@@ -3,6 +3,7 @@ from . import Algo
 from . import Game
 from . import Player
 from . import Typing
+from . import Sockets
 
 __all__ = [
     'AI',
@@ -10,5 +11,5 @@ __all__ = [
     'Game',
     'Player',
     'Typing',
-    # 'AbstractState'
+    'Sockets',
 ]

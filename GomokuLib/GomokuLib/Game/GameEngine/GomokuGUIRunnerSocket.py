@@ -1,41 +1,39 @@
 from __future__ import annotations
-from copy import deepcopy
-from multiprocessing.dummy import Process
-from subprocess import call
-from time import sleep
 from typing import TYPE_CHECKING, Union
-import numpy as np
-# import pygame
+
 import multiprocessing as mp
-import threading
+from multiprocessing.dummy import Process
+from GomokuLib.Game.UI.UIManager import UIManager
+
+import GomokuLib
+from GomokuLib.Sockets.UISocket import UISocket
+from GomokuLib.Game.GameEngine.Snapshot import Snapshot
+from GomokuLib.Game.GameEngine.GomokuRunner import GomokuRunner
+
 import time
 
-from GomokuLib.Game.UI.UIManager import UIManager
-import GomokuLib
-from .GomokuRunner import GomokuRunner
-from .Snapshot import Snapshot
 
 class GomokuGUIRunner(GomokuRunner):
 
-    def __init__(self, win_size: Union[list[int], tuple[int]] = (1500, 1000),
-                 ui_refresh_time: float = 1,
-                 *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
 
         super().__init__(*args, **kwargs)
-        self.gui_outqueue = []
-        self.gui_inqueue = []
-        self.ui_refresh_time = ui_refresh_time
+        self.gui_outqueue = mp.Queue()
+        self.gui_inqueue = mp.Queue()
 
         # self.engine is defined in super
-        self.gui = UIManager(self.engine, win_size)
+        self.gui = UIManager(self.engine, (1500, 1000))
         self.gui_proc = Process(target=self.gui, args=(self.gui_outqueue, self.gui_inqueue))
         self.gui_proc.start()
 
-        self.player_action = None
 
+        self.uisock = UISocket(as_server=True)
+        self.uisock.start_sock_thread()
+
+        self.player_action = None
         self.socket_queue = []
 
-        print("END __init__() GomokuguiRunner\n")
+        print("END __init__() GomokuGUIRunner\n")
 
     def update_UI(self, **kwargs):
         """
@@ -43,7 +41,7 @@ class GomokuGUIRunner(GomokuRunner):
         """
         print(f"New snapshot add to socket queue")
 
-        self.gui_outqueue.append({
+        self.gui_outqueue.put({
             'code': 'game-snapshot',
             'data': {
                 'time': time.time(),
@@ -51,6 +49,14 @@ class GomokuGUIRunner(GomokuRunner):
                 'ss_data': kwargs
             },
         })
+        # self.uisock.add_sending_queue({
+        #     'code': 'game-snapshot',
+        #     'data': {
+        #         'time': time.time(),
+        #         'snapshot': Snapshot.create_snapshot(self.engine),
+        #         'ss_data': kwargs
+        #     },
+        # })
 
     def _run(self, players, mode: str = "GomokuGUIRunner.run()"):
 
@@ -87,46 +93,46 @@ class GomokuGUIRunner(GomokuRunner):
                 self.engine.next_turn()
             # print(f"Game zone: {self.game_zone[0]} {self.game_zone[1]} into {self.game_zone[2]} {self.game_zone[3]}")
 
-
         print(f"Player {self.engine.winner} win.")
-        # sleep(5)
+        time.sleep(5)
+        self.uisock.stop_sock_thread()
+        self.uisock.disconnect()
 
+    def get_gui_input(self):
 
+        try:
+            while True:
+                inpt = self.gui_inqueue.get_nowait()  # raise Empty Execption
 
-    def _send_data_to_UI(self):
-        self.ui_refresh_time
+                if inpt['code'] == 'response-player-action':
+                    ar, ac = inpt['data']
+                    self.player_action = (ar, ac)
 
-    def _recv_data_from_UI(self):
+                elif inpt['code'] == 'shutdown':
+                    exit(0)
 
-
-    def _handle_gui_inputs(self):
-
-        for inpt in self.gui_inqueue:
-
-            if inpt['code'] == 'response-player-action':
-                ar, ac = inpt['data']
-                self.player_action = (ar, ac)
-
-            elif inpt['code'] == 'shutdown':
-                exit(0)
-
-            elif inpt['code'] == 'game-snapshot':
-                breakpoint()
-                Snapshot.update_from_snapshot(self.engine, inpt['data'])
-
-
-    def GUI_loop(self):
-
-        while True:
-
-            self._recv_data_from_UI()
-            if len(self.gui_inqueue):
-                self._handle_gui_inputs()
-
-            self._send_data_to_UI()
+                elif inpt['code'] == 'game-snapshot':
+                    breakpoint()
+                    Snapshot.update_from_snapshot(self.engine, inpt['data'])
+        except:
+            pass
+    # def get_gui_input(self):
+    #
+    #     for inpt in self.uisock.get_recv_queue():
+    #
+    #         if inpt['code'] == 'response-player-action':
+    #             ar, ac = inpt['data']
+    #             self.player_action = (ar, ac)
+    #
+    #         elif inpt['code'] == 'shutdown':
+    #             exit(0)
+    #
+    #         elif inpt['code'] == 'game-snapshot':
+    #             breakpoint()
+    #             Snapshot.update_from_snapshot(self.engine, inpt['data'])
 
     def wait_player_action(self):
-        self.gui_outqueue.put({
+        self.uisock.add_sending_queue({
             'code': 'request-player-action'
         })
         print(f"Wait player action ...")

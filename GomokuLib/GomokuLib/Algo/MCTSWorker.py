@@ -42,10 +42,14 @@ path_array_dtype = nb.types.Array(dtype=path_dtype, ndim=361, layout='C')
 print(path_array_dtype)
 
 leaf_data_dtype = np.dtype([
+    ('Worker_id', np.int32),
+    ('Depth', np.int32),
     ('Visits', np.int32),
     ('Rewards', np.float32),
     ('StateAction', np.float32, (2, 19, 19)),
     ('Actions', np.int32, (2, 19, 19)),
+    ('Heuristic', np.float32),
+    ('AMAF', np.int32, (2, 19, 19)),
 ])
 leaf_data_nb_dtype = nb.from_dtype(leaf_data_dtype)
 
@@ -57,17 +61,26 @@ states_nb_dtype = nb.typeof(nb.typed.Dict.empty(
 worker_ret_dtype = np.dtype([
     ('worker_id', np.int32),
     ('leaf_data', leaf_data_dtype),
-    ('path', path_array_dtype),
+    ('path', path_array_dtype, 361),
     ('depth', np.int32)
 ])
 worker_ret_dtype = np.int64
 worker_ret_nb_dtype = nb.from_dtype(worker_ret_dtype)
 
 
+
+
 @jitclass()
 class MCTSWorker:
     """
         Currently mix-in of MCTS() and MCTSLazy()
+
+        PATH EN BUFFER RECARRAY
+            path_buff[buff_id][:] = path
+
+        Passer un state_data buffer du parralel aux workers avec l'id ou ils
+        doivent l'ecrire. -> state_data_buff[buff_id][:] = state_data
+
     """
 
     id: nb.types.int32

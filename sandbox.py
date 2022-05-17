@@ -75,6 +75,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Device selected: {device}")
 # device = 'cpu'
 
+
 def duel():
 
     # runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
@@ -142,6 +143,7 @@ def duel():
     print(f"Winner is {winner}")
     breakpoint()
 
+
 def RLmain():
 
     engine = GomokuLib.Game.GameEngine.GomokuGUIRunner(
@@ -163,6 +165,7 @@ def RLmain():
         nbr_games_per_tl=10,
         epochs=2
     )
+
 
 def numba_tests():
     spec = [
@@ -200,7 +203,6 @@ def numba_tests():
     dt = time.time() - t
     print(f"dtime {a}={dt} s")
 
-    mcts_p.test()
 
     t = time.time()
     for i in range(100000):
@@ -210,9 +212,19 @@ def numba_tests():
     dt = time.time() - t
     print(f"dtime {b}={dt} s")
 
+
+def UI_tests():
+
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
+
+    p1 = GomokuLib.Player.RandomPlayer()
+    p2 = GomokuLib.Player.RandomPlayer()
+
+    runner.run((p1, p2))
+
+
 if __name__ == '__main__':
-    duel()
+    # duel()
     # RLtest()
     # numba_tests()
-    # parrallel_test()
-    # c_tests()
+    UI_tests()

@@ -28,16 +28,34 @@ PORT = 65430  # Port to listen on (non-privileged ports are > 1023)
 
 def send():
 
+    # s = UISocket(host="192.168.1.6", as_client=True)
     s = UISocket(as_client=True)
+    s.start_sock_thread()
 
     try:
-        for i in range(5):
+        for i in range(20):
             msg = {'0123': np.random.randint(0, 2, (3, 3), dtype=np.int32)}
+
             s.send(msg)
-            # s.listen()
-            time.sleep(1)
+            # s.add_sending_queue(msg)
+            time.sleep(0.1)
+
+        s.send("stop-order")
+        # s.add_sending_queue("stop-order")
+        time.sleep(2)
 
     finally:
+        print(s.stats, len(s.send_queue), len(s.recv_queue))
+        while s.stats['send'] != s.stats['recv']:
+            time.sleep(2)
+            print(s.stats, len(s.send_queue), len(s.recv_queue))
+
+        try:
+            s.stop_sock_thread()
+        except:
+            pass
+        # print(s.get_recv_queue())
+
         s.disconnect()
 
 
