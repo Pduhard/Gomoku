@@ -201,21 +201,14 @@ def numba_tests():
     print(f"dtime {b}={dt} s")
 
 
-def UI_tests():
+def parallel_tests():
 
-    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
-
-    mcts_1 = GomokuLib.Algo.MCTSEvalLazy()
-    mcts_2 = GomokuLib.Algo.MCTSEvalLazy()
-
-    p1 = GomokuLib.Player.Bot(mcts_1)
-    p2 = GomokuLib.Player.Bot(mcts_2)
-
-    runner.run((p1, p2))
-
+    runner = GomokuLib.Game.GameEngine.GomokuRunner()
+    mcts = GomokuLib.Algo.MCTSParallel(runner.engine)
+    mcts()
 
 if __name__ == '__main__':
-    duel()
+    # duel()
     # RLtest()
     # numba_tests()
-    # UI_tests()
+    parallel_tests()

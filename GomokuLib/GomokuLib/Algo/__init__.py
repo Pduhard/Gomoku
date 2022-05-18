@@ -6,7 +6,7 @@ from .MCTSEval import MCTSEval
 from .MCTSEvalLazy import MCTSEvalLazy
 from .MCTSAI import MCTSAI
 from .MCTSParallel import MCTSParallel
-from .MCTSWorker import MCTSWorker, GomokuJit
+from .MCTSWorker import MCTSWorker
 
 __all__ = [
     'MCTS',
@@ -18,5 +18,4 @@ __all__ = [
     'MCTSAI',
     'MCTSParallel',
     'MCTSWorker',
-    'GomokuJit'
 ]

@@ -1,73 +1,11 @@
 from time import sleep
-
-import typing
 import numpy as np
-
 import numba as nb
-from numba import deferred_type
+
 from numba.experimental import jitclass
 
-# from ..Game.GameEngine import Gomoku
-
-@jitclass()
-class GomokuJit:
-    board: nb.int32[:, :, :]
-    full_board: nb.int32[:, :]
-    
-    def __init__(self) -> None:
-        self.board = np.zeros((2, 19, 19), dtype=np.int32)
-        self.full_board = np.zeros((19, 19), dtype=np.int32)
-
-    def clone(self):
-        return GomokuJit()
-
-    def update(self, engine):
-        pass
-
-    # def update(self):
-    #     pass
-
-# Gomoku_type = deferred_type()
-# Gomoku_type.define(GomokuJit.class_type.instance_type) # Ne marchera que quand Gomoku sera jit
-
-
-path_dtype = np.dtype([
-    ('statehash', np.dtype('<U361')),
-    ('player_idx', np.int32),
-    ('bestaction', np.int32, (2,)),
-])
-path_nb_dtype = nb.from_dtype(path_dtype)
-
-path_array_dtype = nb.types.Array(dtype=path_dtype, ndim=361, layout='C')
-print(path_array_dtype)
-
-leaf_data_dtype = np.dtype([
-    ('Worker_id', np.int32),
-    ('Depth', np.int32),
-    ('Visits', np.int32),
-    ('Rewards', np.float32),
-    ('StateAction', np.float32, (2, 19, 19)),
-    ('Actions', np.int32, (2, 19, 19)),
-    ('Heuristic', np.float32),
-    ('AMAF', np.int32, (2, 19, 19)),
-])
-leaf_data_nb_dtype = nb.from_dtype(leaf_data_dtype)
-
-states_nb_dtype = nb.typeof(nb.typed.Dict.empty(
-    key_type=nb.types.unicode_type,
-    value_type=leaf_data_nb_dtype
-))
-
-worker_ret_dtype = np.dtype([
-    ('worker_id', np.int32),
-    ('leaf_data', leaf_data_dtype),
-    ('path', path_array_dtype, 361),
-    ('depth', np.int32)
-])
-worker_ret_dtype = np.int64
-worker_ret_nb_dtype = nb.from_dtype(worker_ret_dtype)
-
-
+import GomokuLib.Typing as Typing
+from GomokuLib.Game.GameEngine import Gomoku
 
 
 @jitclass()
@@ -75,51 +13,74 @@ class MCTSWorker:
     """
         Currently mix-in of MCTS() and MCTSLazy()
 
-        PATH EN BUFFER RECARRAY
-            path_buff[buff_id][:] = path
-
-        Passer un state_data buffer du parralel aux workers avec l'id ou ils
+        Passer un state_data buffer en recarray du parralel aux workers avec l'id ou ils
         doivent l'ecrire. -> state_data_buff[buff_id][:] = state_data
+            Idem avec le path ->   path_buff[buff_id][:] = path
+
+        Ensuite Dans le parallel :
+            Save le return du worker dans un autre buffer de taille batch_size
+            Quand ce buff est plein, update le state global
 
     """
 
-    id: nb.types.int32
-    engine: GomokuJit
-    c: nb.types.float32
+    id: nb.int32
+    engine: Gomoku
+    c: nb.float32
 
-    # states: states_nb_dtype
-    state_data_buff: worker_ret_nb_dtype
+    # states: Typing.nbStates[:]
+
+    state_data_buff: Typing.nbStates
+    path_buff: Typing.nbPath
+    empty_state_data: Typing.nbStateArray
 
     # end_game: nb.types.boolean
 
     def __init__(self, 
-                engine: GomokuJit,
-                id: nb.types.int32,
-                ):
-        print(f"Worker id={self.id} __init__()\n")
+                 id: nb.int32,
+                 engine: Gomoku,
+                 state_data_buff: Typing.nbStates,
+                 path_buff: Typing.nbPath
+                 ):
 
         self.id = id
         self.engine = engine.clone()
+        self.state_data_buff = state_data_buff
+        self.path_buff = path_buff
+
         self.c = np.sqrt(2)
 
-        # self.states = {'a': np.zeros((), dtype=leaf_data_dtype)}
+        # self.empty_state_data = np.array(
+        #     [(self.id, 0, 0, 0, np.zeros((2, 19, 19)), np.zeros((19, 19), 0.5))],
+        #     dtype=Typing.StateDataDtype
+        # )
+        empty_state_data = np.zeros(
+            shape=1,
+            dtype=Typing.StateDataDtype,
+        )[0]
+        # self.empty_state_data = np.recarray((1,), dtype=Typing.StateDataDtype, buf=self.empty_state_data)
+        empty_state_data.Worker_id = self.id
+        empty_state_data.Visits = 1
 
-        self.state_data_buff = np.zeros(1, dtype=worker_ret_dtype)
-        # self.state_data_buff = np.arange(np.int64(1), dtype=worker_ret_dtype)
-        # self.state_data_buff['worker_id'] = self.id
+        print(empty_state_data)
+        print(f"Worker {self.id}: end __init__()\n")
 
     def __str__(self):
         return f"MCTSWorker id={self.id}"
 
     def do_your_fck_work(self) -> tuple:
-        print(f"Worker id={self.id} do_your_fck_work()")
+        print(f"Worker {self.id}: do_your_fck_work()")
 
-        self.state_data_buff['leaf_data']['Visits'] = 111111
-        self.state_data_buff['path'][0]['statehash'] = 'blablablablabla'
-        self.state_data_buff['depth'] = 1
+        self.state_data_buff[self.id] = np.zeros(
+            shape=1,
+            dtype=Typing.StateDataDtype,
+        )[0]
+        path = np.ones_like(self.path_buff[self.id].board)
+        # self.state_data_buff[self.id].
+
+        self.path_buff[self.id].board[...] = path
 
         # return self.state_data_buff
-        return 1
+        return self.id
 
     def mcts(self):
 
@@ -152,37 +113,37 @@ class MCTSWorker:
 
         # sleep(2)
         return 0
-
-    def get_actions(self) -> nb.int32[:, :]:
-        return self.engine.full_board ^ 1
-
-    def get_policy(self, state_data) -> nb.int32[:, :]:
-        """
-            ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
-
-            exploitation_rate(s, a) =   reward(s, a) / (visits(s, a) + 1)
-            exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
-
-        """
-        s_v = state_data['Visits']
-        sa_v, sa_r = state_data['StateAction']
-        sa_v = sa_v + 1
-        return sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
-
-    def expand(self):
-        actions = self.get_actions()
-        self.reward = self.award_end_game() if self.end_game else self.award()
-        return {
-            'Visits': 1,
-            'Rewards': 0,
-            'StateAction': np.zeros((2, self.brow, self.bcol)),
-            'Actions': actions,
-        }
-
-    def award(self):
-        return 0.5
-
-    def award_end_game(self):
-        if self.draw:
-            return 0.5
-        return 1 if self.engine.winner == self.engine.player_idx else 0
+    #
+    # def get_actions(self) -> nb.int32[:, :]:
+    #     return self.engine.full_board ^ 1
+    #
+    # def get_policy(self, state_data) -> nb.int32[:, :]:
+    #     """
+    #         ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
+    #
+    #         exploitation_rate(s, a) =   reward(s, a) / (visits(s, a) + 1)
+    #         exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
+    #
+    #     """
+    #     s_v = state_data['Visits']
+    #     sa_v, sa_r = state_data['StateAction']
+    #     sa_v = sa_v + 1
+    #     return sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
+    #
+    # def expand(self):
+    #     actions = self.get_actions()
+    #     self.reward = self.award_end_game() if self.end_game else self.award()
+    #     return {
+    #         'Visits': 1,
+    #         'Rewards': 0,
+    #         'StateAction': np.zeros((2, self.brow, self.bcol)),
+    #         'Actions': actions,
+    #     }
+    #
+    # def award(self):
+    #     return 0.5
+    #
+    # def award_end_game(self):
+    #     if self.draw:
+    #         return 0.5
+    #     return 1 if self.engine.winner == self.engine.player_idx else 0

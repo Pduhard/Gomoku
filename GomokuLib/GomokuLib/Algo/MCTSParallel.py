@@ -1,28 +1,29 @@
 import concurrent.futures
+import threading
 
 import numpy as np
+
+import numba as nb
 from numba import njit, prange
 from numba.experimental import jitclass
 
-from GomokuLib.Algo.MCTSLazy import MCTSLazy
+import GomokuLib.Typing as Typing
 
-from ..Game.GameEngine import Gomoku
-
-from multiprocessing import cpu_count
-
-from GomokuLib.Algo.MCTSEvalLazy import MCTSEvalLazy
-from GomokuLib.Algo.MCTSWorker import MCTSWorker, GomokuJit, path_nb_dtype
 from GomokuLib.Algo.MCTS import MCTS
+from GomokuLib.Algo.MCTSLazy import MCTSLazy
+from GomokuLib.Algo.MCTSWorker import MCTSWorker
+from GomokuLib.Algo.MCTSEvalLazy import MCTSEvalLazy
+from GomokuLib.Game.GameEngine import Gomoku
 
-import numba as nb
 
 
 class MCTSParallel(MCTSLazy):
 
     def __init__(self,
                  engine: Gomoku,
-                 num_workers: int = 1,
-                 batch_size: int = 10,
+                 num_workers: int = 3,
+                 batch_size: int = 5,
+                 mcts_iter: int = 10,
                  *args, **kwargs
                  ) -> None:
         # super().__init__(engine, *args, **kwargs)
@@ -30,30 +31,40 @@ class MCTSParallel(MCTSLazy):
         self.engine = engine.clone()
         self.num_workers = num_workers
         self.batch_size = batch_size
+        self.mcts_iter = mcts_iter
 
         self.states = {}
-        self.workers_states_buff = {}
-        # self.workers_states_data_buff = np.zeros(self.batch_size, dtype=state_data_dtype)
-        # self.workers_states_data_len = 0
+        self.states_buff = np.recarray(shape=(self.batch_size,), dtype=Typing.StateDataDtype)
+        self.path_buff = np.recarray(shape=(self.batch_size,), dtype=Typing.PathDtype)
+        self._buff_id = 0
+        self.buff_lock = threading.Lock()
+        print(f"Parallel __init__() shapes: {self.states_buff.shape}\t {self.path_buff.shape}")
 
+        self.workers_state_data_buff = np.recarray(shape=(self.num_workers,), dtype=Typing.StateDataDtype)
+        self.workers_path_buff = np.recarray(shape=(self.num_workers,), dtype=Typing.PathDtype)
+        print(f"Parallel __init__() shapes: {self.workers_state_data_buff.shape}\t {self.workers_path_buff.shape}")
+
+        engine = Gomoku()
         # breakpoint()
-        # self.workers = [
-        #     MCTSWorker(
-        #         GomokuJit(),
-        #         np.int32(i)
-        #     )
-        #     for i in range(self.num_workers)
-        # ]
-        # self.pool = concurrent.futures.ThreadPoolExecutor(
-        #     max_workers=None,
-        # )
-        # print(f"Successfully create {len(self.workers)} workers")
+        self.workers = [
+            MCTSWorker(
+                np.int32(i),
+                engine,
+                self.workers_state_data_buff,
+                self.workers_path_buff
+            )
+            for i in range(self.num_workers)
+        ]
+        self.pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=None,
+        )
+        print(f"Parallel: Successfully create {len(self.workers)} workers")
 
     def __str__(self):
         return f"MCTSParallel with {self.num_workers} workers and  iterations"
 
     def __call__(self) -> tuple:
-        print(f"\n[MCTSParallel begin __call__()] -> {self.num_workers} workers for 100 iter\n")
+        print(f"\n[MCTSParallel begin __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
 
         # Submit all Workers for an iteration
         futures = [
@@ -64,12 +75,12 @@ class MCTSParallel(MCTSLazy):
 
         # Set callbacks functions to handle Workers responses
         for future in futures:
-            future.add_done_callback(self.update_workers_return)
+            future.add_done_callback(self.handle_workers_return)
 
         # Main loop
         not_done_futures = futures
-        _iter = 0
-        while _iter < 10:
+        _iter = len(futures)
+        while _iter < self.mcts_iter:
 
             # Wait until we get for the first Worker response
             done_future, not_done_futures = map(
@@ -81,47 +92,40 @@ class MCTSParallel(MCTSLazy):
             )
 
             for future in done_future:
-                if len(self.workers_data) >= self.batch_size:
-                    # Submit a Thread to update state_data
-                    f = self.pool.submit(self.update_state_data, future.result())
-
-                else:
-                    # Submit a Worker for a new iteration
-                    # f = self.pool.submit(call_worker)
-                    f = self.pool.submit(future.result())
-                    f.add_done_callback(self.update_workers_return)
-                    _iter += 1
+                # Submit done Workers for a new iteration
+                f = self.pool.submit(self.workers[future.result()].do_your_fck_work)
+                f.add_done_callback(self.handle_workers_return)
                 not_done_futures.append(f)
+                _iter += 1
 
         # Wait until all workers has finished
         concurrent.futures.wait(futures)
-        self.update_state_data(None)
+        self.update_states()
 
         print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for 100 iter\n")
 
-    def update_workers_return(self, future):
+    def handle_workers_return(self, future):
         worker_id = future.result()
-        print(f"Worker {worker_id}'s response has been receive.")
-        print(f"workers_state_data_buff: {self.workers_state_data_buff}")
+        print(f"Parallel: Worker {worker_id}'s response has been receive.")
 
-        self.workers_states_buff.append(self.workers_state_data_buff[worker_id])
+        self.buff_lock.acquire()
+        self.states_buff[self._buff_id] = self.workers_state_data_buff[worker_id].copy()
+        self.path_buff[self._buff_id] = self.workers_path_buff[worker_id].copy()
+        self._buff_id += 1
 
-        print(f"self.statehash_buff[worker_id]: {self.workers_statehash_buff[worker_id]}")
-        print(f"self.workers_p_idx_buff[worker_id]: {self.workers_p_idx_buff[worker_id]}")
-        print(f"self.workers_bestaction_buff[worker_id]: {self.workers_bestaction_buff[worker_id]}")
+        if self._buff_id >= self.batch_size:
+            self.update_states()
+        self.buff_lock.release()
 
-    def update_state_data(self, worker_id: int):
-        print(f"Update state_data. Thread {worker_id}")
+    def update_states(self):
+        print(f"Parallel: Update Parallel.states")
 
-        # model prediction
+        # print(self.states_buff)
+        # model prediction -> Require engine or engine.history, engine.captures
         # backprop
 
-        self.states.append(self.workers_states_buff)
-        self.workers_states_buff = np.zeros(1, dtype=state_data_dtype)
-
+        self._buff_id = 0
         # Return worker reference to start a new iteration with this thread
-        return self.workers[worker_id].do_your_fck_work
-
 
     def backpropagation(self, path: list):
 
@@ -147,7 +151,7 @@ class MCTSParallel(MCTSLazy):
     def test(self):
 
         worker = MCTSWorker(
-            GomokuJit(),
+            Gomoku(),
             np.int32(0)
         )
 
