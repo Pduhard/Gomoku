@@ -19,7 +19,9 @@
 import socket
 import time
 
+import GomokuLib
 import numpy as np
+from GomokuLib.Game.UI import UIManagerSocket
 
 from UISocket import UISocket
 
@@ -30,44 +32,58 @@ def send():
     s.start_sock_thread()
 
     try:
-        for i in range(20):
-            msg = {'0123': np.random.randint(0, 2, (3, 3), dtype=np.int32)}
+        i = 0
+        while True:
 
-            s.send(msg)
-            # s.add_sending_queue(msg)
+            data = s.get_recv_queue()
+            for d in data:
+
+                if d == "request":
+                    s.add_sending_queue("response")
+
+                if d:
+                    print(f"Client: New d: {d}\n")
+                    i += 1
+
+            if i == 5:
+                s.add_sending_queue("stop-order")
+                raise Exception()
+
             time.sleep(0.1)
 
-        s.send("stop-order")
-        # s.add_sending_queue("stop-order")
-        time.sleep(2)
-
+    except:
+        pass
     finally:
-        print(s.stats, len(s.send_queue), len(s.recv_queue))
-        while s.stats['send'] != s.stats['recv']:
-            time.sleep(2)
-            print(s.stats, len(s.send_queue), len(s.recv_queue))
+        # while s.stats['send'] != s.stats['recv']:
+        #     time.sleep(2)
+        #     print(s.stats, len(s.send_queue), len(s.recv_queue))
 
         try:
             s.stop_sock_thread()
         except:
             pass
-        # print(s.get_recv_queue())
 
+        print(s.stats, len(s.send_queue), len(s.recv_queue))
         s.disconnect()
 
 
 def UI_program():
 
-    try:
-        print(f"UISocket GUI start init")
-        uisock = UISocket(as_server=True, name="UIProgram")
-        uisock.start_sock_thread()
-        print(f"UISocket GUI end init")
-
-    except Exception as e:
-        print(f"UI program exception: {e}")
-        uisock.stop_sock_thread()
-        uisock.disconnect()
+    # try:
+    print(f"UI program start init")
+    gui = UIManagerSocket(
+        GomokuLib.Game.GameEngine.Gomoku(),
+        (1500, 1000)
+    )
+    print(f"UI program end init")
+    gui()
+        # uisock = UISocket(as_server=True, name="UIProgram")
+        # uisock.start_sock_thread()
+    #
+    # except Exception as e:
+    #     print(f"UI program exception: {e}")
+        # uisock.stop_sock_thread()
+        # uisock.disconnect()
 
 
 if __name__ == "__main__":

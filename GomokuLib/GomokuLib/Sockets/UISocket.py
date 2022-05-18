@@ -23,14 +23,14 @@ class UISocket:
 
     def __init__(self, host: str = "localhost", port: int = 31415,
                  as_server: bool = False, as_client: bool = False,
-                 name: str = "Thread"):
+                 name: str = None):
         assert as_server or as_client
 
         self.host = host
         self.port = port
         self.as_server = as_server
         self.as_client = as_client
-        self.name = name
+        self.name = name or ("Server" if self.as_server else "Client")
 
         self.sock = None
         self.addr = None
@@ -44,12 +44,9 @@ class UISocket:
             self.connect = self._connect_as_server
         else:
             self.connect = self._connect_as_client
-        self.connect()
 
-        # self.thread = threading.Thread(target=self._communication, daemon=True)
-        self.thread = threading.Thread(target=self._communication)
         self.sock_thread = False
-
+        self.send_all_before_quit = False
         self.send_queue = []
         self.recv_queue = []
         self.send_queue_lock = threading.Lock()
@@ -72,25 +69,24 @@ class UISocket:
         return obj
 
     def send(self, data):
+        # print(f"UISocket: {self.name}: send() IN")
         try:
             self._send(self._serialize(data))
             self.stats['send'] += 1
             print(f"UISocket: {self.name}: Successfully sent.")
 
         except Exception as e:
-            print(f"UISocket: {self.name}: send() raise an Exception:\n{e}")
+            # print(f"UISocket: {self.name}: send() raise an Exception:\n{e}")
             self.connected = False
-            self.connect()
-            return False
+            raise Exception("send(): No connection yet ...")
 
-        return True
+        else:
+            return True
 
     def recv(self):
-        if self.as_server or not self.connected:
-            self.connect()      # Need to connect with new client/server
 
+        # print(f"UISocket: {self.name}: recv() IN")
         try:
-
             data = b''
             while True:
                 buff = self._recv(self.BUFF_SIZE)
@@ -99,40 +95,47 @@ class UISocket:
                 if len(buff) < self.BUFF_SIZE:
                     break
 
-        except Exception as e:
-            print(f"UISocket: {self.name}: recv() raise an Exception:\n{e}")
-            self.connected = False
-            # self.connect()
+        except socket.error:
+            # print(f"UISocket: {self.name}: socket.error: No data to recv")
             return None
 
-        if data:
-            data = self._deserialize(data)
-            self.stats['recv'] += 1
-            print(f"UISocket: {self.name}: Data recv")
-        return data
+        except Exception as e:
+            # print(f"UISocket: {self.name}: recv() raise an Exception:\n{e}")
+            self.connected = False
+            raise Exception("recv(): No connection yet ...")
+
+        else:
+            if data:
+                data = self._deserialize(data)
+                self.stats['recv'] += 1
+                print(f"UISocket: {self.name}: Data recv")
+            return data
 
     def disconnect(self):
-        self.sock.close()
         # self.sock.shutdown(socket.SHUT_RDWR)
+        self.sock.close()
 
     """ Server part """
 
     def _init_socket_as_server(self):
 
-        if self.sock:
-            self.sock.close()
+        # if self.sock:
+        #     self.sock.close()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.host, self.port))
-        self.sock.listen()
-        self.sock.settimeout(0.1)
-        self.sock.setblocking(False)
+        # self.sock.setblocking(False)
+        self.sock.settimeout(1)
         print(f"UISocket: {self.name}: New socket at {self.host} (port {self.port})")
 
     def _connect_as_server(self):
         """ Server looks for new connections to accept """
 
         try:
-            # print("Wait for accept connection to the server")
+            self._init_socket_as_server()
+
+            # print(F"Wait for accept connection to the server: {self.sock}.accept({(self.host, self.port)}")
+            self.sock.listen()
             self.connection, self.addr = self.sock.accept()
             print(f"UISocket: {self.name}: New connection from client at {self.host} (addr {self.addr}, port {self.port})")
 
@@ -142,25 +145,29 @@ class UISocket:
             self._send = self.connection.sendall
             self._recv = self.connection.recv
 
-        except socket.timeout:
-            if not self.connection:
-                print(f"UISocket: {self.name}: No connection accepted yet ...")
-                self.connected = False
+        # except socket.timeout:
+        #     if not self.connection:
+        #         print(f"UISocket: {self.name}: socket.timeout")
+        #         self.connected = False
             # else:
             #     print(f"UISocket: {self.name}: No new connection")
 
-        except BlockingIOError:
-            self.connected = False
-            # print(f"UISocket: {self.name}: No new connection")
+        except socket.error:
+            print(f"UISocket: {self.name}: socket.accept({(self.host, self.port)}): socket.error")
+        #
+        # except BlockingIOError:
+        #     self.connected = False
+        #     print(f"UISocket: {self.name}: BlockingIOError")
 
     """ Client part """
 
     def _init_socket_as_client(self):
 
-        if self.sock:
-            self.sock.close()
+        # if self.sock:
+        #     self.sock.close()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setblocking(False)
+        # self.sock.settimeout(1)
+        self.sock.setblocking(True)
         self._send = self.sock.sendall
         self._recv = self.sock.recv
         # print(f"UISocket: {self.name}: New socket")
@@ -168,18 +175,17 @@ class UISocket:
     def _connect_as_client(self):
         """Try to establish a connection to the server"""
 
-        self._init_socket_as_client()
-        print(f"UISocket: {self.name}: Try to reconnect ...", end='')
         while not self.connected:
+            self._init_socket_as_client()
+            print(f"UISocket: {self.name}: {time.time()}: Connection to {(self.host, self.port)}")
 
             try:
                 self.sock.connect((self.host, self.port))
                 self.connected = True
 
             except socket.error:
-                self.connected = False
-                print(".")
-                time.sleep(1)
+                time.sleep(0.5)
+                pass
 
         print(f"UISocket: {self.name}: Connected at {self.host}(port {self.port}) as client")
 
@@ -187,10 +193,14 @@ class UISocket:
 
     def start_sock_thread(self):
         self.sock_thread = True
+        # self.thread = threading.Thread(target=self._communication, daemon=True)
+        self.thread = threading.Thread(target=self._communication)
         self.thread.start()
 
-    def stop_sock_thread(self):
+    def stop_sock_thread(self, send_all: bool = False):
+        self.send_all_before_quit = send_all
         self.sock_thread = False
+        print(f"UISocket: {self.name}: Stop Thread={self.sock_thread}: Send all data left ? -> {self.send_all_before_quit}")
         # while len(self.send_queue):
         #     print(f"UISocket: {self.name}: {len(self.send_queue)} more data to send")
         #     time.sleep(0.5)
@@ -198,7 +208,12 @@ class UISocket:
         print(f"UISocket: {self.name}: Thread.join() end")
 
     def _communication(self):
-        while self.sock_thread:
+        while self.sock_thread or (self.send_all_before_quit and len(self.send_queue)):
+
+            # if self.as_server:
+            #     self.connect()  # Always search to connect with new client (No detection of client deco)
+            if not self.connected:
+                self.connect()
 
             try:
                 if len(self.send_queue):
@@ -206,27 +221,29 @@ class UISocket:
                         data = self.send_queue[0]
                         if self.send(data):
                             del self.send_queue[0]
-                        self.send_queue_lock.release()
-            except:
-                print(f"UISocket: {self.name}: GROS PROBLEME DANS LE SEND E DU THREAD")
+                    self.send_queue_lock.release()
+            except Exception as e:
+                print(f"UISocket: {self.name}: _communication(): raise {e}")
+                continue
 
             try:
                 data = self.recv()
                 if data:
-                    self.recv_queue_lock.acquire()
-                    self.recv_queue.append(data)
+                    if self.recv_queue_lock.acquire(timeout=0.1):
+                        self.recv_queue.append(data)
                     self.recv_queue_lock.release()
-            except:
-                print(f"UISocket: {self.name}: GROS PROBLEME DANS LE RECV E DU THREAD")
+            except Exception as e:
+                print(f"UISocket: {self.name}: _communication(): raise {e}")
+                continue
 
-            print(f"UISocket: {self.name}: will_send={len(self.send_queue)}, hav_recv={len(self.recv_queue)}")
-            time.sleep(0.5)
+            # print(f"UISocket: {self.name}: will_send={len(self.send_queue)}, hav_recv={len(self.recv_queue)}")
+            time.sleep(0.2)
 
-        while len(self.send_queue):
-            print(f"UISocket: {self.name}: Last send ...")
-            data = self.send_queue[0]
-            if self.send(data):
-                del self.send_queue[0]
+        # while len(self.send_queue):
+        #     print(f"UISocket: {self.name}: Last send ...")
+        #     data = self.send_queue[0]
+        #     if self.send(data):
+        #         del self.send_queue[0]
 
         print(f"UISocket: {self.name}: END COMMUNICATIONS")
 

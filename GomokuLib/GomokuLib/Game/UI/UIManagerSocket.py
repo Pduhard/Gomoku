@@ -29,7 +29,7 @@ class UIManagerSocket:
         self.game_data = {}
         self.init_time = time.time()
 
-    def __call__(self, inqueue, outqueue): # Thread function
+    def __call__(self): # Thread function
 
         print(f"UISocket UIManager start init")
         self.uisock = UISocket(as_client=True, name="UI")
@@ -38,8 +38,6 @@ class UIManagerSocket:
 
         self.initUI(self.win_size)
         print("UIManager __call__()\n")
-        self.inqueue = inqueue
-        self.outqueue = outqueue
 
         self.request_player_action = False
         self.pause = False

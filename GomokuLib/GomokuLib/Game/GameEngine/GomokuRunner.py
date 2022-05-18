@@ -29,8 +29,8 @@ class GomokuRunner:
 
         print(f"Player {self.engine.winner} win.")
 
-    def run(self, players):
+    def run(self, players, *args, **kwargs):
 
         self.engine.init_game()
-        self._run(players)
+        self._run(players, *args, **kwargs)
         return players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner

@@ -78,9 +78,9 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
     # runner=GomokuLib.Game.GameEngine.GomokuRunner()
-
+    #
     runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
         rules=[]
     )
@@ -107,13 +107,13 @@ def duel():
     #     p2 = p1
     #     mcts_p2 = mcts_p1
     #
-    # old1 = mcts_p1.mcts_iter
-    # old2 = mcts_p2.mcts_iter
-    # mcts_p1.mcts_iter = 100
-    # mcts_p2.mcts_iter = 100
-    # winner = runner.run([p1, p2])  # White: 0 / Black: 1
-    # mcts_p1.mcts_iter = old1
-    # mcts_p2.mcts_iter = old2
+    old1 = mcts_p1.mcts_iter
+    old2 = mcts_p2.mcts_iter
+    mcts_p1.mcts_iter = 100
+    mcts_p2.mcts_iter = 100
+    winner = runner.run([p1, p2], send_all_ss=False)  # White: 0 / Black: 1
+    mcts_p1.mcts_iter = old1
+    mcts_p2.mcts_iter = old2
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
