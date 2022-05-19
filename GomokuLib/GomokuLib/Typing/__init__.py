@@ -6,22 +6,24 @@ from numba.core import types
 
 BoardDtype = np.int8
 ActionDtype = np.int8
-TupleDtype = np.int32
 GameZoneDtype = np.int8
-PathDtype = np.dtype([
-    ('board', np.int8, (2, 19, 19)),
-    ('player_idx', np.int32),
-    ('bestaction', np.int32, (2,)),
-], align=True)
+TupleDtype = np.int32
+MCTSIntDtype = np.int32
+MCTSFloatDtype = np.float32
 
+PathDtype = np.dtype([
+    ('board', BoardDtype, (2, 19, 19)),
+    ('player_idx', MCTSIntDtype),
+    ('bestAction', ActionDtype, (2,))
+], align=True)
 StateDataDtype = np.dtype([
-    ('Worker_id', np.int32),
-    ('Depth', np.int32),
-    ('Visits', np.int32),
-    ('Rewards', np.float32),
-    ('StateAction', np.float32, (2, 19, 19)),
-    ('Actions', np.int32, (19, 19)),
-    ('Heuristic', np.float32),
+    ('worker_id', MCTSIntDtype),
+    ('depth', MCTSIntDtype),
+    ('visits', MCTSIntDtype),
+    ('rewards', MCTSFloatDtype),
+    ('stateAction', MCTSFloatDtype, (2, 19, 19)),
+    ('actions', MCTSIntDtype, (19, 19)),
+    ('heuristic', MCTSFloatDtype),
     # ('AMAF', np.int32, (2, 19, 19)),
 ], align=True)
 
@@ -32,7 +34,7 @@ game_zone_nb_dtype = nb.from_dtype(GameZoneDtype)
 path_nb_dtype = nb.from_dtype(PathDtype)
 path_array_nb_dtype = nb.typeof(np.zeros((), dtype=PathDtype))
 state_data_nb_dtype = nb.from_dtype(StateDataDtype)
-state_data_array_nb_dtype = nb.typeof(np.zeros((), dtype=StateDataDtype))
+# state_data_array_nb_dtype = nb.typeof(np.zeros((), dtype=StateDataDtype))
 
 
 nbTuple = tuple_nb_dtype[:]
@@ -41,13 +43,16 @@ nbAction = nb.types.Array(dtype=board_nb_dtype, ndim=2, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
 nbBoardFFI = nb.types.CPointer(board_nb_dtype)
 nbGameZone = game_zone_nb_dtype[:]
-nbPath = path_nb_dtype[:]
+
 nbPathArray = path_array_nb_dtype
+nbPath = path_nb_dtype[:, :]
 nbState = state_data_nb_dtype[:]
-nbStateArray = state_data_array_nb_dtype
-#
+# nbWorkerState = state_data_nb_dtype[:, :]
+# nbStateArray = state_data_array_nb_dtype
+
 state_dict = nb.typed.Dict.empty(
-    key_type=types.unicode_type,
+    key_type=nb.types.unicode_type,
+    ## obligé de mettre une recarray de taille 1 j'ai l'impression
     value_type=nbState,
 )
 

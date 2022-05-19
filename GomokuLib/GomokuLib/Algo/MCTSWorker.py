@@ -31,7 +31,7 @@ class MCTSWorker:
 
     state_data_buff: Typing.nbState
     path_buff: Typing.nbPath
-    empty_state_data: Typing.nbStateArray
+    # empty_state_data: Typing.nbStateArray
 
     # end_game: nb.types.boolean
 
@@ -50,39 +50,37 @@ class MCTSWorker:
         self.states = states
         self.c = np.sqrt(2)
 
-        # self.empty_state_data = np.array(
-        #     [(self.id, 0, 0, 0, np.zeros((2, 19, 19)), np.zeros((19, 19), 0.5))],
-        #     dtype=Typing.StateDataDtype
-        # )
-        empty_state_data = np.zeros(
-            shape=1,
-            dtype=Typing.StateDataDtype,
-        )[0]
-        # self.empty_state_data = np.recarray((1,), dtype=Typing.StateDataDtype, buf=self.empty_state_data)
-        empty_state_data.Worker_id = self.id
-        empty_state_data.Visits = 1
-
-        print(empty_state_data)
         print(f"Worker {self.id}: end __init__()\n")
 
     def __str__(self):
         return f"MCTSWorker id={self.id}"
 
     def do_your_fck_work(self) -> tuple:
+        """
+            ## Ca ca marche :
+                path[0].bestaction[:] = ba
+            ## Ca non !
+                path[0].bestaction = ba
 
-        ## Actions ==> actions ?????
-        print(f"Worker {self.id}: do_your_fck_work() {self.states['12'][0].Actions[-1, -1]}")
+        """
+        print(f"Worker {self.id}: do_your_fck_work()")
 
-        self.state_data_buff[self.id] = np.zeros(
-            shape=1,
-            dtype=Typing.StateDataDtype,
-        )[0]
-        path = np.ones_like(self.path_buff[self.id].board)
-        # self.state_data_buff[self.id].
+        ## It works !
+        state_data = np.zeros(1, dtype=Typing.StateDataDtype)
+        state_data[0].worker_id = self.id
+        state_data[0].depth = 6
+        state_data[0].stateAction[...] = np.ones((2, 19, 19), dtype=Typing.MCTSFloatDtype)
+        state_data[0].heuristic = 0.420
 
-        self.path_buff[self.id].board[...] = path
+        path = np.zeros(1, dtype=Typing.PathDtype)
+        path[0].board[...] = np.ones((2, 19, 19), dtype=Typing.BoardDtype)
+        path[0].player_idx = Typing.MCTSIntDtype(42)
+        path[0].bestAction[...] = np.ones(2, dtype=Typing.ActionDtype)
 
-        # return self.state_data_buff
+        ## Futur?: Envoyer state_data directement pour ne pas re-déclarer
+        ## un array lors de l'insersion dans states
+        self.state_data_buff[self.id] = state_data[0]
+        self.path_buff[self.id] = path[0]
         return self.id
 
     def mcts(self):

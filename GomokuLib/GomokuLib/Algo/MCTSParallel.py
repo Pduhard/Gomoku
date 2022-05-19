@@ -1,5 +1,6 @@
 import concurrent.futures
 import threading
+import time
 
 import numpy as np
 
@@ -22,8 +23,8 @@ class MCTSParallel(MCTSLazy):
     def __init__(self,
                  engine: Gomoku,
                  num_workers: int = 3,
-                 batch_size: int = 5,
-                 mcts_iter: int = 10,
+                 batch_size: int = 1,
+                 mcts_iter: int = 11,
                  *args, **kwargs
                  ) -> None:
         # super().__init__(engine, *args, **kwargs)
@@ -33,23 +34,57 @@ class MCTSParallel(MCTSLazy):
         self.batch_size = batch_size
         self.mcts_iter = mcts_iter
 
+        self.buff_lock = threading.Lock()
+        self.buff_size = self.batch_size
+        self.buff_id = 0
+
         self.states = nb.typed.Dict.empty(
             key_type=nb.types.unicode_type,
             value_type=Typing.nbState
         )
-        self.states_buff = np.recarray(shape=(self.batch_size,), dtype=Typing.StateDataDtype)
-        self.path_buff = np.recarray(shape=(self.batch_size,), dtype=Typing.PathDtype)
-        self._buff_id = 0
-        self.buff_lock = threading.Lock()
-        print(f"Parallel __init__() shapes: {self.states_buff.shape}\t {self.path_buff.shape}")
+        self.states_buff = np.recarray(
+            shape=(self.buff_size, ),
+            dtype=Typing.StateDataDtype
+        )
+        self.workers_state_data_buff = np.recarray(
+            shape=(self.num_workers, ),
+            dtype=Typing.StateDataDtype
+        )
+        self.path_buff = np.recarray(
+            shape=(self.buff_size, 361),
+            dtype=Typing.PathDtype
+        )
+        self.workers_path_buff = np.recarray(
+            shape=(self.num_workers, 361),
+            dtype=Typing.PathDtype
+        )
 
-        self.workers_state_data_buff = np.recarray(shape=(self.num_workers,), dtype=Typing.StateDataDtype)
-        self.workers_path_buff = np.recarray(shape=(self.num_workers,), dtype=Typing.PathDtype)
+        print(f"Parallel __init__() shapes: {self.states_buff.shape}\t {self.path_buff.shape}")
         print(f"Parallel __init__() shapes: {self.workers_state_data_buff.shape}\t {self.workers_path_buff.shape}")
 
         engine = Gomoku()
-        self.states['12'] = np.recarray(1, dtype=Typing.StateDataDtype)
-        self.states['12'][0].Actions[-1, -1] = 42
+
+        ## ca marche
+        ## Valeurs random quand on passe de nbState à state_data_nb_dtype
+        ## en enlevant le [0] ...
+        # bd = np.zeros((2, 19, 19), dtype=np.uint8)
+        # k = str(bd.tobytes())
+        # self.states[k] = np.recarray(1, dtype=Typing.StateDataDtype)
+        #
+        # a = np.zeros((19, 19), dtype=Typing.MCTSIntDtype)
+        # self.states[k][0].actions = a
+        # self.states[k][0].actions[0, 0] = 42
+        # print(f"Temoin {self.states[k][0].actions[0, 0]}")
+        ## ca marche pas encore ^^"
+
+        ############################
+
+        # bd = np.zeros((2, 19, 19), dtype=np.uint8)
+        # self.states[bd.tobytes()] = np.recarray(1, dtype=Typing.StateDataDtype)
+        # self.states[bd.tobytes()][0].Actions[-1, -1] = 42
+
+        ############################
+
         # breakpoint()
         self.workers = [
             MCTSWorker(
@@ -105,53 +140,86 @@ class MCTSParallel(MCTSLazy):
                 _iter += 1
 
         # Wait until all workers has finished
-        concurrent.futures.wait(futures)
-        self.update_states()
+        concurrent.futures.wait(
+            not_done_futures,
+            return_when=concurrent.futures.ALL_COMPLETED
+        )
 
-        print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for 100 iter\n")
+        print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
 
     def handle_workers_return(self, future):
+        """
+            ThreadPoolExecutor docs:
+                Added callables are called in the order that they were added and
+                are always called in a thread belonging to the process that added them.
+
+            stackoverflow:
+                If the thread is not cancelled:
+                    Callback function execute by the thread that executes the future's task
+        """
         worker_id = future.result()
-        print(f"Parallel: Worker {worker_id}'s response has been receive.")
+        print(f"Parallel: Worker {worker_id}'s response has been receive: {time.time()}")
+
+        # print(f"self.workers_state_data_buff[worker_id]:\n{self.workers_state_data_buff[worker_id]}")
+        # print(f"self.workers_path_buff[worker_id]:\n{self.workers_path_buff[worker_id]}")
+
+        ## Futur?: Enlever les copy
+        buff_size = self.workers_state_data_buff[worker_id].depth
 
         self.buff_lock.acquire()
-        self.states_buff[self._buff_id] = self.workers_state_data_buff[worker_id].copy()
-        self.path_buff[self._buff_id] = self.workers_path_buff[worker_id].copy()
-        self._buff_id += 1
+        print(f"Worker {worker_id} acquire: {time.time()}")
+        self.states_buff[self.buff_id] = self.workers_state_data_buff[worker_id].copy()
+        self.path_buff[self.buff_id, :buff_size] = self.workers_path_buff[worker_id, :buff_size].copy()
 
-        if self._buff_id >= self.batch_size:
+        self.buff_id += 1
+        if self.buff_id >= self.buff_size:
             self.update_states()
         self.buff_lock.release()
+        print(f"Worker {worker_id} release: {time.time()}\n")
 
     def update_states(self):
-        print(f"Parallel: Update Parallel.states")
+        print(f"Parallel: Update Parallel.states: {self.buff_id} >= {self.buff_size} = {self.buff_id >= self.buff_size}")
 
-        # print(self.states_buff)
+        # Expansion
+        for i in range(self.buff_size):
+            k = str(self.path_buff[i, -1].board.tobytes())
+            self.states[k] = np.recarray(1, dtype=Typing.StateDataDtype)
+            self.states[k][0] = self.states_buff[i]
+
+            self.backpropagation(
+                self.path_buff[i],
+                self.states_buff[i].depth,
+                self.states_buff[i].heuristic
+            )
         # model prediction -> Require engine or engine.history, engine.captures
         # backprop
 
-        self._buff_id = 0
+        self.buff_id = 0
+        print(f"Parallel: Set self.buff_id to 0 -> {self.buff_id}")
         # Return worker reference to start a new iteration with this thread
 
-    def backpropagation(self, path: list):
+    def backpropagation(self, path: np.ndarray, path_size: int, reward: Typing.MCTSFloatDtype):
 
-        reward = self.reward
-        for mem in path[::-1]:
-            self.backprop_memory(mem, reward)
+        for i in range(path_size - 1, -1, -1):
+            # print(f"Parallel: backprop index of path: {i}")
+            # self.backprop_memory(path[i], reward)
             reward = 1 - reward
 
-    def backprop_memory(self, memory: tuple, reward: float):
-        _, statehash, bestaction = memory
+    def backprop_memory(self, memory: np.ndarray, reward: Typing.MCTSFloatDtype):
+        # print(f"Memory:\n{memory}")
+        # print(f"Memory dtype:\n{memory.dtype}")
+        board = memory.board
+        bestAction = memory.bestAction
 
-        state_data = self.states[statehash]
+        state_data = self.states[str(board.tobytes())]
 
-        state_data['Visits'] += 1                           # update n count
-        state_data['Rewards'] += reward                     # update state value
-        if bestaction is None:
+        state_data.visits += 1                           # update n count
+        state_data.rewards += reward                     # update state value
+        if bestAction is None:
             return
 
-        r, c = bestaction.action
-        state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
+        r, c = bestAction.action
+        state_data.stateAction[..., r, c] += [1, reward]  # update state-action count / value
 
 
     def test(self):
