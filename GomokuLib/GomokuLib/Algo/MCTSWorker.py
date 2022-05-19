@@ -27,9 +27,9 @@ class MCTSWorker:
     engine: Gomoku
     c: nb.float32
 
-    # states: Typing.nbStates[:]
+    states: Typing.nbStateDict
 
-    state_data_buff: Typing.nbStates
+    state_data_buff: Typing.nbState
     path_buff: Typing.nbPath
     empty_state_data: Typing.nbStateArray
 
@@ -38,15 +38,16 @@ class MCTSWorker:
     def __init__(self, 
                  id: nb.int32,
                  engine: Gomoku,
-                 state_data_buff: Typing.nbStates,
-                 path_buff: Typing.nbPath
+                 state_data_buff: Typing.nbState,
+                 path_buff: Typing.nbPath,
+                 states: Typing.nbStateDict,
                  ):
 
         self.id = id
         self.engine = engine.clone()
         self.state_data_buff = state_data_buff
         self.path_buff = path_buff
-
+        self.states = states
         self.c = np.sqrt(2)
 
         # self.empty_state_data = np.array(
@@ -68,7 +69,9 @@ class MCTSWorker:
         return f"MCTSWorker id={self.id}"
 
     def do_your_fck_work(self) -> tuple:
-        print(f"Worker {self.id}: do_your_fck_work()")
+
+        ## Actions ==> actions ?????
+        print(f"Worker {self.id}: do_your_fck_work() {self.states['12'][0].Actions[-1, -1]}")
 
         self.state_data_buff[self.id] = np.zeros(
             shape=1,

@@ -1,7 +1,7 @@
-from ast import Tuple
 import numba as nb
 import numpy as np
 
+from numba.core import types
 ### Size definition
 
 BoardDtype = np.int8
@@ -34,16 +34,25 @@ path_array_nb_dtype = nb.typeof(np.zeros((), dtype=PathDtype))
 state_data_nb_dtype = nb.from_dtype(StateDataDtype)
 state_data_array_nb_dtype = nb.typeof(np.zeros((), dtype=StateDataDtype))
 
+
 nbTuple = tuple_nb_dtype[:]
 nbBoard = nb.types.Array(dtype=board_nb_dtype, ndim=3, layout="C")
 nbAction = nb.types.Array(dtype=board_nb_dtype, ndim=2, layout="C")
+nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
 nbBoardFFI = nb.types.CPointer(board_nb_dtype)
 nbGameZone = game_zone_nb_dtype[:]
 nbPath = path_nb_dtype[:]
 nbPathArray = path_array_nb_dtype
-nbStates = state_data_nb_dtype[:]
+nbState = state_data_nb_dtype[:]
 nbStateArray = state_data_array_nb_dtype
+#
+state_dict = nb.typed.Dict.empty(
+    key_type=types.unicode_type,
+    value_type=nbState,
+)
 
+nbStateDict = nb.typeof(state_dict)
+# nbStateDict = nbState
 
 
 __all__ = [

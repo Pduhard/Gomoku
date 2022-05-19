@@ -29,7 +29,5 @@ setup(
 
     # long_description=open('README.md').read(),
     install_requires=[
-        # 'numpy==1.19.3',
-        # 'numba==0.43.1'
     ]
 )

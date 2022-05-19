@@ -33,7 +33,10 @@ class MCTSParallel(MCTSLazy):
         self.batch_size = batch_size
         self.mcts_iter = mcts_iter
 
-        self.states = {}
+        self.states = nb.typed.Dict.empty(
+            key_type=nb.types.unicode_type,
+            value_type=Typing.nbState
+        )
         self.states_buff = np.recarray(shape=(self.batch_size,), dtype=Typing.StateDataDtype)
         self.path_buff = np.recarray(shape=(self.batch_size,), dtype=Typing.PathDtype)
         self._buff_id = 0
@@ -45,13 +48,16 @@ class MCTSParallel(MCTSLazy):
         print(f"Parallel __init__() shapes: {self.workers_state_data_buff.shape}\t {self.workers_path_buff.shape}")
 
         engine = Gomoku()
+        self.states['12'] = np.recarray(1, dtype=Typing.StateDataDtype)
+        self.states['12'][0].Actions[-1, -1] = 42
         # breakpoint()
         self.workers = [
             MCTSWorker(
                 np.int32(i),
                 engine,
                 self.workers_state_data_buff,
-                self.workers_path_buff
+                self.workers_path_buff,
+                self.states
             )
             for i in range(self.num_workers)
         ]
