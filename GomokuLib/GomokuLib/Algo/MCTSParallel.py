@@ -22,11 +22,21 @@ class MCTSParallel(MCTSLazy):
 
     def __init__(self,
                  engine: Gomoku,
-                 num_workers: int = 3,
-                 batch_size: int = 1,
-                 mcts_iter: int = 11,
+                 num_workers: int = 1,
+                 batch_size: int = 3,
+                 pool_num: int = 2,
+                 mcts_iter: int = 9,
                  *args, **kwargs
                  ) -> None:
+        """
+            3 workers | n pools de buffers
+            [[_, _, _], ..., [_, _, _]]
+
+            Workers acquire les buffers dans l'ordre.
+            Dès qu'une pool est fini les workers pointent vers la suivante
+                Main thread release tous les buffers de la pool
+                et expand / backprop / ...
+        """
         # super().__init__(engine, *args, **kwargs)
 
         self.engine = engine.clone()
@@ -34,34 +44,36 @@ class MCTSParallel(MCTSLazy):
         self.batch_size = batch_size
         self.mcts_iter = mcts_iter
 
-        self.buff_lock = threading.Lock()
-        self.buff_size = self.batch_size
+        self.pool_num = pool_num
+        self.buff_num = self.batch_size
         self.buff_id = 0
+        self.pool_id = 0
 
         self.states = nb.typed.Dict.empty(
             key_type=nb.types.unicode_type,
             value_type=Typing.nbState
         )
         self.states_buff = np.recarray(
-            shape=(self.buff_size, ),
-            dtype=Typing.StateDataDtype
-        )
-        self.workers_state_data_buff = np.recarray(
-            shape=(self.num_workers, ),
+            shape=(self.pool_num, self.buff_num),
             dtype=Typing.StateDataDtype
         )
         self.path_buff = np.recarray(
-            shape=(self.buff_size, 361),
+            shape=(self.pool_num, self.buff_num, 361),
             dtype=Typing.PathDtype
         )
-        self.workers_path_buff = np.recarray(
-            shape=(self.num_workers, 361),
-            dtype=Typing.PathDtype
-        )
+        self.pools_locks = [
+            threading.Lock()
+            for _ in range(self.pool_num)
+        ]
+        self.buffers_locks = [
+            [
+                threading.Lock()
+                for _ in range(self.buff_num)
+            ]
+            for _ in range(self.pool_num)
+        ]
 
         print(f"Parallel __init__() shapes: {self.states_buff.shape}\t {self.path_buff.shape}")
-        print(f"Parallel __init__() shapes: {self.workers_state_data_buff.shape}\t {self.workers_path_buff.shape}")
-
         engine = Gomoku()
 
         ## ca marche
@@ -86,41 +98,43 @@ class MCTSParallel(MCTSLazy):
         ############################
 
         # breakpoint()
-        self.workers = [
+
+        self.pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=None,
+        )
+        self.workers = [    # Autant de workers qu'il y a de Threads (-1 ?)
             MCTSWorker(
                 np.int32(i),
                 engine,
-                self.workers_state_data_buff,
-                self.workers_path_buff,
+                self.states_buff,
+                self.path_buff,
                 self.states
             )
             for i in range(self.num_workers)
         ]
-        self.pool = concurrent.futures.ThreadPoolExecutor(
-            max_workers=None,
-        )
         print(f"Parallel: Successfully create {len(self.workers)} workers")
 
     def __str__(self):
         return f"MCTSParallel with {self.num_workers} workers and  iterations"
 
     def __call__(self) -> tuple:
+        """
+            Tester si ya des proiblem avec plusieurs thread sur la meme instance de classjit
+            IL FAUT LES WORKER
+        """
         print(f"\n[MCTSParallel begin __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
 
+        self.pool_id = 0
+        self.buff_id = 0
         # Submit all Workers for an iteration
-        futures = [
-            # self.pool.submit(call_worker)
-            self.pool.submit(worker.do_your_fck_work)
-            for worker in self.workers
-        ]
-
-        # Set callbacks functions to handle Workers responses
-        for future in futures:
-            future.add_done_callback(self.handle_workers_return)
+        not_done_futures = []
+        for i, worker in enumerate(self.workers):
+            self.buffers_locks[self.pool_id][i].acquire()
+            not_done_futures.append(self.pool.submit(worker.do_your_fck_work, self.pool_id, i))
 
         # Main loop
-        not_done_futures = futures
-        _iter = len(futures)
+        not_done_futures = not_done_futures
+        _iter = len(not_done_futures) - 1
         while _iter < self.mcts_iter:
 
             # Wait until we get for the first Worker response
@@ -133,9 +147,26 @@ class MCTSParallel(MCTSLazy):
             )
 
             for future in done_future:
+                # Search the first release buff of the pool self.pool_id
+                # while self.buff_id < self.buff_num and not :
+                #     print(f"Parallel: SEARCH | pool {self.pool_id} buff {self.buff_id} | locked ?-> {self.buffers_locks[self.pool_id][self.buff_id].locked()}")
+                #     self.buff_id += 1
+
+                if self.buffers_locks[self.pool_id][self.buff_id].locked():
+                    print(f"===================================================== Buffer lock ??????????\n")
+                self.buffers_locks[self.pool_id][self.buff_id].acquire()
+                self.buff_id += 1
+
+                if self.buff_id == self.buff_num:
+                    f = self.pool.submit(self.update_states, self.pool_id)
+                    not_done_futures.append(f)
+                    self.next_pool()
+                    self.buffers_locks[self.pool_id][self.buff_id].acquire(blocking=True)
+
+                print(f"Parallel: SUBMIT WORKER {future.result()} | pool {self.pool_id} buff {self.buff_id}\n")
                 # Submit done Workers for a new iteration
-                f = self.pool.submit(self.workers[future.result()].do_your_fck_work)
-                f.add_done_callback(self.handle_workers_return)
+                f = self.pool.submit(self.workers[future.result()].do_your_fck_work, self.pool_id, self.buff_id)
+                # f.add_done_callback(self.handle_workers_return)
                 not_done_futures.append(f)
                 _iter += 1
 
@@ -144,10 +175,23 @@ class MCTSParallel(MCTSLazy):
             not_done_futures,
             return_when=concurrent.futures.ALL_COMPLETED
         )
+        # S'occuper de la dernière pool pas remplie ! ###################################################
 
         print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
+        time.sleep(2)
+        print(f"self.states length: {len(self.states.keys())}")
 
-    def handle_workers_return(self, future):
+    def next_pool(self):
+        pool_id = self.pool_id + 1
+        if pool_id == self.pool_num:
+            pool_id = 0
+        if self.pools_locks[pool_id].locked():
+            print(f"===================================================== POOL lock ??????????\n")
+        self.pools_locks[pool_id].acquire()
+        self.pool_id = pool_id      # After acquire()
+        self.buff_id = 0
+
+    def update_states(self, pool_id: int, buff_size: int):
         """
             ThreadPoolExecutor docs:
                 Added callables are called in the order that they were added and
@@ -156,51 +200,41 @@ class MCTSParallel(MCTSLazy):
             stackoverflow:
                 If the thread is not cancelled:
                     Callback function execute by the thread that executes the future's task
+
+            Vu que c'est ce fou de main thread qui prends en charge les data
+            des workers_buff dans le callback, les workers peuvent overwrite leurs buffer
+            alors qu'on ne les a pas encore "vidé" !
+                -> Faire un lock par buffer[i]
+                    -> Les workers ne seront plus ralenti par leur buffer non vidé !
+                    Car ils prennent le premier buff qui est pas .acquire()
         """
-        worker_id = future.result()
-        print(f"Parallel: Worker {worker_id}'s response has been receive: {time.time()}")
+        print(f"Parallel: Update Parallel.states with pool {pool_id}")
 
-        # print(f"self.workers_state_data_buff[worker_id]:\n{self.workers_state_data_buff[worker_id]}")
-        # print(f"self.workers_path_buff[worker_id]:\n{self.workers_path_buff[worker_id]}")
+        for i in range(buff_size):
+            path_len = self.states_buff[pool_id, i].depth
+            k = str(self.path_buff[pool_id, i, path_len - 1].board.tobytes())
 
-        ## Futur?: Enlever les copy
-        buff_size = self.workers_state_data_buff[worker_id].depth
-
-        self.buff_lock.acquire()
-        print(f"Worker {worker_id} acquire: {time.time()}")
-        self.states_buff[self.buff_id] = self.workers_state_data_buff[worker_id].copy()
-        self.path_buff[self.buff_id, :buff_size] = self.workers_path_buff[worker_id, :buff_size].copy()
-
-        self.buff_id += 1
-        if self.buff_id >= self.buff_size:
-            self.update_states()
-        self.buff_lock.release()
-        print(f"Worker {worker_id} release: {time.time()}\n")
-
-    def update_states(self):
-        print(f"Parallel: Update Parallel.states: {self.buff_id} >= {self.buff_size} = {self.buff_id >= self.buff_size}")
-
-        # Expansion
-        for i in range(self.buff_size):
-            k = str(self.path_buff[i, -1].board.tobytes())
+            print(f"Parallel: Update states with pool {pool_id} buff {i} + lock.release()")
+            # Expansion
+            if k in self.states:
+                print(f"=============================== WTF EXPAND AN EXISTING STATE: {np.argwhere(self.path_buff[pool_id, i, path_len - 1].board == 1)}")
             self.states[k] = np.recarray(1, dtype=Typing.StateDataDtype)
-            self.states[k][0] = self.states_buff[i]
+            self.states[k][0] = self.states_buff[pool_id, i]
 
-            self.backpropagation(
-                self.path_buff[i],
-                self.states_buff[i].depth,
-                self.states_buff[i].heuristic
-            )
-        # model prediction -> Require engine or engine.history, engine.captures
-        # backprop
+            # model prediction -> Require engine or engine.history, engine.captures
+            # self.backpropagation(
+            #     self.path_buff[pool_id, i],
+            #     path_len,
+            #     self.states_buff[pool_id, i].heuristic
+            # )
+            self.buffers_locks[pool_id][i].release()
 
-        self.buff_id = 0
-        print(f"Parallel: Set self.buff_id to 0 -> {self.buff_id}")
-        # Return worker reference to start a new iteration with this thread
+        self.pools_locks[pool_id].release()
+        return 0
 
-    def backpropagation(self, path: np.ndarray, path_size: int, reward: Typing.MCTSFloatDtype):
+    def backpropagation(self, path: np.ndarray, path_len: int, reward: Typing.MCTSFloatDtype):
 
-        for i in range(path_size - 1, -1, -1):
+        for i in range(path_len - 1, -1, -1):
             # print(f"Parallel: backprop index of path: {i}")
             # self.backprop_memory(path[i], reward)
             reward = 1 - reward

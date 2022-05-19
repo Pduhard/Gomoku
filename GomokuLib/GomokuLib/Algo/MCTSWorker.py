@@ -1,3 +1,4 @@
+import time
 from time import sleep
 import numpy as np
 import numba as nb
@@ -14,7 +15,7 @@ class MCTSWorker:
         Currently mix-in of MCTS() and MCTSLazy()
 
         Passer un state_data buffer en recarray du parralel aux workers avec l'id ou ils
-        doivent l'ecrire. -> state_data_buff[buff_id][:] = state_data
+        doivent l'ecrire. -> states_buff[buff_id][:] = state_data
             Idem avec le path ->   path_buff[buff_id][:] = path
 
         Ensuite Dans le parallel :
@@ -29,7 +30,7 @@ class MCTSWorker:
 
     states: Typing.nbStateDict
 
-    state_data_buff: Typing.nbState
+    states_buff: Typing.nbStateBuff
     path_buff: Typing.nbPath
     # empty_state_data: Typing.nbStateArray
 
@@ -38,14 +39,14 @@ class MCTSWorker:
     def __init__(self, 
                  id: nb.int32,
                  engine: Gomoku,
-                 state_data_buff: Typing.nbState,
+                 states_buff: Typing.nbStateBuff,
                  path_buff: Typing.nbPath,
                  states: Typing.nbStateDict,
                  ):
 
         self.id = id
         self.engine = engine.clone()
-        self.state_data_buff = state_data_buff
+        self.states_buff = states_buff
         self.path_buff = path_buff
         self.states = states
         self.c = np.sqrt(2)
@@ -55,32 +56,49 @@ class MCTSWorker:
     def __str__(self):
         return f"MCTSWorker id={self.id}"
 
-    def do_your_fck_work(self) -> tuple:
+    def do_your_fck_work(self, pool_id: int, buff_id: int) -> tuple:
         """
             ## Ca ca marche :
                 path[0].bestaction[:] = ba
             ## Ca non !
                 path[0].bestaction = ba
 
+            ## It works ! At least from there ...
+            state_data = np.zeros(1, dtype=Typing.StateDataDtype)
+            state_data[0].worker_id = self.id
+            state_data[0].depth = 6
+            state_data[0].stateAction[...] = np.ones((2, 19, 19), dtype=Typing.MCTSFloatDtype)
+            state_data[0].heuristic = 0.420
+
+            path = np.zeros(1, dtype=Typing.PathDtype)
+            path[0].board[...] = np.ones((2, 19, 19), dtype=Typing.BoardDtype)
+            path[0].player_idx = Typing.MCTSIntDtype(42)
+            path[0].bestAction[...] = np.ones(2, dtype=Typing.ActionDtype)
+
+            self.states_buff[self.id] = state_data[0]
+            self.path_buff[self.id] = path[0]
+            ## ... to there :)
         """
-        print(f"Worker {self.id}: do_your_fck_work()")
 
-        ## It works !
+        with nb.objmode():
+            print(f"Worker {self.id}: do_your_fck_work() | pool {pool_id} buff {buff_id} | self.states length: {len(self.states.keys())}", flush=True)
+            time.sleep(0.2)
+
         state_data = np.zeros(1, dtype=Typing.StateDataDtype)
-        state_data[0].worker_id = self.id
-        state_data[0].depth = 6
-        state_data[0].stateAction[...] = np.ones((2, 19, 19), dtype=Typing.MCTSFloatDtype)
-        state_data[0].heuristic = 0.420
-
         path = np.zeros(1, dtype=Typing.PathDtype)
-        path[0].board[...] = np.ones((2, 19, 19), dtype=Typing.BoardDtype)
-        path[0].player_idx = Typing.MCTSIntDtype(42)
-        path[0].bestAction[...] = np.ones(2, dtype=Typing.ActionDtype)
+
+        state_data[0].depth = 1
+
+        rd = np.zeros(722, dtype=Typing.BoardDtype)
+        ri = np.random.randint(722)
+        print(ri)
+        rd[ri] = 1
+        path[0].board[...] = rd.reshape((2, 19, 19))
 
         ## Futur?: Envoyer state_data directement pour ne pas re-déclarer
         ## un array lors de l'insersion dans states
-        self.state_data_buff[self.id] = state_data[0]
-        self.path_buff[self.id] = path[0]
+        self.states_buff[pool_id, buff_id] = state_data[0]
+        self.path_buff[pool_id, buff_id] = path[0]
         return self.id
 
     def mcts(self):

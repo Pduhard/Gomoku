@@ -45,8 +45,9 @@ nbBoardFFI = nb.types.CPointer(board_nb_dtype)
 nbGameZone = game_zone_nb_dtype[:]
 
 nbPathArray = path_array_nb_dtype
-nbPath = path_nb_dtype[:, :]
+nbPath = path_nb_dtype[:, :, :]
 nbState = state_data_nb_dtype[:]
+nbStateBuff = state_data_nb_dtype[:, :]
 # nbWorkerState = state_data_nb_dtype[:, :]
 # nbStateArray = state_data_array_nb_dtype
 
