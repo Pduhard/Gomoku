@@ -1,6 +1,6 @@
 
 from typing import Union
-
+import time
 from .Gomoku import Gomoku
 
 class GomokuRunner:
@@ -22,8 +22,10 @@ class GomokuRunner:
 
         while not self.engine.isover():
             player = players[self.engine.player_idx]
+            start = time.perf_counter()
             player_action = player.play_turn(self.engine)
-
+            end = time.perf_counter()
+            print('played in', (end - start) * 1000)
             self.engine.apply_action(player_action)
             self.engine.next_turn()
 
