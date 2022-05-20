@@ -80,25 +80,32 @@ class MCTSWorker:
             ## ... to there :)
         """
 
-        with nb.objmode():
-            print(f"Worker {self.id}: do_your_fck_work() | pool {pool_id} buff {buff_id} | self.states length: {len(self.states.keys())}", flush=True)
-            time.sleep(0.2)
+        # with nb.objmode():
+        # #     print(f"Worker {self.id}: do_your_fck_work() | pool {pool_id} buff {buff_id} | self.states length: {len(self.states.keys())}", flush=True)
+        #     time.sleep(0.1)
 
         state_data = np.zeros(1, dtype=Typing.StateDataDtype)
-        path = np.zeros(1, dtype=Typing.PathDtype)
+        path = np.zeros(361, dtype=Typing.PathDtype)
 
         state_data[0].depth = 1
 
-        rd = np.zeros(722, dtype=Typing.BoardDtype)
-        ri = np.random.randint(722)
-        print(ri)
-        rd[ri] = 1
-        path[0].board[...] = rd.reshape((2, 19, 19))
+        # print(path)
+        path[0].board[...] = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
+        # print(path[0].board)
+        for i in range(5):
+            r0 = np.random.randint(2)
+            r1 = np.random.randint(19)
+            r2 = np.random.randint(19)
+            # print(r0, r1, r2)
+            path[0].board[r0, r1, r2] = 1
+
+        # print(path[0].board)
 
         ## Futur?: Envoyer state_data directement pour ne pas re-déclarer
         ## un array lors de l'insersion dans states
+        state_data[0].worker_id = self.id
         self.states_buff[pool_id, buff_id] = state_data[0]
-        self.path_buff[pool_id, buff_id] = path[0]
+        self.path_buff[pool_id, buff_id, ...] = path
         return self.id
 
     def mcts(self):

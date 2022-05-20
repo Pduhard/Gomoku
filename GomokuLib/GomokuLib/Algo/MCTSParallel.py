@@ -22,20 +22,20 @@ class MCTSParallel(MCTSLazy):
 
     def __init__(self,
                  engine: Gomoku,
-                 num_workers: int = 1,
-                 batch_size: int = 3,
-                 pool_num: int = 2,
-                 mcts_iter: int = 9,
+                 num_workers: int = 10,
+                 batch_size: int = 32,
+                 pool_num: int = 10,
+                 mcts_iter: int = 5000,
                  *args, **kwargs
                  ) -> None:
         """
-            3 workers | n pools de buffers
+            n pools de n buffers
             [[_, _, _], ..., [_, _, _]]
 
-            Workers acquire les buffers dans l'ordre.
-            Dès qu'une pool est fini les workers pointent vers la suivante
-                Main thread release tous les buffers de la pool
-                et expand / backprop / ...
+            Dès qu'une pool est fini:
+                On update les states avec celle-ci
+                On la release
+                On acquire la suivante pour que les workers la remplisse
         """
         # super().__init__(engine, *args, **kwargs)
 
@@ -57,50 +57,25 @@ class MCTSParallel(MCTSLazy):
             shape=(self.pool_num, self.buff_num),
             dtype=Typing.StateDataDtype
         )
+        self.states_buff[...].worker_id = -1
+
         self.path_buff = np.recarray(
             shape=(self.pool_num, self.buff_num, 361),
             dtype=Typing.PathDtype
         )
+
         self.pools_locks = [
             threading.Lock()
             for _ in range(self.pool_num)
         ]
-        self.buffers_locks = [
-            [
-                threading.Lock()
-                for _ in range(self.buff_num)
-            ]
-            for _ in range(self.pool_num)
-        ]
+        self.check_pools_lock = threading.Lock()
 
-        print(f"Parallel __init__() shapes: {self.states_buff.shape}\t {self.path_buff.shape}")
         engine = Gomoku()
 
-        ## ca marche
-        ## Valeurs random quand on passe de nbState à state_data_nb_dtype
-        ## en enlevant le [0] ...
-        # bd = np.zeros((2, 19, 19), dtype=np.uint8)
-        # k = str(bd.tobytes())
-        # self.states[k] = np.recarray(1, dtype=Typing.StateDataDtype)
-        #
-        # a = np.zeros((19, 19), dtype=Typing.MCTSIntDtype)
-        # self.states[k][0].actions = a
-        # self.states[k][0].actions[0, 0] = 42
-        # print(f"Temoin {self.states[k][0].actions[0, 0]}")
-        ## ca marche pas encore ^^"
-
-        ############################
-
-        # bd = np.zeros((2, 19, 19), dtype=np.uint8)
-        # self.states[bd.tobytes()] = np.recarray(1, dtype=Typing.StateDataDtype)
-        # self.states[bd.tobytes()][0].Actions[-1, -1] = 42
-
-        ############################
-
-        # breakpoint()
-
+        self.threads_num = 0
         self.pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=None,
+            initializer=self.init_thread
         )
         self.workers = [    # Autant de workers qu'il y a de Threads (-1 ?)
             MCTSWorker(
@@ -113,6 +88,7 @@ class MCTSParallel(MCTSLazy):
             for i in range(self.num_workers)
         ]
         print(f"Parallel: Successfully create {len(self.workers)} workers")
+        print(f"Parallel: __init__() end. Shapes: {self.states_buff.shape}\t {self.path_buff.shape}")
 
     def __str__(self):
         return f"MCTSParallel with {self.num_workers} workers and  iterations"
@@ -124,17 +100,19 @@ class MCTSParallel(MCTSLazy):
         """
         print(f"\n[MCTSParallel begin __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
 
+        _iter = 0
         self.pool_id = 0
         self.buff_id = 0
+        self.pools_locks[self.pool_id].acquire()
+
         # Submit all Workers for an iteration
         not_done_futures = []
-        for i, worker in enumerate(self.workers):
-            self.buffers_locks[self.pool_id][i].acquire()
-            not_done_futures.append(self.pool.submit(worker.do_your_fck_work, self.pool_id, i))
+        for worker_id in range(len(self.workers)):
+            f = self.submit_worker(worker_id)
+            not_done_futures.append(f)
+            _iter += 1
 
         # Main loop
-        not_done_futures = not_done_futures
-        _iter = len(not_done_futures) - 1
         while _iter < self.mcts_iter:
 
             # Wait until we get for the first Worker response
@@ -146,27 +124,9 @@ class MCTSParallel(MCTSLazy):
                 )
             )
 
+            # Submit done Workers for next iterations
             for future in done_future:
-                # Search the first release buff of the pool self.pool_id
-                # while self.buff_id < self.buff_num and not :
-                #     print(f"Parallel: SEARCH | pool {self.pool_id} buff {self.buff_id} | locked ?-> {self.buffers_locks[self.pool_id][self.buff_id].locked()}")
-                #     self.buff_id += 1
-
-                if self.buffers_locks[self.pool_id][self.buff_id].locked():
-                    print(f"===================================================== Buffer lock ??????????\n")
-                self.buffers_locks[self.pool_id][self.buff_id].acquire()
-                self.buff_id += 1
-
-                if self.buff_id == self.buff_num:
-                    f = self.pool.submit(self.update_states, self.pool_id)
-                    not_done_futures.append(f)
-                    self.next_pool()
-                    self.buffers_locks[self.pool_id][self.buff_id].acquire(blocking=True)
-
-                print(f"Parallel: SUBMIT WORKER {future.result()} | pool {self.pool_id} buff {self.buff_id}\n")
-                # Submit done Workers for a new iteration
-                f = self.pool.submit(self.workers[future.result()].do_your_fck_work, self.pool_id, self.buff_id)
-                # f.add_done_callback(self.handle_workers_return)
+                f = self.submit_worker(future.result())
                 not_done_futures.append(f)
                 _iter += 1
 
@@ -175,49 +135,89 @@ class MCTSParallel(MCTSLazy):
             not_done_futures,
             return_when=concurrent.futures.ALL_COMPLETED
         )
-        # S'occuper de la dernière pool pas remplie ! ###################################################
 
-        print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
+        # Process all buff, no longer 'NOT FINISHED', of last pool
+        self.check_pool_state(None, force_update=True)
+
         time.sleep(2)
+        print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
         print(f"self.states length: {len(self.states.keys())}")
+        print(f"Max thread used: {self.threads_num}")
+
+    def init_thread(self):
+        print(f"Init thread by {threading.current_thread().name}")
+        self.threads_num += 1
+
+    def submit_worker(self, worker_id) -> concurrent.futures:
+
+        # Submit a worker
+        print(f"Parallel: SUBMIT WORKER {worker_id} | pool {self.pool_id} buff {self.buff_id}")
+        worker_f = self.pool.submit(self.workers[worker_id].do_your_fck_work, self.pool_id, self.buff_id)
+
+        # Callback: If all buff of a pool are no longer 'NOT FINISHED', process these buffers
+        worker_f.add_done_callback(self.check_pool_state)
+
+        # If the pool is full, go to the next pool
+        self.buff_id += 1
+        if self.buff_id == self.buff_num:
+            self.next_pool()
+
+        return worker_f
 
     def next_pool(self):
+        # Compute next pool_id
         pool_id = self.pool_id + 1
         if pool_id == self.pool_num:
             pool_id = 0
+
+        # Acquire related lock instant, or wait for it
         if self.pools_locks[pool_id].locked():
-            print(f"===================================================== POOL lock ??????????\n")
+            print(f"===================================================== POOL lock ?????????? Need more pools !\n")
         self.pools_locks[pool_id].acquire()
+
+        # Update indexes
         self.pool_id = pool_id      # After acquire()
         self.buff_id = 0
+        # print(f"\n========================== Lock pool {pool_id} !")
 
-    def update_states(self, pool_id: int, buff_size: int):
+    def check_pool_state(self, future: concurrent.futures.Future, force_update: bool = False):
         """
-            ThreadPoolExecutor docs:
+            If all buff of a pool are no longer 'NOT FINISHED', process these buffers
+
+            ThreadPoolExecutor docs about callbacks:
                 Added callables are called in the order that they were added and
                 are always called in a thread belonging to the process that added them.
 
-            stackoverflow:
+            Random guy on stackoverflow, about callbacks:
                 If the thread is not cancelled:
                     Callback function execute by the thread that executes the future's task
-
-            Vu que c'est ce fou de main thread qui prends en charge les data
-            des workers_buff dans le callback, les workers peuvent overwrite leurs buffer
-            alors qu'on ne les a pas encore "vidé" !
-                -> Faire un lock par buffer[i]
-                    -> Les workers ne seront plus ralenti par leur buffer non vidé !
-                    Car ils prennent le premier buff qui est pas .acquire()
         """
-        print(f"Parallel: Update Parallel.states with pool {pool_id}")
+        self.check_pools_lock.acquire()
+        for i, pool in enumerate(self.states_buff):
+
+            finished = pool[:].worker_id != -1
+            if (all(finished) or
+               (force_update and any(finished))):
+                # print(f"pool {i}, finished workers:\n{finished}")
+                # Reset all buff to an imaginary state 'NOT FINISHED'
+                self.states_buff[i, :].worker_id = -1
+                # Update self.states with buffers
+                self.pool.submit(self.update_states, i, np.count_nonzero(finished))
+        self.check_pools_lock.release()
+
+    def update_states(self, pool_id: int, buff_size: int):
+        print(f"\nParallel: Update Parallel.states with {buff_size} buff of pool {pool_id} by thread {threading.current_thread().name}")
 
         for i in range(buff_size):
             path_len = self.states_buff[pool_id, i].depth
             k = str(self.path_buff[pool_id, i, path_len - 1].board.tobytes())
 
-            print(f"Parallel: Update states with pool {pool_id} buff {i} + lock.release()")
             # Expansion
             if k in self.states:
                 print(f"=============================== WTF EXPAND AN EXISTING STATE: {np.argwhere(self.path_buff[pool_id, i, path_len - 1].board == 1)}")
+                print(self.path_buff[pool_id, i, path_len - 1].board)
+                print(k)
+                breakpoint()
             self.states[k] = np.recarray(1, dtype=Typing.StateDataDtype)
             self.states[k][0] = self.states_buff[pool_id, i]
 
@@ -227,10 +227,14 @@ class MCTSParallel(MCTSLazy):
             #     path_len,
             #     self.states_buff[pool_id, i].heuristic
             # )
-            self.buffers_locks[pool_id][i].release()
 
-        self.pools_locks[pool_id].release()
-        return 0
+        # Release the pool
+        if self.pools_locks[pool_id].locked():
+            self.pools_locks[pool_id].release()
+            # print(f"========================== Release pool {pool_id} !\n")
+        else:
+            print(f"============================ Wtf lock pool {pool_id} was already release !")
+            breakpoint()
 
     def backpropagation(self, path: np.ndarray, path_len: int, reward: Typing.MCTSFloatDtype):
 
@@ -254,26 +258,3 @@ class MCTSParallel(MCTSLazy):
 
         r, c = bestAction.action
         state_data.stateAction[..., r, c] += [1, reward]  # update state-action count / value
-
-
-    def test(self):
-
-        worker = MCTSWorker(
-            Gomoku(),
-            np.int32(0)
-        )
-
-        worker_ret = worker.do_your_fck_work()
-        self.workers_states_buff[worker_ret['path'][-1]['statehash']] = worker_ret['leaf_data'].copy()
-        # self.workers_states_data_len += 1
-
-        print("1\n", self.workers_states_buff)
-        
-        worker_ret = worker.do_your_fck_work()
-        self.workers_states_buff[worker_ret['path'][-1]['statehash']] = worker_ret['leaf_data'].copy()
-
-        print("2\n", self.workers_states_buff)
-
-        self.states.update(self.workers_states_buff)
-
-        print("3\n", self.states)
