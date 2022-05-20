@@ -90,7 +90,7 @@ def duel():
         engine=runner.engine,
         iter=1000,
         hard_pruning=True,
-        rollingout_turns=10
+        rollingout_turns=5
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -98,7 +98,7 @@ def duel():
         engine=runner.engine,
         iter=1000,
         hard_pruning=True,
-        rollingout_turns=10
+        rollingout_turns=5
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
@@ -204,11 +204,24 @@ def numba_tests():
 def parallel_tests():
 
     runner = GomokuLib.Game.GameEngine.GomokuRunner()
-    mcts = GomokuLib.Algo.MCTSParallel(runner.engine)
-    mcts()
+    # mcts = GomokuLib.Algo.MCTSParallel(runner.engine)
+    mcts=GomokuLib.Algo.MCTSParallel(
+        runner.engine,
+        num_workers=1,
+        batch_size=1,
+        pool_num=10,
+        mcts_iter=10
+    )
+    ret = mcts(runner.engine)
+    print(f"sandbox: {ret}")
+
+@njit()
+def tobytes(arr: np.ndarray):
+    return ''.join(map(str, map(np.int8, np.nditer(arr))))
 
 if __name__ == '__main__':
     # duel()
     # RLtest()
     # numba_tests()
     parallel_tests()
+    # print(tobytes(np.zeros((2, 19, 19), dtype=np.int8)))

@@ -9,6 +9,20 @@ import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
 
+"""
+@overload(np.any)
+@overload_method(types.Array, "any")
+def np_any(a):
+    def flat_any(a):
+        for v in np.nditer(a):
+            if v.item():
+                return True
+        return False
+
+    return flat_any
+"""
+
+
 @jitclass()
 class MCTSWorker:
     """
@@ -31,24 +45,31 @@ class MCTSWorker:
     states: Typing.nbStateDict
 
     states_buff: Typing.nbStateBuff
-    path_buff: Typing.nbPath
-    # empty_state_data: Typing.nbStateArray
+    path_buff: Typing.nbPathBuff
 
-    # end_game: nb.types.boolean
+    leaf_data: Typing.nbState
+    path: Typing.nbPath
+
+    end_game: nb.types.boolean
 
     def __init__(self, 
                  id: nb.int32,
                  engine: Gomoku,
                  states_buff: Typing.nbStateBuff,
-                 path_buff: Typing.nbPath,
+                 path_buff: Typing.nbPathBuff,
                  states: Typing.nbStateDict,
                  ):
 
         self.id = id
         self.engine = engine.clone()
+
+        self.states = states
         self.states_buff = states_buff
         self.path_buff = path_buff
-        self.states = states
+
+        self.leaf_data = np.zeros(1, dtype=Typing.StateDataDtype)
+        self.path = np.zeros(361, dtype=Typing.PathDtype)
+
         self.c = np.sqrt(2)
 
         print(f"Worker {self.id}: end __init__()\n")
@@ -56,7 +77,7 @@ class MCTSWorker:
     def __str__(self):
         return f"MCTSWorker id={self.id}"
 
-    def do_your_fck_work(self, pool_id: int, buff_id: int) -> tuple:
+    def do_your_fck_work(self, game_engine: Gomoku, pool_id: Typing.MCTSIntDtype, buff_id: Typing.MCTSIntDtype) -> tuple:
         """
             ## Ca ca marche :
                 path[0].bestaction[:] = ba
@@ -78,14 +99,103 @@ class MCTSWorker:
             self.states_buff[self.id] = state_data[0]
             self.path_buff[self.id] = path[0]
             ## ... to there :)
-        """
 
-        # with nb.objmode():
-        # #     print(f"Worker {self.id}: do_your_fck_work() | pool {pool_id} buff {buff_id} | self.states length: {len(self.states.keys())}", flush=True)
-        #     time.sleep(0.1)
+            ## Futur?: Envoyer state_data directement pour ne pas re-déclarer
+            ## un array lors de l'insersion dans states
+        """
+        # return self.MCTSParallel_tests(pool_id, buff_id)
+
+        print(f"\n[MCTS function pool {pool_id} buff {buff_id}]\n")
+
+        self.engine.update(game_engine)
+        self.mcts()
+
+        self.path_buff[pool_id, buff_id, ...] = self.path
+        self.states_buff[pool_id, buff_id] = self.leaf_data[0]
+
+        # A faire le plus à la fin possible car MCTSParallel utilise cette valeur pour determiner la fin du MCTSWorker!
+        self.states_buff[pool_id, buff_id].worker_id = self.id
+        return self.id
+
+    def mcts(self):
+
+        depth = 0
+        self.end_game = self.engine.isover()
+        # statehash = str(self.engine.board.tobytes())
+        statehash = self.tobytes(self.engine.board)
+        while statehash in self.states and not self.end_game:
+
+            state_data = self.states[statehash]
+
+            policy = self.get_policy(state_data)
+            best_action = self.selection(policy, state_data)
+
+            self.fill_path(depth, best_action)
+            self.engine.apply_action(best_action)
+            self.engine.next_turn()
+            depth += 1
+
+            self.end_game = self.engine.isover()
+            # statehash = str(self.engine.board.tobytes())
+            statehash = self.tobytes(self.engine.board)
+
+        self.fill_path(depth, None)
+        self.fill_leaf_data(depth)
+
+    def get_policy(self, state_data: Typing.nbState) -> Typing.nbPolicy:
+        """
+            ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
+
+            exploitation_rate(s, a) =   reward(s, a) / (visits(s, a) + 1)
+            exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
+
+        """
+        s_v = state_data.visits
+        sa_v, sa_r = state_data.stateAction
+        sa_v += 1   # Init this value at 1
+        return sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
+
+    def selection(self, policy: np.ndarray, state_data: Typing.nbState) -> Typing.nbTuple:
+
+        policy *= state_data.actions     # Avaible actions
+        best_actions = np.argwhere(policy == np.amax(policy))
+        best_action = best_actions[np.random.randint(len(best_actions))]
+
+        # return Typing.nbTuple(best_action)
+        return np.array(best_action, dtype=Typing.MCTSIntDtype)
+
+    def fill_path(self, depth: Typing.MCTSIntDtype, best_action: list):
+        self.path[depth].board = self.engine.board
+        self.path[depth].player_idx = self.engine.player_idx
+        self.path[depth].best_action = best_action
+
+    def fill_leaf_data(self, depth: Typing.MCTSIntDtype):
+        self.leaf_data[0].depth = depth
+        self.leaf_data[0].visits = 1
+        self.leaf_data[0].rewards = 0
+        self.leaf_data[0].stateAction = np.zeros((2, 19, 19), dtype=Typing.MCTSFloatDtype)
+        self.leaf_data[0].actions = self.engine.get_actions()
+        self.leaf_data[0].heuristic = self.award_end_game() if self.end_game else self.award()
+
+    def award(self):
+        return 0.5
+
+    def award_end_game(self):
+        if self.engine.winner == -1: # Draw
+            return 0.5
+        return 1 if self.engine.winner == self.engine.player_idx else 0
+
+    def tobytes(self, arr: Typing.nbBoard):
+        return ''.join(map(str, map(np.int8, np.nditer(arr))))
+
+    def MCTSParallel_tests(self, pool_id, buff_id):
 
         state_data = np.zeros(1, dtype=Typing.StateDataDtype)
         path = np.zeros(361, dtype=Typing.PathDtype)
+
+        with nb.objmode():
+        #     print(f"Worker {self.id}: do_your_fck_work() | pool {pool_id} buff {buff_id} | self.states length: {len(self.states.keys())}", flush=True)
+            time.sleep(0.010)
 
         state_data[0].depth = 1
 
@@ -99,77 +209,9 @@ class MCTSWorker:
             # print(r0, r1, r2)
             path[0].board[r0, r1, r2] = 1
 
-        # print(path[0].board)
-
-        ## Futur?: Envoyer state_data directement pour ne pas re-déclarer
-        ## un array lors de l'insersion dans states
-        state_data[0].worker_id = self.id
-        self.states_buff[pool_id, buff_id] = state_data[0]
         self.path_buff[pool_id, buff_id, ...] = path
+        self.states_buff[pool_id, buff_id] = state_data[0]
+
+        # A faire le plus à la fin possible car MCTSParallel utilise cette valeur pour determiner la fin du MCTSWorker!
+        self.states_buff[pool_id, buff_id].worker_id = self.id
         return self.id
-
-    def mcts(self):
-
-        # print(f"\n[MCTS function {mcts_iter}]\n")
-
-        # self.path_player_idx = [0]
-        self.best_action = (0, 0)
-
-        statehash = self.engine.board.tobytes()
-        self.end_game = self.engine.isover()
-        # while statehash in self.states and not self.end_game:
-
-        #     state_data = self.states[statehash]
-
-        #     policy = self.get_policy(state_data)
-        #     self.best_action = self.selection(policy, state_data)
-
-        #     path.append(self.new_memory(statehash))
-        #     self.engine.apply_action(self.best_action)
-        #     self.engine.next_turn()
-
-        #     statehash = self.engine.state.board.tobytes()
-
-        #     self.end_game = self.engine.isover()
-
-        # self.draw = self.engine.winner == -1
-
-        # self.best_action = None
-        # path.append(self.new_memory(statehash))
-
-        # sleep(2)
-        return 0
-    #
-    # def get_actions(self) -> nb.int32[:, :]:
-    #     return self.engine.full_board ^ 1
-    #
-    # def get_policy(self, state_data) -> nb.int32[:, :]:
-    #     """
-    #         ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
-    #
-    #         exploitation_rate(s, a) =   reward(s, a) / (visits(s, a) + 1)
-    #         exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
-    #
-    #     """
-    #     s_v = state_data['Visits']
-    #     sa_v, sa_r = state_data['StateAction']
-    #     sa_v = sa_v + 1
-    #     return sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
-    #
-    # def expand(self):
-    #     actions = self.get_actions()
-    #     self.reward = self.award_end_game() if self.end_game else self.award()
-    #     return {
-    #         'Visits': 1,
-    #         'Rewards': 0,
-    #         'StateAction': np.zeros((2, self.brow, self.bcol)),
-    #         'Actions': actions,
-    #     }
-    #
-    # def award(self):
-    #     return 0.5
-    #
-    # def award_end_game(self):
-    #     if self.draw:
-    #         return 0.5
-    #     return 1 if self.engine.winner == self.engine.player_idx else 0
