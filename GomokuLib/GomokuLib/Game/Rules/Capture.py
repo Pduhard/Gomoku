@@ -39,7 +39,7 @@ class Capture():
 		return 0
 
 	def get_current_player_captures(self, player_idx: int):
-		return self.player_count_capture[::-1] if player_idx else self.player_count_capture
+		return np.copy(self.player_count_capture[::-1]) if player_idx else self.player_count_capture
 
 	def create_snapshot(self):
 		return self.player_count_capture

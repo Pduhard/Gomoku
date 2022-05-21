@@ -123,10 +123,10 @@ def duel():
 
     winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
-    profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('tottime')
+    # profiler.disable()
+    # stats = pstats.Stats(profiler).sort_stats('tottime')
     # stats.print_stats()
-    stats.dump_stats('tmp_profile_from_script.prof')
+    # stats.dump_stats('tmp_profile_from_script.prof')
 
     print(f"Winner is {winner}")
     # breakpoint()

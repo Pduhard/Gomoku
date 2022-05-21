@@ -73,6 +73,9 @@ __all__ = [
     'ActionDtype',
     'nbAction',
 
+    'StateDtype',
+    'nbState',
+
     'GameZoneDtype',
     'nbGameZone',
 ]
