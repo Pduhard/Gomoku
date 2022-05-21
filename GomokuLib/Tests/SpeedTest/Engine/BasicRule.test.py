@@ -116,11 +116,11 @@ def test_update_board_ptr():
     _update_board_ptr(1, basic_rule, np.random.randint(0, 2, (2, 2, 19, 19), dtype=Typing.BoardDtype))
     times = []
     ranges = test_ranges
+    boards = [np.random.randint(0, 2, (r, 2, 19, 19), dtype=Typing.BoardDtype) for r in ranges]
 
-    for r in ranges:
-        boards = np.random.randint(0, 2, (r, 2, 19, 19), dtype=Typing.BoardDtype)
-        times.append(time.perf_counter())
-        _update_board_ptr(r, basic_rule, boards)
+    times.append(time.perf_counter())
+    for r, b in zip(ranges, boards):
+        _update_board_ptr(r, basic_rule, b)
         times.append(time.perf_counter())
 
     _log('updateboardptr', times, ranges)
