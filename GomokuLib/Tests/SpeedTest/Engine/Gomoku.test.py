@@ -9,13 +9,13 @@ from GomokuLib import Typing
 
 test_ranges = [10, 1000, 1000000]
 
-# @njit()
-# def _get_valid(n, full_board, gomoku):
-#     # fb = ffi.from_buffer(full_board)
-#     ret = np.zeros_like(full_board, dtype=Typing.BoardDtype)
-#     for i in range(n):
-#         ret += gomoku.get_valid(full_board)
-#     return ret
+@njit()
+def _get_actions(n, gomoku):
+    # fb = ffi.from_buffer(full_board)
+    ret = np.zeros((19, 19), dtype=Typing.BoardDtype)
+    for i in range(n):
+        ret += gomoku.get_actions()
+    return ret
 
 
 @njit()
@@ -69,20 +69,19 @@ def _log(fname, times, ranges):
     avg /= 1000
     print(f'avg call time: {avg / 1000} ns')
 
-# def test_get_valid():
-#     gomoku = Gomoku(np.zeros((2, 19, 19), dtype=Typing.BoardDtype))
-#     full_board = np.random.randint(0, 2, (19, 19), dtype=Typing.BoardDtype)
-#     _get_valid(1, full_board, gomoku)
+def test_get_actions():
+    gomoku = Gomoku(np.zeros((2, 19, 19), dtype=Typing.BoardDtype))
+    _get_actions(1, gomoku)
 
-#     times = []
-#     ranges = test_ranges
+    times = []
+    ranges = test_ranges
 
-#     times.append(time.perf_counter())
-#     for r in ranges:
-#         _get_valid(r, full_board, gomoku)
-#         times.append(time.perf_counter())
+    times.append(time.perf_counter())
+    for r in ranges:
+        _get_actions(r, gomoku)
+        times.append(time.perf_counter())
 
-#     _log('get_valid', times, ranges)
+    _log('get_valid', times, ranges)
 
 
 def test_is_valid_action():
@@ -141,7 +140,7 @@ def test_update():
     _log('shift_board', times, ranges)
 
 if __name__ == "__main__":
-    # test_get_valid()
+    test_get_actions()
     # test_is_valid()
     test_is_valid_action()
     test_shift_board()
