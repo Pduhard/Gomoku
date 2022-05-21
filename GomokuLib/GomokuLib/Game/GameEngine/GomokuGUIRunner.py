@@ -5,7 +5,6 @@ from subprocess import call
 from time import sleep
 from typing import TYPE_CHECKING, Union
 import numpy as np
-# import pygame
 import multiprocessing as mp
 import threading
 import time

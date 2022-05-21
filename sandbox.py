@@ -204,16 +204,35 @@ def numba_tests():
 def parallel_tests():
 
     runner = GomokuLib.Game.GameEngine.GomokuRunner()
+    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket()
     # mcts = GomokuLib.Algo.MCTSParallel(runner.engine)
     mcts=GomokuLib.Algo.MCTSParallel(
         runner.engine,
         num_workers=1,
-        batch_size=1,
+        batch_size=3,
         pool_num=10,
-        mcts_iter=10
+        mcts_iter=5000
     )
+    p1 = GomokuLib.Player.Bot(mcts)
     ret = mcts(runner.engine)
-    print(f"sandbox: {ret}")
+
+    mcts=GomokuLib.Algo.MCTSParallel(
+        runner.engine,
+        num_workers=1,
+        batch_size=3,
+        pool_num=10,
+        mcts_iter=5000
+    )
+    p2 = GomokuLib.Player.Bot(mcts)
+    ret = mcts(runner.engine)
+
+
+    # s = time.perf_counter()
+    # e = time.perf_counter()
+    # print(f"sandbox: {ret} in {(e - s) * 1000} ms")
+
+    winner = runner.run([p1, p2])  # White: 0 / Black: 1
+
 
 @njit()
 def tobytes(arr: np.ndarray):

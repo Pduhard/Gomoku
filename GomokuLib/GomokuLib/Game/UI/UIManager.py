@@ -3,8 +3,9 @@ from subprocess import call
 from typing import Union
 from time import sleep
 import numpy as np
-import pygame
 import time
+
+import pygame
 
 from ..GameEngine.Gomoku import Gomoku
 from ..GameEngine.Snapshot import Snapshot
@@ -17,7 +18,7 @@ from .Display import Display
 class UIManager:
 
     def __init__(self, engine: Gomoku, win_size: tuple):
-
+        
         self.engine = engine.clone()
         self.win_size = win_size
         self.board_size = self.engine.board_size

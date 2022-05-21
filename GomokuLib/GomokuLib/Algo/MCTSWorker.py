@@ -105,7 +105,7 @@ class MCTSWorker:
         """
         # return self.MCTSParallel_tests(pool_id, buff_id)
 
-        print(f"\n[MCTS function pool {pool_id} buff {buff_id}]\n")
+        # print(f"\n[MCTS function pool {pool_id} buff {buff_id}]\n")
 
         self.engine.update(game_engine)
         self.mcts()
@@ -115,6 +115,10 @@ class MCTSWorker:
 
         # A faire le plus à la fin possible car MCTSParallel utilise cette valeur pour determiner la fin du MCTSWorker!
         self.states_buff[pool_id, buff_id].worker_id = self.id
+        # if self.leaf_data[0].depth > 0:
+        #     with nb.objmode():
+        #         breakpoint()
+
         return self.id
 
     def mcts(self):
@@ -125,7 +129,7 @@ class MCTSWorker:
         statehash = self.tobytes(self.engine.board)
         while statehash in self.states and not self.end_game:
 
-            state_data = self.states[statehash]
+            state_data = self.states[statehash][0]
 
             policy = self.get_policy(state_data)
             best_action = self.selection(policy, state_data)
@@ -150,6 +154,8 @@ class MCTSWorker:
             exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
 
         """
+        # with nb.objmode():
+        #     print(state_data)
         s_v = state_data.visits
         sa_v, sa_r = state_data.stateAction
         sa_v += 1   # Init this value at 1
@@ -169,7 +175,7 @@ class MCTSWorker:
         self.path[depth].board[...] = self.engine.board
         self.path[depth].player_idx = self.engine.player_idx
         self.path[depth].bestAction[:] = best_action
-
+        
     def fill_leaf_data(self, depth: Typing.MCTSIntDtype):
         self.leaf_data[0].depth = depth
         self.leaf_data[0].visits = 1
@@ -188,6 +194,7 @@ class MCTSWorker:
 
     def tobytes(self, arr: Typing.nbBoard):
         return ''.join(map(str, map(np.int8, np.nditer(arr))))
+
 
     def MCTSParallel_tests(self, pool_id, buff_id):
 

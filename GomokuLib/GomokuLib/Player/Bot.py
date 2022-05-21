@@ -17,4 +17,5 @@ class Bot:
         return f"Bot with algo: {str(self.algo)}"
 
     def play_turn(self, engine, **kwargs) -> tuple[int]:
-        return self.algo(engine)[1]
+        ret = self.algo(engine)
+        return ret[1] if isinstance(ret, tuple) else ret
