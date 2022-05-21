@@ -139,7 +139,7 @@ class MCTSWorker:
             # statehash = str(self.engine.board.tobytes())
             statehash = self.tobytes(self.engine.board)
 
-        self.fill_path(depth, None)
+        self.fill_path(depth, np.full(2, -1, Typing.MCTSIntDtype))
         self.fill_leaf_data(depth)
 
     def get_policy(self, state_data: Typing.nbState) -> Typing.nbPolicy:
@@ -156,25 +156,26 @@ class MCTSWorker:
         return sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
 
     def selection(self, policy: np.ndarray, state_data: Typing.nbState) -> Typing.nbTuple:
-
-        policy *= state_data.actions     # Avaible actions
-        best_actions = np.argwhere(policy == np.amax(policy))
-        best_action = best_actions[np.random.randint(len(best_actions))]
-
+        best_action = np.zeros(2, dtype=Typing.MCTSIntDtype)
+        available_actions = policy * state_data.actions     # Avaible actions
+        best_actions = np.argwhere(available_actions == np.amax(available_actions))
+        action = best_actions[np.random.randint(len(best_actions))]
+        best_action[0] = action[0]
+        best_action[1] = action[1]
         # return Typing.nbTuple(best_action)
-        return np.array(best_action, dtype=Typing.MCTSIntDtype)
+        return best_action
 
-    def fill_path(self, depth: Typing.MCTSIntDtype, best_action: list):
-        self.path[depth].board = self.engine.board
+    def fill_path(self, depth: Typing.MCTSIntDtype, best_action: np.ndarray):
+        self.path[depth].board[...] = self.engine.board
         self.path[depth].player_idx = self.engine.player_idx
-        self.path[depth].best_action = best_action
+        self.path[depth].bestAction[:] = best_action
 
     def fill_leaf_data(self, depth: Typing.MCTSIntDtype):
         self.leaf_data[0].depth = depth
         self.leaf_data[0].visits = 1
-        self.leaf_data[0].rewards = 0
-        self.leaf_data[0].stateAction = np.zeros((2, 19, 19), dtype=Typing.MCTSFloatDtype)
-        self.leaf_data[0].actions = self.engine.get_actions()
+        # self.leaf_data[0].rewards = 0 !! Already initialized to 0
+        # self.leaf_data[0].stateAction = np.zeros((2, 19, 19), dtype=Typing.MCTSFloatDtype)
+        self.leaf_data[0].actions[:] = self.engine.get_actions()
         self.leaf_data[0].heuristic = self.award_end_game() if self.end_game else self.award()
 
     def award(self):

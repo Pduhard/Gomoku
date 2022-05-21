@@ -14,8 +14,9 @@ MCTSFloatDtype = np.float32
 PathDtype = np.dtype([
     ('board', BoardDtype, (2, 19, 19)),
     ('player_idx', MCTSIntDtype),
-    ('bestAction', ActionDtype, (2,))
+    ('bestAction', MCTSIntDtype, (2,))
 ], align=True)
+
 StateDataDtype = np.dtype([
     ('worker_id', MCTSIntDtype),
     ('depth', MCTSIntDtype),

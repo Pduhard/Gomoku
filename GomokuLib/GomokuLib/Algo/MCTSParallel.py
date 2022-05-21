@@ -273,7 +273,7 @@ class MCTSParallel(MCTSLazy):
 
         state_data.visits += 1                           # update n count
         state_data.rewards += reward                     # update state value
-        if bestAction is None:
+        if bestAction[0] == -1:
             return
 
         r, c = bestAction.action
