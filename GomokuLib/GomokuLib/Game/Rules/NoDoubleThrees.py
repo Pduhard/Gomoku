@@ -33,7 +33,9 @@ class NoDoubleThrees:
 		a = np.zeros_like(full_board, dtype=np.int8)
 		for r in range(19):
 			for c in range(19):
-				a[r, c] = self.is_valid(full_board, r, c)
+				if self.is_valid(full_board, r, c):
+					a[r, c] = 1
+		return a
 
 	def is_valid(self, full_board: np.ndarray, ar: int, ac: int):
 		# return 1

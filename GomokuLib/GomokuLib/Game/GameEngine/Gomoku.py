@@ -63,7 +63,7 @@ class Gomoku:
 
         full_board = self.board[0] | self.board[1]
         masks |= self.basic_rules.get_valid(full_board)
-        if self.no_double_threes:
+        if self.is_no_double_threes_active:
             masks |= self.no_double_threes.get_valid(full_board)
         return masks
 
