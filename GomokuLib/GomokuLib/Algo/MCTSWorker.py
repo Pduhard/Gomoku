@@ -1,5 +1,7 @@
 import time
 from time import sleep
+
+import GomokuLib
 import numpy as np
 import numba as nb
 
@@ -185,7 +187,8 @@ class MCTSWorker:
         self.leaf_data[0].heuristic = self.award_end_game() if self.end_game else self.award()
 
     def award(self):
-        return 0.5
+        return np.random.random(1)[0]
+        # return 0.5
 
     def award_end_game(self):
         if self.engine.winner == -1: # Draw
@@ -196,30 +199,109 @@ class MCTSWorker:
         return ''.join(map(str, map(np.int8, np.nditer(arr))))
 
 
-    def MCTSParallel_tests(self, pool_id, buff_id):
+    # def MCTSParallel_tests(self, pool_id, buff_id):
+    #
+    #     state_data = np.zeros(1, dtype=Typing.StateDataDtype)
+    #     path = np.zeros(361, dtype=Typing.PathDtype)
+    #
+    #     with nb.objmode():
+    #     #     print(f"Worker {self.id}: do_your_fck_work() | pool {pool_id} buff {buff_id} | self.states length: {len(self.states.keys())}", flush=True)
+    #         time.sleep(0.010)
+    #
+    #     state_data[0].depth = 1
+    #
+    #     # print(path)
+    #     path[0].board[...] = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
+    #     # print(path[0].board)
+    #     for i in range(5):
+    #         r0 = np.random.randint(2)
+    #         r1 = np.random.randint(19)
+    #         r2 = np.random.randint(19)
+    #         # print(r0, r1, r2)
+    #         path[0].board[r0, r1, r2] = 1
+    #
+    #     self.path_buff[pool_id, buff_id, ...] = path
+    #     self.states_buff[pool_id, buff_id] = state_data[0]
+    #
+    #     # A faire le plus à la fin possible car MCTSParallel utilise cette valeur pour determiner la fin du MCTSWorker!
+    #     self.states_buff[pool_id, buff_id].worker_id = self.id
+    #     return self.id
+    #
 
-        state_data = np.zeros(1, dtype=Typing.StateDataDtype)
-        path = np.zeros(361, dtype=Typing.PathDtype)
 
-        with nb.objmode():
-        #     print(f"Worker {self.id}: do_your_fck_work() | pool {pool_id} buff {buff_id} | self.states length: {len(self.states.keys())}", flush=True)
-            time.sleep(0.010)
 
-        state_data[0].depth = 1
 
-        # print(path)
-        path[0].board[...] = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
-        # print(path[0].board)
-        for i in range(5):
-            r0 = np.random.randint(2)
-            r1 = np.random.randint(19)
-            r2 = np.random.randint(19)
-            # print(r0, r1, r2)
-            path[0].board[r0, r1, r2] = 1
+if __name__ == '__main__':
 
-        self.path_buff[pool_id, buff_id, ...] = path
-        self.states_buff[pool_id, buff_id] = state_data[0]
+    pool_num = 1
+    buff_num = 1
+    path_buff = np.recarray(
+        shape=(pool_num, buff_num, 361),
+        dtype=Typing.PathDtype
+    )
+    states_buff = np.recarray(
+        shape=(pool_num, buff_num),
+        dtype=Typing.StateDataDtype
+    )
+    states_buff[...].worker_id = -1
+    states = nb.typed.Dict.empty(
+        key_type=nb.types.unicode_type,
+        value_type=Typing.nbState
+    )
+    pool_id = 0
+    i = 0
 
-        # A faire le plus à la fin possible car MCTSParallel utilise cette valeur pour determiner la fin du MCTSWorker!
-        self.states_buff[pool_id, buff_id].worker_id = self.id
-        return self.id
+    def tobytes(arr: Typing.nbBoard):
+        return ''.join(map(str, map(np.int8, np.nditer(arr))))
+
+    def expand():
+        path_len = states_buff[pool_id, i].depth
+        k = tobytes(path_buff[pool_id, i, path_len].board)
+
+        states[k] = np.recarray(1, dtype=Typing.StateDataDtype)
+        states[k][0] = states_buff[pool_id, i]
+
+        backpropagation(
+            path_buff[pool_id, i],
+            path_len,
+            states_buff[pool_id, i].heuristic
+        )
+
+    def backpropagation(path: np.ndarray, path_len: int, reward):
+
+        for i in range(path_len - 1, -1, -1):
+            # print(f"Parallel: backprop index of path: {i}")
+            backprop_memory(path[i], reward)
+            reward = 1 - reward
+
+    def backprop_memory(memory: np.ndarray, reward):
+        # print(f"Memory:\n{memory}")
+        # print(f"Memory dtype:\n{memory.dtype}")
+        board = memory.board
+        bestAction = memory.bestAction
+
+        # state_data = self.states[str(board.tobytes())]
+        state_data = states[tobytes(board)][0]
+
+        state_data.visits += 1                           # update n count
+        state_data.rewards += reward                     # update state value
+        if bestAction[0] == -1:
+            return
+
+        r, c = bestAction
+        state_data.stateAction[..., r, c] += [1, reward]  # update state-action count / value
+
+
+    runner = GomokuLib.Game.GameEngine.GomokuRunner()
+
+    mcts = GomokuLib.Algo.MCTSWorker(
+        6,
+        runner.engine,
+        states_buff,
+        path_buff,
+        states
+    )
+    for k in range(500):
+        ret = mcts.do_your_fck_work(runner.engine, 0, 0)
+        expand()
+        print(len(states))

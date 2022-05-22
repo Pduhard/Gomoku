@@ -7,6 +7,7 @@ import numpy as np
 import numba as nb
 from numba import njit, prange
 from numba.experimental import jitclass
+import faulthandler
 
 import GomokuLib.Typing as Typing
 
@@ -17,8 +18,7 @@ from GomokuLib.Algo.MCTSEvalLazy import MCTSEvalLazy
 from GomokuLib.Game.GameEngine import Gomoku
 
 
-
-class MCTSParallel(MCTSLazy):
+class MCTSParallel:
 
     def __init__(self,
                  engine: Gomoku,
@@ -69,6 +69,8 @@ class MCTSParallel(MCTSLazy):
             for _ in range(self.pool_num)
         ]
         self.check_pools_lock = threading.Lock()
+        self.n_pool_acquire = 0
+        self.n_pool_release = 0
 
         engine = Gomoku()
 
@@ -96,6 +98,7 @@ class MCTSParallel(MCTSLazy):
     def __call__(self, game_engine: Gomoku) -> tuple:
         self.game_engine = game_engine
 
+        faulthandler.enable(all_threads=True)   # Print traceback of segfaults
         self.work()
 
         k = self.tobytes(self.game_engine.board)
@@ -103,9 +106,11 @@ class MCTSParallel(MCTSLazy):
         sa_v, sa_r = state_data.stateAction
         sa_v += 1
         arg = np.argmax(sa_r / sa_v)
+        print(f"StateAction visits: {sa_v}")
+        print(f"StateAction reward: {sa_r}")
         print(f"Qualities: {sa_r / sa_v}")
-        print(f"argmax: {arg}")
-        return arg
+        print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
+        return int(arg / 19), arg % 19
 
     def work(self):
         """
@@ -126,7 +131,10 @@ class MCTSParallel(MCTSLazy):
         _iter = 0
         self.pool_id = 0
         self.buff_id = 0
+
         self.pools_locks[self.pool_id].acquire()
+        self.n_pool_acquire = 1
+        self.n_pool_release = 0
 
         # Submit all Workers for an iteration
         not_done_futures = []
@@ -152,6 +160,7 @@ class MCTSParallel(MCTSLazy):
                 f = self.submit_worker(future.result())
                 not_done_futures.append(f)
                 _iter += 1
+                # print(f"mcts iter: {_iter}")
 
         # Wait until all workers has finished
         concurrent.futures.wait(
@@ -162,10 +171,12 @@ class MCTSParallel(MCTSLazy):
         # Process all buff, no longer 'NOT FINISHED', of last pool
         self.check_pool_state(None, force_update=True)
 
-        # time.sleep(1)
-        # print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
+        time.sleep(1)
+        self.pools_locks[self.pool_id].release()
+        print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
         print(f"self.states length: {len(self.states.keys())}")
-        # print(f"Max thread used: {self.threads_num}")
+        print(f"Max thread used: {self.threads_num}")
+        print(f"Pool acquire / release: {self.n_pool_acquire} / {self.n_pool_release}")
 
     def init_thread(self):
         # print(f"Init thread by {threading.current_thread().name}")
@@ -197,6 +208,7 @@ class MCTSParallel(MCTSLazy):
         # if self.pools_locks[pool_id].locked():
         #     print(f"===================================================== POOL lock ?????????? Need more pools !\n")
         self.pools_locks[pool_id].acquire()
+        self.n_pool_acquire += 1
 
         # Update indexes
         self.pool_id = pool_id      # After acquire()
@@ -259,6 +271,7 @@ class MCTSParallel(MCTSLazy):
         # Release the pool
         if self.pools_locks[pool_id].locked():
             self.pools_locks[pool_id].release()
+            self.n_pool_release += 1
             # print(f"========================== Release pool {pool_id} !\n")
         else:
             # print(f"============================ Wtf lock pool {pool_id} was already release !")

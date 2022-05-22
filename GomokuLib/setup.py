@@ -16,7 +16,7 @@ setup(
         'GomokuLib.Game',
         'GomokuLib.Game.GameEngine',
         'GomokuLib.Game.Rules',
-        'GomokuLib.Game.UI',
+        # 'GomokuLib.Game.UI',
         'GomokuLib.Media',
         'GomokuLib.Player',
         'GomokuLib.Typing',

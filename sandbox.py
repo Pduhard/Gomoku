@@ -4,8 +4,10 @@ import time
 from time import sleep
 
 import numba
+from GomokuLib import Typing
 from numba import typed, njit, prange
 from numba.core import types
+import numba as nb
 
 import numpy as np
 import torch.cuda
@@ -88,7 +90,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=1000,
+        iter=3000,
         hard_pruning=True,
         rollingout_turns=5
     )
@@ -96,7 +98,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=1000,
+        iter=3000,
         hard_pruning=True,
         rollingout_turns=5
     )
@@ -209,30 +211,22 @@ def parallel_tests():
     mcts=GomokuLib.Algo.MCTSParallel(
         runner.engine,
         num_workers=1,
-        batch_size=3,
-        pool_num=10,
-        mcts_iter=5000
+        batch_size=1,
+        pool_num=1,
+        mcts_iter=500
     )
     p1 = GomokuLib.Player.Bot(mcts)
-    ret = mcts(runner.engine)
+    # ret = mcts(runner.engine)
 
-    mcts=GomokuLib.Algo.MCTSParallel(
-        runner.engine,
-        num_workers=1,
-        batch_size=3,
-        pool_num=10,
-        mcts_iter=5000
-    )
-    p2 = GomokuLib.Player.Bot(mcts)
-    ret = mcts(runner.engine)
-
+    if 'p2' not in locals():
+        print("new p2")
+        p2 = p1
 
     # s = time.perf_counter()
     # e = time.perf_counter()
     # print(f"sandbox: {ret} in {(e - s) * 1000} ms")
 
     winner = runner.run([p1, p2])  # White: 0 / Black: 1
-
 
 @njit()
 def tobytes(arr: np.ndarray):
