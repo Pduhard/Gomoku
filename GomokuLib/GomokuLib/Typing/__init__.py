@@ -25,6 +25,7 @@ StateDataDtype = np.dtype([
     ('stateAction', MCTSFloatDtype, (2, 19, 19)),
     ('actions', MCTSIntDtype, (19, 19)),
     ('heuristic', MCTSFloatDtype),
+    ('pruning', MCTSIntDtype, (19, 19))
     # ('AMAF', np.int32, (2, 19, 19)),
 ], align=True)
 

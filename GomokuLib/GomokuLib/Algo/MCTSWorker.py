@@ -9,6 +9,7 @@ from numba.experimental import jitclass
 
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
+from GomokuLib.Algo.MCTSUtils import MCTSUtils
 
 
 """
@@ -42,7 +43,9 @@ class MCTSWorker:
 
     id: nb.int32
     engine: Gomoku
+    # MCTSUtils: MCTSUtils
     c: nb.float32
+    pruning: nb.boolean
 
     states: Typing.nbStateDict
 
@@ -52,7 +55,7 @@ class MCTSWorker:
     leaf_data: Typing.nbState
     path: Typing.nbPath
 
-    end_game: nb.types.boolean
+    end_game: nb.boolean
 
     def __init__(self, 
                  id: nb.int32,
@@ -60,19 +63,26 @@ class MCTSWorker:
                  states_buff: Typing.nbStateBuff,
                  path_buff: Typing.nbPathBuff,
                  states: Typing.nbStateDict,
+                 pruning: nb.boolean = True
                  ):
 
         self.id = id
         self.engine = engine.clone()
-
-        self.states = states
         self.states_buff = states_buff
         self.path_buff = path_buff
+        self.states = states
+        self.pruning = pruning
 
         self.leaf_data = np.zeros(1, dtype=Typing.StateDataDtype)
         self.path = np.zeros(361, dtype=Typing.PathDtype)
 
         self.c = np.sqrt(2)
+        # self.MCTSUtils = MCTSUtils()
+        # if self.pruning:
+        #     self.get_policy = self.MCTSUtils.get_policy
+        #     self.expand_variant = self.MCTSUtils.expand
+        # else:
+        #     self.expand_variant = self._expand_variant
 
         print(f"Worker {self.id}: end __init__()\n")
 
@@ -133,7 +143,7 @@ class MCTSWorker:
 
             state_data = self.states[statehash][0]
 
-            policy = self.get_policy(state_data)
+            policy = self.get_policy(state_data, self.c)
             best_action = self.selection(policy, state_data)
 
             self.fill_path(depth, best_action)
@@ -146,9 +156,9 @@ class MCTSWorker:
             statehash = self.tobytes(self.engine.board)
 
         self.fill_path(depth, np.full(2, -1, Typing.MCTSIntDtype))
-        self.fill_leaf_data(depth)
+        self.expand(depth)
 
-    def get_policy(self, state_data: Typing.nbState) -> Typing.nbPolicy:
+    def get_policy(self, state_data: Typing.nbState, *args) -> Typing.nbPolicy:
         """
             ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
 
@@ -156,12 +166,13 @@ class MCTSWorker:
             exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
 
         """
-        # with nb.objmode():
-        #     print(state_data)
         s_v = state_data.visits
         sa_v, sa_r = state_data.stateAction
-        sa_v += 1   # Init this value at 1
-        return sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
+        sa_v += 1   # Init this value at 1 ?
+        ucbs = sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
+        # if self.pruning:
+        #     return ucbs * state_data.pruning
+        return ucbs
 
     def selection(self, policy: np.ndarray, state_data: Typing.nbState) -> Typing.nbTuple:
         best_action = np.zeros(2, dtype=Typing.MCTSIntDtype)
@@ -178,17 +189,20 @@ class MCTSWorker:
         self.path[depth].player_idx = self.engine.player_idx
         self.path[depth].bestAction[:] = best_action
         
-    def fill_leaf_data(self, depth: Typing.MCTSIntDtype):
+    def expand(self, depth: Typing.MCTSIntDtype):
         self.leaf_data[0].depth = depth
         self.leaf_data[0].visits = 1
-        # self.leaf_data[0].rewards = 0 !! Already initialized to 0
-        # self.leaf_data[0].stateAction = np.zeros((2, 19, 19), dtype=Typing.MCTSFloatDtype)
         self.leaf_data[0].actions[:] = self.engine.get_actions()
         self.leaf_data[0].heuristic = self.award_end_game() if self.end_game else self.award()
 
-    def award(self):
-        return np.random.random(1)[0]
-        # return 0.5
+        # if self.pruning:
+        #     self.leaf_data[0].pruning = MCTSUtils.pruning(self.engine)
+
+        # Laggy to pass all self's data to MCTSUtils, better use expand_variant instead
+        # self.expand_variant(self.leaf_data, self.engine)    # Like MCTSEval (Pruning)
+
+    # def _expand_variant(self):
+    #     pass
 
     def award_end_game(self):
         if self.engine.winner == -1: # Draw
@@ -198,38 +212,49 @@ class MCTSWorker:
     def tobytes(self, arr: Typing.nbBoard):
         return ''.join(map(str, map(np.int8, np.nditer(arr))))
 
+    def award(self):
+        return 0.5
 
-    # def MCTSParallel_tests(self, pool_id, buff_id):
+    # def award(self):
+    #     """
+    #         Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
+    #     """
+    #     h_leaf = self.MCTSUtils.heuristic(self.engine)
+    #     if self.rollingout_turns:
+    #         self._random_rollingout(self.rollingout_turns)
     #
-    #     state_data = np.zeros(1, dtype=Typing.StateDataDtype)
-    #     path = np.zeros(361, dtype=Typing.PathDtype)
+    #         if self.engine.isover():
+    #             return self.award_end_game()
+    #         else:
+    #             h = self.MCTSUtils.heuristic(self.engine)
+    #             return (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+    #     else:
+    #         return h_leaf
     #
-    #     with nb.objmode():
-    #     #     print(f"Worker {self.id}: do_your_fck_work() | pool {pool_id} buff {buff_id} | self.states length: {len(self.states.keys())}", flush=True)
-    #         time.sleep(0.010)
+    # def rollingout(self, n_turns):
+    #     gAction = np.zeros(2, dtype=Typing.TupleDtype)
+    #     turn = 0
+    #     while not self.engine.isover() and turn < n_turns:
     #
-    #     state_data[0].depth = 1
+    #         pruning = self.MCTSUtils.pruning(self.engine).flatten().astype(np.bool8)
     #
-    #     # print(path)
-    #     path[0].board[...] = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
-    #     # print(path[0].board)
-    #     for i in range(5):
-    #         r0 = np.random.randint(2)
-    #         r1 = np.random.randint(19)
-    #         r2 = np.random.randint(19)
-    #         # print(r0, r1, r2)
-    #         path[0].board[r0, r1, r2] = 1
+    #         # Create actions from pruning
+    #         if pruning.any():
+    #             actions = self.all_actions[pruning > 0]
+    #         else:
+    #             actions = self.all_actions
     #
-    #     self.path_buff[pool_id, buff_id, ...] = path
-    #     self.states_buff[pool_id, buff_id] = state_data[0]
+    #         # Select randomly an action from actions/pruning
+    #         action_number = len(actions)
+    #         i = np.random.randint(action_number)
+    #         gAction = actions[i]
+    #         while not self.engine.is_valid_action(gAction):
+    #             i = np.random.randint(action_number)
+    #             gAction = actions[i]
     #
-    #     # A faire le plus à la fin possible car MCTSParallel utilise cette valeur pour determiner la fin du MCTSWorker!
-    #     self.states_buff[pool_id, buff_id].worker_id = self.id
-    #     return self.id
-    #
-
-
-
+    #         self.engine.apply_action(gAction)
+    #         self.engine.next_turn()
+    #         turn += 1
 
 if __name__ == '__main__':
 

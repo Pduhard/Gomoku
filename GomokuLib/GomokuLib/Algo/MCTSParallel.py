@@ -150,7 +150,7 @@ class MCTSParallel:
         self.pool_id = 0
         self.buff_id = 0
 
-        # self.pools_locks[self.pool_id].acquire()
+        self.pools_locks[self.pool_id].acquire()
         self.n_pool_acquire = 1
         self.n_pool_release = 0
 
@@ -178,7 +178,7 @@ class MCTSParallel:
         self.check_pool_state(None, force_update=True)
 
         time.sleep(1)
-        # self.pools_locks[self.pool_id].release()
+        self.pools_locks[self.pool_id].release()
         print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
         print(f"self.states length: {len(self.states.keys())}")
         print(f"Max thread used: {self.threads_num}")
@@ -225,7 +225,7 @@ class MCTSParallel:
         # if self.pools_locks[pool_id].locked():
         #     print(f"===================================================== POOL lock ?????????? Need more pools !\n")
         try:
-            # self.pools_locks[pool_id].acquire()
+            self.pools_locks[pool_id].acquire()
             pass
         except:
             print(f"===================================================== pool({pool_id}).acquire() SEG FAULT !!?\n")
@@ -256,7 +256,7 @@ class MCTSParallel:
         # print(f"Worker {worker_id}, path depth {path_len} returns:\n{self.path_buff[0, worker_id, path_len - 1]}")
         # print(f"Parallel: CALLBACK WORKER {worker_id}")
 
-        # self.check_pools_lock.acquire()
+        self.check_pools_lock.acquire()
         for i, pool in enumerate(self.states_buff):
 
             finished = pool[:].worker_id != -1
@@ -267,7 +267,7 @@ class MCTSParallel:
                 self.states_buff[i, :].worker_id = -1
                 # Update self.states with buffers
                 self.pool.submit(self.update_states, i, np.count_nonzero(finished))
-        # self.check_pools_lock.release()
+        self.check_pools_lock.release()
 
     def update_states(self, pool_id: int, buff_size: int):
         # print(f"\nParallel: Update Parallel.states with {buff_size} buff of pool {pool_id} by thread {threading.current_thread().name}")
@@ -294,13 +294,13 @@ class MCTSParallel:
             )
 
         # Release the pool
-        # if self.pools_locks[pool_id].locked():
-        #     self.pools_locks[pool_id].release()
-        #     self.n_pool_release += 1
-        #     # print(f"========================== Release pool {pool_id} !\n")
-        # else:
-        #     # print(f"============================ Wtf lock pool {pool_id} was already release !")
-        #     breakpoint()
+        if self.pools_locks[pool_id].locked():
+            self.pools_locks[pool_id].release()
+            self.n_pool_release += 1
+            # print(f"========================== Release pool {pool_id} !\n")
+        else:
+            # print(f"============================ Wtf lock pool {pool_id} was already release !")
+            breakpoint()
 
     def backpropagation(self, path: np.ndarray, path_len: int, reward: Typing.MCTSFloatDtype):
 

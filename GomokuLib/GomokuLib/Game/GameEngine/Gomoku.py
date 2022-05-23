@@ -10,6 +10,7 @@ from numba.experimental import jitclass
 from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule
 import GomokuLib.Typing as Typing
 
+
 @jitclass()
 class Gomoku:
 

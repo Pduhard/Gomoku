@@ -213,7 +213,7 @@ def parallel_tests():
         num_workers=10,
         batch_size=5,
         pool_num=10,
-        mcts_iter=5000
+        mcts_iter=1000
     )
     p1 = GomokuLib.Player.Bot(mcts)
     # ret = mcts(runner.engine)

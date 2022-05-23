@@ -67,7 +67,7 @@ def njit_prunning(engine, hard_pruning = True):
 def njit_rollingout(n_turns, engine, all_actions):
     gAction = np.zeros(2, dtype=Typing.TupleDtype)
     turn = 0
-    
+
     while not engine.isover() and turn < n_turns:
 
         pruning = njit_prunning(engine).flatten().astype(np.bool8)
