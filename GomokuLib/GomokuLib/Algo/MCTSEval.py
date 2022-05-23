@@ -10,7 +10,7 @@ from numba import njit
 
 from .MCTS import MCTS
 
-njit()
+@njit()
 def heuristic(engine):
     board = engine.board
     full_board = (board[0] | board[1]).astype(Typing.BoardDtype)
