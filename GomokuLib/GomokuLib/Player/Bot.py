@@ -1,13 +1,10 @@
 from __future__ import annotations
 from typing import Union, TYPE_CHECKING
 
-import numpy as np
-
 if TYPE_CHECKING:
     from GomokuLib.Algo.AbstractAlgorithm import AbstractAlgorithm
-    from GomokuLib.Game.State.AbstractState import AbstractState
 
-    # 'AbstractGameEngine',
+
 class Bot:
 
     def __init__(self, algorithm: AbstractAlgorithm) -> None:

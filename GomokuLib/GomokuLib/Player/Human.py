@@ -1,11 +1,3 @@
-from __future__ import annotations
-from typing import Union, TYPE_CHECKING
-
-import pygame
-from pygame import event
-
-if TYPE_CHECKING:
-    from GomokuLib.Game.State.AbstractState import AbstractState
 
 class Human:
 

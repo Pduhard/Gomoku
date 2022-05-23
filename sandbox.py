@@ -78,11 +78,11 @@ print(f"Device selected: {device}")
 def duel():
 
     # runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
-    # runner=GomokuLib.Game.GameEngine.GomokuRunner()
+    runner=GomokuLib.Game.GameEngine.GomokuRunner()
 
-    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner(
-        rules=['Capture']
-    )
+    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner(
+    #     rules=['Capture']
+    # )
     # agent = GomokuLib.AI.Agent.GomokuAgent(
     #     RLengine=engine,
     #     # agent_name="agent_23:04:2022_18:14:01",
@@ -129,18 +129,18 @@ def duel():
     mcts_p1.mcts_iter = old1
     mcts_p2.mcts_iter = old2
 
-    profiler = cProfile.Profile()
-    profiler.enable()
+    # profiler = cProfile.Profile()
+    # profiler.enable()
 
     winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
-    profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('tottime')
-    # stats.print_stats()
-    stats.dump_stats('tmp_profile_from_script.prof')
+    # profiler.disable()
+    # stats = pstats.Stats(profiler).sort_stats('tottime')
+    # # stats.print_stats()
+    # stats.dump_stats('tmp_profile_from_script.prof')
 
     print(f"Winner is {winner}")
-    breakpoint()
+
 
 def RLmain():
 

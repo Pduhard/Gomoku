@@ -1,8 +1,5 @@
-import random
 
 import numpy as np
-
-from GomokuLib.Game.State.AbstractState import AbstractState
 
 class RandomPlayer:
 
