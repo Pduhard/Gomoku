@@ -9,8 +9,9 @@ class RandomPlayer:
     def __str__(self):
         return f"Random player"
 
-    def play_turn(self, engine) -> tuple[int]:
+    def play_turn(self, runner) -> tuple[int]:
 
+        engine = runner.engine
         actions = engine.get_actions()
         id = np.random.choice(engine.board_size[0] * engine.board_size[1], p=actions.flatten()/np.count_nonzero(actions))
         print(f"RandomPlayer id {id}")

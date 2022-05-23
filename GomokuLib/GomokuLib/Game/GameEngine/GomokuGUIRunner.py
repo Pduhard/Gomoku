@@ -54,7 +54,7 @@ class GomokuGUIRunner(GomokuRunner):
             self.get_gui_input()
 
             p = players[self.engine.player_idx]
-            player_action = p.play_turn(self.engine)
+            player_action = p.play_turn(self)
 
             if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
                 turn_data = p.algo.get_state_data(self.engine)
