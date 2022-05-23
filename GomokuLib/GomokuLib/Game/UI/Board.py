@@ -132,10 +132,20 @@ class Board:
 
     def draw_hints(self, hints_data: dict):
 
-        # print(f"Board.draw() -> hints_data: {hints_data}")
-        # (sa_n, sa_v), actions = hints_data['mcts_state_data'][2:4]
-        state_data = hints_data['mcts_state_data']
-        (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
+        state_data = hints_data['mcts_state_data'][0]
+        try:
+            sa_n = state_data.stateAction[0]
+            sa_v = state_data.stateAction[1]
+            actions = state_data.actions
+            # print(state_data.stateAction)
+            # print(state_data.actions)
+        except Exception as e:
+            print(e)
+            try:
+                (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
+            except:
+                print(f"UI: Non mais aled")
+                breakpoint()
 
         if self.hint_type == 0 and 'Policy' in state_data:
             self.draw_model_hints(state_data['Policy'])
@@ -147,8 +157,15 @@ class Board:
     def draw_stats(self, board: np.ndarray, hints_data: dict):
 
         # s_n, s_v, (sa_n, sa_v) = hints_data['mcts_state_data'][:3]
-        state_data = hints_data['mcts_state_data']
-        s_n, s_v, (sa_n, sa_v) = state_data['Visits'], state_data['Rewards'], state_data['StateAction']
+        state_data = hints_data['mcts_state_data'][0]
+        try:
+            s_n, s_v, (sa_n, sa_v) = state_data.visits, state_data.rewards, state_data.stateAction
+        except:
+            try:
+                s_n, s_v, (sa_n, sa_v) = state_data['Visits'], state_data['Rewards'], state_data['StateAction']
+            except:
+                print(f"UI: Non mais aled")
+                breakpoint()
 
         mcts_value = np.nan_to_num(s_v / s_n)
 

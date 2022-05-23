@@ -205,15 +205,15 @@ def numba_tests():
 
 def parallel_tests():
 
-    runner = GomokuLib.Game.GameEngine.GomokuRunner()
-    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket()
+    # runner = GomokuLib.Game.GameEngine.GomokuRunner()
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket()
     # mcts = GomokuLib.Algo.MCTSParallel(runner.engine)
-    mcts=GomokuLib.Algo.MCTSParallel(
+    mcts = GomokuLib.Algo.MCTSParallel(
         runner.engine,
-        num_workers=1,
-        batch_size=1,
-        pool_num=1,
-        mcts_iter=500
+        num_workers=10,
+        batch_size=5,
+        pool_num=10,
+        mcts_iter=5000
     )
     p1 = GomokuLib.Player.Bot(mcts)
     # ret = mcts(runner.engine)

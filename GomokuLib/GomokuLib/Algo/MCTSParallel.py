@@ -36,6 +36,20 @@ class MCTSParallel:
                 On update les states avec celle-ci
                 On la release
                 On acquire la suivante pour que les workers la remplisse
+
+
+
+            gdb -ex run --args python sandbox.py :
+                0x00007fff52965392
+
+                Thread 3 "python" received signal SIGSEGV, Segmentation fault.
+                raise (sig=<optimized out>) at ../sysdeps/unix/sysv/linux/raise.c:50
+                50      ../sysdeps/unix/sysv/linux/raise.c: No such file or directory.
+
+                Thread 3 "python" received signal SIGABRT, Aborted.
+                __GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:50
+                50      ../sysdeps/unix/sysv/linux/raise.c: No such file or directory.
+
         """
         # super().__init__(engine, *args, **kwargs)
 
@@ -76,9 +90,13 @@ class MCTSParallel:
 
         self.threads_num = 0
         self.pool = concurrent.futures.ThreadPoolExecutor(
-            max_workers=None,
+            max_workers=self.num_workers + 1,
             initializer=self.init_thread
         )
+        # self.pool = concurrent.futures.ProcessPoolExecutor(
+        #     max_workers=1,
+        #     initializer=self.init_thread
+        # )
         self.workers = [    # Autant de workers qu'il y a de Threads (-1 ?)
             MCTSWorker(
                 np.int32(i),
@@ -106,9 +124,9 @@ class MCTSParallel:
         sa_v, sa_r = state_data.stateAction
         sa_v += 1
         arg = np.argmax(sa_r / sa_v)
-        print(f"StateAction visits: {sa_v}")
-        print(f"StateAction reward: {sa_r}")
-        print(f"Qualities: {sa_r / sa_v}")
+        # print(f"StateAction visits: {sa_v}")
+        # print(f"StateAction reward: {sa_r}")
+        # print(f"Qualities: {sa_r / sa_v}")
         print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
         return int(arg / 19), arg % 19
 
@@ -132,35 +150,23 @@ class MCTSParallel:
         self.pool_id = 0
         self.buff_id = 0
 
-        self.pools_locks[self.pool_id].acquire()
+        # self.pools_locks[self.pool_id].acquire()
         self.n_pool_acquire = 1
         self.n_pool_release = 0
 
         # Submit all Workers for an iteration
-        not_done_futures = []
+        not_done_futures = set()   # Set() object
         for worker_id in range(len(self.workers)):
             f = self.submit_worker(worker_id)
-            not_done_futures.append(f)
+            not_done_futures.add(f)
             _iter += 1
 
-        # Main loop
-        while _iter < self.mcts_iter:
-
-            # Wait until we get for the first Worker response
-            done_future, not_done_futures = map(
-                list,
-                concurrent.futures.wait(
-                    not_done_futures,
-                    return_when=concurrent.futures.FIRST_COMPLETED
-                )
-            )
-
-            # Submit done Workers for next iterations
-            for future in done_future:
-                f = self.submit_worker(future.result())
-                not_done_futures.append(f)
-                _iter += 1
-                # print(f"mcts iter: {_iter}")
+        # Submit done Workers for next iterations
+        for future in concurrent.futures.as_completed(not_done_futures):
+            f = self.submit_worker(future.result())
+            not_done_futures.add(f)
+            _iter += 1
+            # print(f"mcts iter: {_iter}")
 
         # Wait until all workers has finished
         concurrent.futures.wait(
@@ -172,7 +178,7 @@ class MCTSParallel:
         self.check_pool_state(None, force_update=True)
 
         time.sleep(1)
-        self.pools_locks[self.pool_id].release()
+        # self.pools_locks[self.pool_id].release()
         print(f"\n[MCTSParallel end __call__()] -> {self.num_workers} workers for {self.mcts_iter} iter\n")
         print(f"self.states length: {len(self.states.keys())}")
         print(f"Max thread used: {self.threads_num}")
@@ -181,6 +187,17 @@ class MCTSParallel:
     def init_thread(self):
         # print(f"Init thread by {threading.current_thread().name}")
         self.threads_num += 1
+
+    def get_state_data(self, engine):
+        return {
+            'mcts_state_data': self.states[self.tobytes(self.engine.board)],
+        }
+
+    def get_state_data_after_action(self, engine):
+        return {}
+
+    def reset(self):
+        self.states = {}
 
     def submit_worker(self, worker_id: int) -> concurrent.futures:
 
@@ -207,13 +224,19 @@ class MCTSParallel:
         # Acquire related lock instant, or wait for it
         # if self.pools_locks[pool_id].locked():
         #     print(f"===================================================== POOL lock ?????????? Need more pools !\n")
-        self.pools_locks[pool_id].acquire()
+        try:
+            # self.pools_locks[pool_id].acquire()
+            pass
+        except:
+            print(f"===================================================== pool({pool_id}).acquire() SEG FAULT !!?\n")
+            breakpoint()
+
         self.n_pool_acquire += 1
 
         # Update indexes
         self.pool_id = pool_id      # After acquire()
         self.buff_id = 0
-        # print(f"\n========================== Lock pool {pool_id} !")
+        # print(f"======================= Lock pool {pool_id} !")
 
     def check_pool_state(self, future: concurrent.futures.Future, force_update: bool = False):
         """
@@ -227,11 +250,13 @@ class MCTSParallel:
                 If the thread is not cancelled:
                     Callback function execute by the thread that executes the future's task
         """
-        # worker_id = future.result()
+        # worker_id = future.result() if future else None
+
         # path_len = self.states_buff[0, worker_id].depth
         # print(f"Worker {worker_id}, path depth {path_len} returns:\n{self.path_buff[0, worker_id, path_len - 1]}")
+        # print(f"Parallel: CALLBACK WORKER {worker_id}")
 
-        self.check_pools_lock.acquire()
+        # self.check_pools_lock.acquire()
         for i, pool in enumerate(self.states_buff):
 
             finished = pool[:].worker_id != -1
@@ -242,7 +267,7 @@ class MCTSParallel:
                 self.states_buff[i, :].worker_id = -1
                 # Update self.states with buffers
                 self.pool.submit(self.update_states, i, np.count_nonzero(finished))
-        self.check_pools_lock.release()
+        # self.check_pools_lock.release()
 
     def update_states(self, pool_id: int, buff_size: int):
         # print(f"\nParallel: Update Parallel.states with {buff_size} buff of pool {pool_id} by thread {threading.current_thread().name}")
@@ -269,13 +294,13 @@ class MCTSParallel:
             )
 
         # Release the pool
-        if self.pools_locks[pool_id].locked():
-            self.pools_locks[pool_id].release()
-            self.n_pool_release += 1
-            # print(f"========================== Release pool {pool_id} !\n")
-        else:
-            # print(f"============================ Wtf lock pool {pool_id} was already release !")
-            breakpoint()
+        # if self.pools_locks[pool_id].locked():
+        #     self.pools_locks[pool_id].release()
+        #     self.n_pool_release += 1
+        #     # print(f"========================== Release pool {pool_id} !\n")
+        # else:
+        #     # print(f"============================ Wtf lock pool {pool_id} was already release !")
+        #     breakpoint()
 
     def backpropagation(self, path: np.ndarray, path_len: int, reward: Typing.MCTSFloatDtype):
 
