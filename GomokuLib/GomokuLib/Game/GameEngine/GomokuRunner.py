@@ -22,9 +22,9 @@ class GomokuRunner:
     def _run(self, players):
 
         while not self.engine.isover():
-            player = players[self.engine.player_idx]
+            p = players[self.engine.player_idx]
             ts = perf_counter()
-            player_action = player.play_turn(self.engine)
+            player_action = p.play_turn(self)
             ta = perf_counter()
             print(f"Played in {(ta - ts) * 1000}")
 
