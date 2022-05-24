@@ -1,7 +1,5 @@
-import time
-from time import sleep
-
 import GomokuLib
+
 import numpy as np
 import numba as nb
 
@@ -12,132 +10,72 @@ from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib.Algo.MCTSUtils import MCTSUtils
 
 
-"""
-@overload(np.any)
-@overload_method(types.Array, "any")
-def np_any(a):
-    def flat_any(a):
-        for v in np.nditer(a):
-            if v.item():
-                return True
-        return False
-
-    return flat_any
-"""
 
 
-# @jitclass()
-class MCTSWorker:
-    """
-        Currently mix-in of MCTS() and MCTSLazy()
+@jitclass()
+class MCTSNjit:
 
-        Passer un state_data buffer en recarray du parralel aux workers avec l'id ou ils
-        doivent l'ecrire. -> states_buff[buff_id][:] = state_data
-            Idem avec le path ->   path_buff[buff_id][:] = path
-
-        Ensuite Dans le parallel :
-            Save le return du worker dans un autre buffer de taille batch_size
-            Quand ce buff est plein, update le state global
-
-    """
-
-    id: nb.int32
     engine: Gomoku
-    # MCTSUtils: MCTSUtils
-    c: nb.float32
+    mcts_iter: Typing.mcts_int_nb_dtype
     pruning: nb.boolean
+    rollingout_turns: Typing.mcts_int_nb_dtype
+    c: Typing.mcts_float_nb_dtype
 
     states: Typing.nbStateDict
-
-    states_buff: Typing.nbStateBuff
-    path_buff: Typing.nbPathBuff
-
     leaf_data: Typing.nbState
     path: Typing.nbPath
 
+    depth: Typing.mcts_int_nb_dtype
     end_game: nb.boolean
 
     def __init__(self, 
-                 id: nb.int32,
                  engine: Gomoku,
-                 states_buff: Typing.nbStateBuff,
-                 path_buff: Typing.nbPathBuff,
-                 states: Typing.nbStateDict,
-                 pruning: nb.boolean = True
+                 iter: Typing.MCTSIntDtype = 1000,
+                 pruning: nb.boolean = True,
+                 rollingout_turns: Typing.MCTSIntDtype = 10
                  ):
 
-        self.id = id
         self.engine = engine.clone()
-        self.states_buff = states_buff
-        self.path_buff = path_buff
-        self.states = states
+        self.mcts_iter = iter
         self.pruning = pruning
+        self.rollingout_turns = rollingout_turns
+        self.c = np.sqrt(2)
 
+        self.states = nb.typed.Dict.empty(
+            key_type=nb.types.unicode_type,
+            value_type=Typing.nbState
+        )
         self.leaf_data = np.zeros(1, dtype=Typing.StateDataDtype)
         self.path = np.zeros(361, dtype=Typing.PathDtype)
 
-        self.c = np.sqrt(2)
-        # self.MCTSUtils = MCTSUtils()
-        # if self.pruning:
-        #     self.get_policy = self.MCTSUtils.get_policy
-        #     self.expand_variant = self.MCTSUtils.expand
-        # else:
-        #     self.expand_variant = self._expand_variant
-
-        print(f"Worker {self.id}: end __init__()\n")
+        print(f"{self.__str__()}: end __init__()\n")
+        # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
     def __str__(self):
-        return f"MCTSWorker id={self.id}"
+        return f"MCTSNjit iter={self.mcts_iter}"
 
-    def do_your_fck_work(self, game_engine: Gomoku, pool_id: Typing.MCTSIntDtype, buff_id: Typing.MCTSIntDtype) -> tuple:
-        """
-            ## Ca ca marche :
-                path[0].bestaction[:] = ba
-            ## Ca non !
-                path[0].bestaction = ba
+    def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
-            ## It works ! At least from there ...
-            state_data = np.zeros(1, dtype=Typing.StateDataDtype)
-            state_data[0].worker_id = self.id
-            state_data[0].depth = 6
-            state_data[0].stateAction[...] = np.ones((2, 19, 19), dtype=Typing.MCTSFloatDtype)
-            state_data[0].heuristic = 0.420
+        for mcts_iter in range(self.mcts_iter):
+            self.engine.update(game_engine)
+            self.mcts(mcts_iter)
 
-            path = np.zeros(1, dtype=Typing.PathDtype)
-            path[0].board[...] = np.ones((2, 19, 19), dtype=Typing.BoardDtype)
-            path[0].player_idx = Typing.MCTSIntDtype(42)
-            path[0].bestAction[...] = np.ones(2, dtype=Typing.ActionDtype)
+        gamestatehash = self.tobytes(self.game_engine.board)
+        state_data = self.states[gamestatehash][0]
+        sa_v, sa_r = state_data.stateAction
+        sa_v += 1
+        arg = np.argmax(sa_r / sa_v)
+        # print(f"StateAction visits: {sa_v}")
+        # print(f"StateAction reward: {sa_r}")
+        # print(f"Qualities: {sa_r / sa_v}")
+        print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
+        return int(arg / 19), arg % 19
 
-            self.states_buff[self.id] = state_data[0]
-            self.path_buff[self.id] = path[0]
-            ## ... to there :)
+    def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 
-            ## Futur?: Envoyer state_data directement pour ne pas re-déclarer
-            ## un array lors de l'insersion dans states
-        """
-        # return self.MCTSParallel_tests(pool_id, buff_id)
-
-        # print(f"\n[MCTS function pool {pool_id} buff {buff_id}]\n")
-
-        self.engine.update(game_engine)
-        self.mcts()
-
-        self.path_buff[pool_id, buff_id, ...] = self.path
-        self.states_buff[pool_id, buff_id] = self.leaf_data[0]
-
-        # A faire le plus à la fin possible car MCTSParallel utilise cette valeur pour determiner la fin du MCTSWorker!
-        self.states_buff[pool_id, buff_id].worker_id = self.id
-        # if self.leaf_data[0].depth > 0:
-        #     with nb.objmode():
-        #         breakpoint()
-
-        return self.id
-
-    def mcts(self):
-
-        depth = 0
+        # print(f"\n[MCTSNjit function iter {mcts_iter}]\n")
+        self.depth = 0
         self.end_game = self.engine.isover()
-        # statehash = str(self.engine.board.tobytes())
         statehash = self.tobytes(self.engine.board)
         while statehash in self.states and not self.end_game:
 
@@ -146,17 +84,17 @@ class MCTSWorker:
             policy = self.get_policy(state_data, self.c)
             best_action = self.selection(policy, state_data)
 
-            self.fill_path(depth, best_action)
+            self.fill_path(best_action)
             self.engine.apply_action(best_action)
             self.engine.next_turn()
-            depth += 1
+            self.depth += 1
 
             self.end_game = self.engine.isover()
-            # statehash = str(self.engine.board.tobytes())
             statehash = self.tobytes(self.engine.board)
 
-        self.fill_path(depth, np.full(2, -1, Typing.MCTSIntDtype))
-        self.expand(depth)
+        self.fill_path(np.full(2, -1, Typing.MCTSIntDtype))
+        self.expand(statehash)
+        self.backpropagation()
 
     def get_policy(self, state_data: Typing.nbState, *args) -> Typing.nbPolicy:
         """
@@ -184,33 +122,23 @@ class MCTSWorker:
         # return Typing.nbTuple(best_action)
         return best_action
 
-    def fill_path(self, depth: Typing.MCTSIntDtype, best_action: np.ndarray):
-        self.path[depth].board[...] = self.engine.board
-        self.path[depth].player_idx = self.engine.player_idx
-        self.path[depth].bestAction[:] = best_action
+    def fill_path(self, best_action: np.ndarray):
+        self.path[self.depth].board[...] = self.engine.board
+        self.path[self.depth].player_idx = self.engine.player_idx
+        self.path[self.depth].bestAction[:] = best_action
         
-    def expand(self, depth: Typing.MCTSIntDtype):
-        self.leaf_data[0].depth = depth
-        self.leaf_data[0].visits = 1
-        self.leaf_data[0].actions[:] = self.engine.get_actions()
-        self.leaf_data[0].heuristic = self.award_end_game() if self.end_game else self.award()
-
+    def expand(self, statehash: str):
+        self.states[statehash][0].depth = self.depth
+        self.states[statehash][0].visits = 1
+        self.states[statehash][0].actions[:] = self.engine.get_actions()
+        self.states[statehash][0].heuristic = self.award_end_game() if self.end_game else self.award()
         # if self.pruning:
-        #     self.leaf_data[0].pruning = MCTSUtils.pruning(self.engine)
-
-        # Laggy to pass all self's data to MCTSUtils, better use expand_variant instead
-        # self.expand_variant(self.leaf_data, self.engine)    # Like MCTSEval (Pruning)
-
-    # def _expand_variant(self):
-    #     pass
+        #     self.states[statehash][0].pruning = MCTSUtils.pruning(self.engine)
 
     def award_end_game(self):
         if self.engine.winner == -1: # Draw
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
-
-    def tobytes(self, arr: Typing.nbBoard):
-        return ''.join(map(str, map(np.int8, np.nditer(arr))))
 
     def award(self):
         return 0.5
@@ -255,6 +183,34 @@ class MCTSWorker:
     #         self.engine.apply_action(gAction)
     #         self.engine.next_turn()
     #         turn += 1
+
+    def backpropagation(self, reward: Typing.MCTSFloatDtype):
+
+        for i in range(self.depth - 1, -1, -1):
+            self.backprop_memory(self.path[i], reward)
+            reward = 1 - reward
+
+    def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
+        # print(f"Memory:\n{memory}")
+        # print(f"Memory dtype:\n{memory.dtype}")
+        board = memory.board
+        bestAction = memory.bestAction
+
+        state_data = self.states[self.tobytes(board)][0]
+
+        state_data.visits += 1                           # update n count
+        state_data.rewards += reward                     # update state value
+        if bestAction[0] == -1:
+            return
+
+        r, c = bestAction
+        state_data.stateAction[..., r, c] += [1, reward]  # update state-action count / value
+
+    def tobytes(self, arr: Typing.nbBoard):
+        return ''.join(map(str, map(np.int8, np.nditer(arr))))
+
+
+
 
 if __name__ == '__main__':
 

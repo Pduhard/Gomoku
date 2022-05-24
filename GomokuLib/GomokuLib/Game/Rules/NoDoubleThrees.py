@@ -34,6 +34,7 @@ class NoDoubleThrees:
 		for r in range(19):
 			for c in range(19):
 				a[r, c] = self.is_valid(full_board, r, c)
+		return a
 
 	def is_valid(self, full_board: np.ndarray, ar: int, ac: int):
 		# return 1
