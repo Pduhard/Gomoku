@@ -1,4 +1,5 @@
 from GomokuLib.Algo.MCTSNjit import MCTSNjit
+import faulthandler
 
 
 class Bot:
@@ -14,4 +15,5 @@ class Bot:
         return self.algo(runner.engine)[1]
 
     def play_njit_turn(self, runner) -> tuple[int]:
+        faulthandler.enable(all_threads=True)   # Print traceback of segfaults
         return self.algo.do_your_fck_work(runner.engine)
