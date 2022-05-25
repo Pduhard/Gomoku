@@ -83,24 +83,22 @@ def duel():
     # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
     # runner=GomokuLib.Game.GameEngine.GomokuRunner()
     #
-    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
-        rules=[]
-    )
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=3000,
+        iter=5000,
         hard_pruning=True,
-        rollingout_turns=5
+        rollingout_turns=10
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=3000,
+        iter=5000,
         hard_pruning=True,
-        rollingout_turns=5
+        rollingout_turns=10
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
