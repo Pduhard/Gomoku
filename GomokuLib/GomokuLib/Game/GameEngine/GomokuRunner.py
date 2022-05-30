@@ -33,7 +33,7 @@ class GomokuRunner:
 
         print(f"Player {self.engine.winner} win.")
 
-    def run(self, players):
+    def run(self, players, *args, **kwargs):
 
         self.engine.init_game()
         self._run(players)

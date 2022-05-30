@@ -6,6 +6,7 @@ import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
 import numba as nb
+from numba import njit
 from numba.experimental import jitclass
 from numba.core.typing import cffi_utils
 import fastcore._algo as _fastcore
@@ -15,32 +16,16 @@ _algo = _fastcore.lib
 ffi = _fastcore.ffi
 
 
+
+# @numba.vectorize('float64(int8, float64)')
+# def valid_action(actions, policy):
+#     if actions > 0:
+#         return policy
+#     else:
+#         return 0
+
 @jitclass()
 class MCTSNjit:
-    """
-    Weird logs (Sames actions are taken !!!!!):
-        MCTS_iter=46 | depth=1 | statehash in self.states=True | actions 6 5
-        MCTS_iter=46 | depth=2 | statehash in self.states=True | actions 17 14
-        MCTS_iter=46 | depth=3 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=4 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=5 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=6 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=7 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=8 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=9 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=10 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=11 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=12 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=13 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=14 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=15 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=16 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=17 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=18 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=19 | statehash in self.states=True | actions 1 12
-        MCTS_iter=46 | depth=20 | statehash in self.states=True | actions 15 8
-        MCTS_iter=46 | depth=21 | statehash in self.states=True | actions 1 12
-    """
 
     engine: Gomoku
     mcts_iter: Typing.mcts_int_nb_dtype
@@ -106,6 +91,7 @@ class MCTSNjit:
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
+        print(f"\n[MCTSNjit __call__()]\n")
         for mcts_iter in range(self.mcts_iter):
             self.engine.update(game_engine)
             self.mcts(mcts_iter)
@@ -123,7 +109,7 @@ class MCTSNjit:
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 
-        print(f"\n[MCTSNjit function iter {mcts_iter}]\n")
+        # print(f"\n[MCTSNjit mcts function iter {mcts_iter}]\n")
         self.depth = 0
         self.end_game = self.engine.isover()
         statehash = self.tobytes(self.engine.board)
@@ -132,20 +118,30 @@ class MCTSNjit:
             state_data = self.states[statehash][0]
 
             policy = self.get_policy(state_data, self.c)
-            best_action = self.selection(policy, state_data)
+            # best_action = self.selection(policy, state_data)
+            best_action = self.lazy_selection(policy, state_data['actions'])
+
+            # print(f"MCTS_iter={mcts_iter} | depth={self.depth} | statehash in self.states={'True' if statehash in self.states else 'False'} | actions {best_action[0]} {best_action[1]}")
+            # if any([np.all(best_action == p['bestAction']) for p in self.path[:self.depth+1]]):
+            #     # with nb.objmode():
+            #     #     print(f"state_data: {state_data}")
+            #     #     pass # Same action
+            #
+            #     print(f"self.path[:self.depth]['bestAction'] ->\n{self.path[:self.depth+1]['bestAction']}")
+            #     breakpoint()
+
+            # if self.depth > 20:
+            #     print(f"Depth > 20")
+            #     with nb.objmode():
+            #         breakpoint()
 
             self.fill_path(best_action)
             self.engine.apply_action(best_action)
             self.engine.next_turn()
             self.depth += 1
 
-            if self.depth > 20:
-                with nb.objmode():
-                    breakpoint()
-
             self.end_game = self.engine.isover()
             statehash = self.tobytes(self.engine.board)
-            print(f"MCTS_iter={mcts_iter} | depth={self.depth} | statehash in self.states={'True' if statehash in self.states else 'False'} | actions {best_action[0]} {best_action[1]}")
 
         self.fill_path(np.full(2, -1, Typing.MCTSIntDtype))
         self.expand(statehash)
@@ -161,38 +157,73 @@ class MCTSNjit:
         """
         s_v = state_data['visits']
         sa_v, sa_r = state_data['stateAction']
-        # s_v = state_data.visits
-        # sa_v, sa_r = state_data.stateAction
         sa_v += 1   # Init this value at 1 ?
         ucbs = sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
         # if self.is_pruning:
         #     return ucbs * state_data.pruning
         return ucbs
 
-    def selection(self, policy: np.ndarray, state_data: Typing.nbState) -> Typing.nbTuple:
-        best_action = np.zeros(2, dtype=Typing.MCTSIntDtype)
-        available_actions = policy * state_data['actions']     # Avaible actions
-        # available_actions = policy * state_data.actions     # Avaible actions
+    def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
+        best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
 
-        best_actions = np.argwhere(available_actions == np.amax(available_actions))
+        action_policy = np.where(actions > 0, policy, 0) # Replace by @nb.vectorize ?
+        max = np.amax(action_policy)
+        k = 0
+        for i in range(19):
+            for j in range(19):
+                if max == action_policy[i, j]:
+                    best_actions[k][0] = i
+                    best_actions[k][1] = j
+                    k += 1
 
-        action = best_actions[np.random.randint(len(best_actions))]
-        best_action[0] = action[0]
-        best_action[1] = action[1]
-        # return Typing.nbTuple(best_action)
-        return best_action
+        best_actions[-1, 0] = k
+        return best_actions
+
+    def lazy_selection(self, policy: np.ndarray, actions: Typing.ActionDtype):
+        gAction = np.zeros(2, dtype=Typing.TupleDtype)
+
+        while True:
+            arr = self.get_best_policy_actions(policy, actions)
+
+            len = arr[-1, 0]
+            if (len == 0):
+                with nb.objmode():
+                    print('aled lazy selection')
+                return gAction
+
+            arr_pick = np.arange(len)
+            np.random.shuffle(arr_pick) # Slow ...
+            for e in arr_pick:
+                x, y = arr[e]
+                gAction[:] = (x, y)
+                if actions[x, y] == 2:
+                    return gAction
+                elif self.engine.is_valid_action(gAction):
+                    actions[x, y] = 2
+                    return gAction
+                else:
+                    actions[x, y] = 0
+
+    # def selection(self, policy: np.ndarray, state_data: Typing.nbState) -> Typing.nbTuple:
+    #     best_action = np.zeros(2, dtype=Typing.MCTSIntDtype)
+    #     available_actions = policy * state_data['actions']     # Avaible actions
+    #     # available_actions = policy * state_data.actions     # Avaible actions
+        
+    #     best_actions = np.argwhere(available_actions == np.amax(available_actions))
+        
+    #     action = best_actions[np.random.randint(len(best_actions))]
+    #     best_action[0] = action[0]
+    #     best_action[1] = action[1]
+    #     # return Typing.nbTuple(best_action)
+    #     breakpoint()
+    #     return best_action
 
     def fill_path(self, best_action: np.ndarray):
         self.path[self.depth]['board'][...] = self.engine.board
         self.path[self.depth]['player_idx'] = self.engine.player_idx
         self.path[self.depth]['bestAction'][:] = best_action
-        # self.path[self.depth].board[...] = self.engine.board
-        # self.path[self.depth].player_idx = self.engine.player_idx
-        # self.path[self.depth].bestAction[:] = best_action
 
     def expand(self, statehash: str):
-        # self.states[statehash] = np.recarray(1, dtype=Typing.StateDataDtype)
-        # self.states[statehash][...] = np.zeros(1, dtype=Typing.StateDataDtype)
         self.states[statehash] = np.zeros(1, dtype=Typing.StateDataDtype)
 
         actions = self.engine.get_actions()
@@ -202,10 +233,6 @@ class MCTSNjit:
         self.states[statehash][0]['visits'] = 1
         self.states[statehash][0]['actions'][:] = actions
         self.states[statehash][0]['heuristic'] = self.reward
-        # self.states[statehash][0].depth = self.depth
-        # self.states[statehash][0].visits = 1
-        # self.states[statehash][0].actions[:] = actions
-        # self.states[statehash][0].heuristic = self.reward
         # if self.is_pruning:
         #     self.states[statehash][0].pruning = pruning(self.engine)
 
@@ -214,14 +241,11 @@ class MCTSNjit:
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
 
-    # def award(self):
-    #     return 0.5
-
     def award(self):
         """
             Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
         """
-        self.rollingout()
+        # self.rollingout()
 
         if self.engine.isover():
             return self.award_end_game()
@@ -243,27 +267,27 @@ class MCTSNjit:
     #     else:
     #         return h_leaf
 
-    def heuristic(self):
-        board = self.engine.board
+    # def heuristic(self):
+    #     board = self.engine.board
 
-        c_board = ffi.from_buffer(board)
-        c_full_board = ffi.from_buffer(board[0] | board[1])
+    #     c_board = ffi.from_buffer(board)
+    #     c_full_board = ffi.from_buffer(board[0] | board[1])
 
-        cap = self.engine.get_captures()
-        c0 = cap[0]
-        c1 = cap[1]
+    #     cap = self.engine.get_captures()
+    #     c0 = cap[0]
+    #     c1 = cap[1]
 
-        game_zone = self.engine.get_game_zone()
-        g0 = game_zone[0]
-        g1 = game_zone[1]
-        g2 = game_zone[2]
-        g3 = game_zone[3]
+    #     game_zone = self.engine.get_game_zone()
+    #     g0 = game_zone[0]
+    #     g1 = game_zone[1]
+    #     g2 = game_zone[2]
+    #     g3 = game_zone[3]
 
-        x = _algo.mcts_eval_heuristic(
-            c_board, c_full_board,
-            c0, c1, g0, g1, g2, g3
-        )
-        return x
+    #     x = _algo.mcts_eval_heuristic(
+    #         c_board, c_full_board,
+    #         c0, c1, g0, g1, g2, g3
+    #     )
+    #     return x
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
@@ -352,6 +376,7 @@ class MCTSNjit:
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         stateAction_update[1] = reward
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
+        # breakpoint()
 
     def tobytes(self, arr: Typing.nbBoard):
         return ''.join(map(str, map(np.int8, np.nditer(arr))))

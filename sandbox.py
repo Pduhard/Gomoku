@@ -4,8 +4,10 @@ import time
 from time import sleep
 
 import numba
+from GomokuLib import Typing
 from numba import typed, njit, prange
 from numba.core import types
+import numba as nb
 
 import numpy as np
 import torch.cuda
@@ -75,25 +77,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Device selected: {device}")
 # device = 'cpu'
 
+
 def duel():
 
-    # runner=GomokuLib.Game.GameEngine.GomokuGUIRunner()
-    runner=GomokuLib.Game.GameEngine.GomokuRunner()
-
-    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner(
-    #     rules=['Capture']
-    # )
-    # agent = GomokuLib.AI.Agent.GomokuAgent(
-    #     RLengine=engine,
-    #     # agent_name="agent_23:04:2022_18:14:01",
-    #     agent_name="agent_13:05:2022_20:50:50",
-    #     mcts_iter=1000,
-    #     mcts_hard_pruning=True,
-    #     mean_forward=True,
-    #     model_confidence=0.95,
-    #     device=device
-    # )
-    # p2 = agent
+    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    runner = GomokuLib.Game.GameEngine.GomokuRunner()
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
@@ -112,22 +100,21 @@ def duel():
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
-    # p2 = GomokuLib.Player.Human()
-    # p2 = GomokuLib.Player.RandomPlayer()
-
-    if 'p2' not in locals():
-        print("new p2")
-        p2 = p1
+    # if 'p2' not in locals():
+    #     print("new p2")
+    #     p2 = p1
+    #     mcts_p2 = mcts_p1
 
     old1 = mcts_p1.mcts_iter
     old2 = mcts_p2.mcts_iter
-
     mcts_p1.mcts_iter = 100
     mcts_p2.mcts_iter = 100
-
-    winner = runner.run([p1, p2])  # White: 0 / Black: 1
+    winner = runner.run([p1, p2], send_all_ss=False)  # White: 0 / Black: 1
     mcts_p1.mcts_iter = old1
     mcts_p2.mcts_iter = old2
+
+    # p2 = GomokuLib.Player.Human()
+    # p2 = GomokuLib.Player.RandomPlayer()
 
     # profiler = cProfile.Profile()
     # profiler.enable()
@@ -136,82 +123,12 @@ def duel():
 
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')
-    # # stats.print_stats()
+    # stats.print_stats()
     # stats.dump_stats('tmp_profile_from_script.prof')
 
     print(f"Winner is {winner}")
+    # breakpoint()
 
-
-def RLmain():
-
-    engine = GomokuLib.Game.GameEngine.GomokuGUIRunner(
-        rules=['Capture']
-    )
-    agent = GomokuLib.AI.Agent.GomokuAgent(
-        RLengine=engine,
-        # agent_to_load="agent_28:04:2022_20:39:46",
-        mcts_iter=2500,
-        mcts_hard_pruning=True,
-        mean_forward=False,
-        rollingout_turns=2,
-        device=device,
-    )
-
-    agent.training_loop(
-        nbr_tl=-1,
-        nbr_tl_before_cmp=5,
-        nbr_games_per_tl=10,
-        epochs=2
-    )
-
-def numba_tests():
-    spec = [
-        ('d', numba.typeof(typed.Dict.empty(types.string, types.int64))),
-    ]
-
-    @njit(parallel=True, nogil=True)
-    def par(d, value):
-        for i in prange(100000):
-            d[str(hash(str(i)))]
-            d[str(i) * 722]
-
-    @jitclass(spec)
-    class A:
-        def __init__(self):
-            self.d = typed.Dict.empty(types.string, types.int64)
-
-        def run(self, value):
-            par(self.d, value)
-
-    class B:
-        def __init__(self):
-            self.d = {}
-
-    a = A()
-    b = B()
-
-    value = np.random.randint(10)
-    a.d[str(-1) * 722] = value
-    b.d[str(-1) * 722] = value
-    a.run(value)
-
-    t = time.time()
-    a.run(value)
-    dt = time.time() - t
-    print(f"dtime {a}={dt} s")
-
-
-    t = time.time()
-    for i in range(100000):
-        b.d[str(hash(str(i)))]
-        b.d[str(i) * 722]
-
-    dt = time.time() - t
-    print(f"dtime {b}={dt} s")
 
 if __name__ == '__main__':
     duel()
-    # RLtest()
-    # numba_tests()
-    # parrallel_test()
-    # c_tests()
