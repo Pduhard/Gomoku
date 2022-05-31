@@ -18,13 +18,6 @@ class GomokuGUIRunnerSocket(GomokuRunner):
     def __init__(self, *args, **kwargs) -> None:
 
         super().__init__(*args, **kwargs)
-        # self.gui_outqueue = mp.Queue()
-        # self.gui_inqueue = mp.Queue()
-        #
-        # # self.engine is defined in super
-        # self.gui = UIManagerSocket(self.engine, (1500, 1000))
-        # self.gui_proc = Process(target=self.gui, args=(self.gui_outqueue, self.gui_inqueue))
-        # self.gui_proc.start()
 
         print(f"UISocket GUI start init")
         self.uisock = UISocket(as_server=True, name="Runner")
