@@ -6,7 +6,9 @@ from .MCTSEval import MCTSEval
 from .MCTSEvalLazy import MCTSEvalLazy
 from .MCTSAI import MCTSAI
 
-from .MCTSNjit import MCTSNjit
+from .MCTSParallel import MCTSParallel
+from .MCTSWorker import MCTSWorker
+from .MCTSUtils import MCTSUtils
 
 __all__ = [
     'MCTS',
@@ -16,5 +18,8 @@ __all__ = [
     'MCTSEval',
     'MCTSEvalLazy',
     'MCTSAI',
-    'MCTSNjit',
+
+    'MCTSParallel',
+    'MCTSWorker',
+    'MCTSUtils'
 ]

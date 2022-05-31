@@ -98,8 +98,8 @@ class Board:
 
     def draw(self, ss_data: dict, **kwargs):
 
-        board = ss_data['board']
-        player_idx = ss_data['player_idx']
+        board = ss_data.get('board', np.zeros((2, 19, 19)))
+        player_idx = ss_data.get('player_idx', 0)
         self.win.blit(self.bg, (self.ox, self.oy))
 
         if ss_data and 'mcts_state_data' in ss_data:

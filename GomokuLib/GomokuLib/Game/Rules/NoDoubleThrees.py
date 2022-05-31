@@ -30,7 +30,7 @@ class NoDoubleThrees:
 
 	def get_valid(self, full_board: np.ndarray):
 		# return njit_get_valid(board, self.FT_IDENT)
-		a = np.zeros_like(full_board, dtype=np.int8)
+		a = np.zeros_like(full_board, dtype=Typing.ActionDtype)
 		for r in range(19):
 			for c in range(19):
 				a[r, c] = self.is_valid(full_board, r, c)

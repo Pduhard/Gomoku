@@ -1,9 +1,7 @@
-from GomokuLib.Game.GameEngine.GomokuGUIRunner import GomokuGUIRunner
-
 
 class Human:
 
-    def __init__(self, runner: GomokuGUIRunner):
+    def __init__(self, runner):
         if not hasattr(runner, "wait_player_action"):
             print(f"{self}: Runner past in constructor has no attribute wait_player_action.")
             exit()

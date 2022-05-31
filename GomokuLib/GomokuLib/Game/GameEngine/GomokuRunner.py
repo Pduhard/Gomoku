@@ -1,7 +1,7 @@
 
 from time import perf_counter
 from typing import Union
-
+import time
 from .Gomoku import Gomoku
 
 class GomokuRunner:
@@ -37,5 +37,5 @@ class GomokuRunner:
     def run(self, players, *args, **kwargs):
 
         self.engine.init_game()
-        self._run(players)
+        self._run(players, *args, **kwargs)
         return players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner

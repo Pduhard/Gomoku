@@ -67,6 +67,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Device selected: {device}")
 # device = 'cpu'
 
+<<<<<<< HEAD
 
 def duel():
 
@@ -74,16 +75,31 @@ def duel():
     runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
         start_UI=False,
     )
+=======
+
+def duel():
+
+    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    # runner=GomokuLib.Game.GameEngine.GomokuRunner()
+    #
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
+>>>>>>> parallel_mcts
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
+<<<<<<< HEAD
         iter=3000,
         pruning=True,
+=======
+        iter=5000,
+        hard_pruning=True,
+>>>>>>> parallel_mcts
         rollingout_turns=10
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
+<<<<<<< HEAD
     # mcts_p2 = GomokuLib.Algo.MCTSNjit(
     #     engine=runner.engine,
     #     iter=1000,
@@ -110,6 +126,34 @@ def duel():
 
     # profiler = cProfile.Profile()
     # profiler.enable()
+=======
+    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=runner.engine,
+        iter=5000,
+        hard_pruning=True,
+        rollingout_turns=10
+    )
+    p2 = GomokuLib.Player.Bot(mcts_p2)
+
+    # if 'p2' not in locals():
+    #     print("new p2")
+    #     p2 = p1
+    #     mcts_p2 = mcts_p1
+    #
+    old1 = mcts_p1.mcts_iter
+    old2 = mcts_p2.mcts_iter
+    mcts_p1.mcts_iter = 100
+    mcts_p2.mcts_iter = 100
+    winner = runner.run([p1, p2], send_all_ss=False)  # White: 0 / Black: 1
+    mcts_p1.mcts_iter = old1
+    mcts_p2.mcts_iter = old2
+
+    # p2 = GomokuLib.Player.Human()
+    # p2 = GomokuLib.Player.RandomPlayer()
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+>>>>>>> parallel_mcts
 
     winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
@@ -120,7 +164,114 @@ def duel():
 
     print(f"Winner is {winner}")
     # breakpoint()
+<<<<<<< HEAD
+=======
 
+
+def RLmain():
+
+    engine = GomokuLib.Game.GameEngine.GomokuGUIRunner(
+        rules=['Capture']
+    )
+    agent = GomokuLib.AI.Agent.GomokuAgent(
+        RLengine=engine,
+        # agent_to_load="agent_28:04:2022_20:39:46",
+        mcts_iter=2500,
+        mcts_hard_pruning=True,
+        mean_forward=False,
+        rollingout_turns=2,
+        device=device,
+    )
+
+    agent.training_loop(
+        nbr_tl=-1,
+        nbr_tl_before_cmp=5,
+        nbr_games_per_tl=10,
+        epochs=2
+    )
+
+
+def numba_tests():
+    spec = [
+        ('d', numba.typeof(typed.Dict.empty(types.string, types.int64))),
+    ]
+
+    @njit(parallel=True, nogil=True)
+    def par(d, value):
+        for i in prange(100000):
+            d[str(hash(str(i)))]
+            d[str(i) * 722]
+
+    @jitclass(spec)
+    class A:
+        def __init__(self):
+            self.d = typed.Dict.empty(types.string, types.int64)
+
+        def run(self, value):
+            par(self.d, value)
+
+    class B:
+        def __init__(self):
+            self.d = {}
+
+    a = A()
+    b = B()
+
+    value = np.random.randint(10)
+    a.d[str(-1) * 722] = value
+    b.d[str(-1) * 722] = value
+    a.run(value)
+
+    t = time.time()
+    a.run(value)
+    dt = time.time() - t
+    print(f"dtime {a}={dt} s")
+
+
+    t = time.time()
+    for i in range(100000):
+        b.d[str(hash(str(i)))]
+        b.d[str(i) * 722]
+>>>>>>> parallel_mcts
+
+
+
+def parallel_tests():
+
+    # runner = GomokuLib.Game.GameEngine.GomokuRunner()
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket()
+    # mcts = GomokuLib.Algo.MCTSParallel(runner.engine)
+    mcts = GomokuLib.Algo.MCTSParallel(
+        runner.engine,
+        num_workers=10,
+        batch_size=5,
+        pool_num=10,
+        mcts_iter=1000
+    )
+    p1 = GomokuLib.Player.Bot(mcts)
+    # ret = mcts(runner.engine)
+
+    if 'p2' not in locals():
+        print("new p2")
+        p2 = p1
+
+    # s = time.perf_counter()
+    # e = time.perf_counter()
+    # print(f"sandbox: {ret} in {(e - s) * 1000} ms")
+
+    winner = runner.run([p1, p2])  # White: 0 / Black: 1
+
+@njit()
+def tobytes(arr: np.ndarray):
+    return ''.join(map(str, map(np.int8, np.nditer(arr))))
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     duel()
+=======
+    # duel()
+    # RLtest()
+    # numba_tests()
+    parallel_tests()
+    # print(tobytes(np.zeros((2, 19, 19), dtype=np.int8)))
+>>>>>>> parallel_mcts

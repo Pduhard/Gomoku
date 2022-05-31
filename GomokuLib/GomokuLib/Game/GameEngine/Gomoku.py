@@ -10,6 +10,7 @@ from numba.experimental import jitclass
 from GomokuLib.Game.Rules import GameEndingCapture, NoDoubleThrees, Capture, BasicRule
 import GomokuLib.Typing as Typing
 
+
 @jitclass()
 class Gomoku:
 
@@ -69,7 +70,7 @@ class Gomoku:
 
     def is_valid_action(self, action: np.ndarray) -> bool:
         ar, ac = action
-        full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
+        full_board = self.board[0] | self.board[1]
         is_valid = self.basic_rules.is_valid(full_board, ar, ac)
         if self.is_no_double_threes_active:
             is_valid &= self.no_double_threes.is_valid(full_board, ar, ac)

@@ -231,7 +231,7 @@ class GomokuAgent(Bot):
                 self.RLengine._shift_board()
                 self.update_UI(
                     **turn_data,
-                    mode=mode,
+                    # mode=mode,
                     captures=self.engine.get_captures()[::-1],
                     board=self.engine.board,
                     turn=self.engine.turn,
