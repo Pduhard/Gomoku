@@ -61,10 +61,15 @@ class GomokuGUIRunner(GomokuRunner):
             print(f"Played in {(ta - ts) * 1000}")
 
             if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
-                turn_data = p.algo.get_state_data(self.engine)
+                # turn_data = p.algo.get_state_data(self.engine)
+                turn_data = dict(p.algo.get_state_data(self.engine))
+                
                 self.engine.apply_action(player_action)
                 self.engine._next_turn_rules()
-                turn_data.update(p.algo.get_state_data_after_action(self.engine))
+                
+                end_turn_data = dict(p.algo.get_state_data_after_action(self.engine))
+                turn_data.update(end_turn_data)
+                
                 self.engine._shift_board()
 
                 if mode == "GomokuGUIRunner.run()":

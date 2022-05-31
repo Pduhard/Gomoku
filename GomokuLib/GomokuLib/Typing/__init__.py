@@ -19,7 +19,7 @@ PathDtype = np.dtype([
 ], align=True)
 
 StateDataDtype = np.dtype([
-    ('worker_id', MCTSIntDtype),
+    # ('worker_id', MCTSIntDtype),
     ('depth', MCTSIntDtype),
     ('visits', MCTSIntDtype),
     ('rewards', MCTSFloatDtype),

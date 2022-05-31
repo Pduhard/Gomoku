@@ -26,6 +26,10 @@ from fastcore._algo import lib as fastcore_algo
         Enlever les full_board = board0 | board1 qui sont de partout
         if pruning.any(): à enlever dans rollingout ?
 
+        On utilise ou la rewards du state_data ???
+
+        Pourquoi self.states[statehash][0]['pruning'][...] = 0 ne marche pas ?
+
 
     TODO:
 
@@ -64,8 +68,8 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
-    runner = GomokuLib.Game.GameEngine.GomokuRunner()
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    # runner = GomokuLib.Game.GameEngine.GomokuRunner()
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
@@ -89,13 +93,13 @@ def duel():
         p2 = p1
         mcts_p2 = mcts_p1
 
-    old1 = mcts_p1.mcts_iter
-    old2 = mcts_p2.mcts_iter
-    mcts_p1.mcts_iter = 100
-    mcts_p2.mcts_iter = 100
-    winner = runner.run([p1, p2], send_all_ss=False)  # White: 0 / Black: 1
-    mcts_p1.mcts_iter = old1
-    mcts_p2.mcts_iter = old2
+    # old1 = mcts_p1.mcts_iter
+    # old2 = mcts_p2.mcts_iter
+    # mcts_p1.mcts_iter = 100
+    # mcts_p2.mcts_iter = 100
+    # winner = runner.run([p1, p2], send_all_ss=False)  # White: 0 / Black: 1
+    # mcts_p1.mcts_iter = old1
+    # mcts_p2.mcts_iter = old2
 
     # p2 = GomokuLib.Player.Human()
     # p2 = GomokuLib.Player.RandomPlayer()
@@ -103,7 +107,7 @@ def duel():
     # profiler = cProfile.Profile()
     # profiler.enable()
 
-    # winner = runner.run([p1, p2])  # White: 0 / Black: 1
+    winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')

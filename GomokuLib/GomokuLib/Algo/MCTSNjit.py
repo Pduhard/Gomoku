@@ -25,7 +25,7 @@ def _valid_policy_action(actions, policy):
         return 0
 
 
-# @jitclass()
+@jitclass()
 class MCTSNjit:
 
     engine: Gomoku
@@ -34,7 +34,6 @@ class MCTSNjit:
     rollingout_turns: Typing.mcts_int_nb_dtype
 
     states: Typing.nbStateDict
-    leaf_data: Typing.nbState
     path: Typing.nbPath
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
@@ -60,12 +59,6 @@ class MCTSNjit:
             key_type=nb.types.unicode_type,
             value_type=Typing.nbState
         )
-        # self.leaf_data = np.recarray(1, dtype=Typing.StateDataDtype)
-        # self.path = np.recarray(361, dtype=Typing.PathDtype)
-        # self.leaf_data[...] = np.zeros(1, dtype=Typing.StateDataDtype)
-        # self.path[...] = np.zeros(361, dtype=Typing.PathDtype)
-
-        self.leaf_data = np.zeros(1, dtype=Typing.StateDataDtype)
         self.path = np.zeros(361, dtype=Typing.PathDtype)
 
         self.all_actions = np.empty((361, 2), dtype=Typing.ActionDtype)
@@ -87,7 +80,7 @@ class MCTSNjit:
     def get_state_data_after_action(self, engine: Gomoku):
         statehash = self.tobytes(engine.board)
         return {
-            'heuristic': self.states[statehash][0]['heuristic'] if statehash in self.states else 0.5
+            'heuristic': self.states[statehash][0]['heuristic'] if statehash in self.states else -42
         }
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
@@ -100,8 +93,7 @@ class MCTSNjit:
         gamestatehash = self.tobytes(game_engine.board)
         state_data = self.states[gamestatehash][0]
         sa_v, sa_r = state_data['stateAction']
-        sa_v += 1
-        arg = np.argmax(sa_r / sa_v)
+        arg = np.argmax(sa_r / (sa_v + 1))
         # print(f"StateAction visits: {sa_v}")
         # print(f"StateAction reward: {sa_r}")
         # print(f"Qualities: {sa_r / sa_v}")
@@ -119,24 +111,18 @@ class MCTSNjit:
         while statehash in self.states and not self.end_game:
 
             state_data = self.states[statehash][0]
+            # print(f"MCTS_iter={mcts_iter} | depth={self.depth} | statehash={statehash}")
 
             policy = self.get_policy(state_data, self.c)
             # best_action = self.selection(policy, state_data)
             best_action = self.lazy_selection(policy, state_data['actions'])
 
-            with nb.objmode():
-                print(policy)
-                breakpoint()
-                print(best_action)
-            
-            # print(f"MCTS_iter={mcts_iter} | depth={self.depth} | statehash in self.states={'True' if statehash in self.states else 'False'} | actions {best_action[0]} {best_action[1]}")
-            # if any([np.all(best_action == p['bestAction']) for p in self.path[:self.depth+1]]):
-            #     # with nb.objmode():
-            #     #     print(f"state_data: {state_data}")
-            #     #     pass # Same action
-            #
-            #     print(f"self.path[:self.depth]['bestAction'] ->\n{self.path[:self.depth+1]['bestAction']}")
+            # with nb.objmode():
+            #     print(f"best_action {best_action[0]} {best_action[1]} | self.states[statehash][0]['stateAction']:\n{self.states[statehash][0]['stateAction']}")
+            #     # print(f"policy:\n{policy}")
+            #     # print(f"best_action:\n{best_action}")
             #     breakpoint()
+            #     pass
 
             if self.depth > 50:
                 print(f"Depth > 50")
@@ -151,7 +137,7 @@ class MCTSNjit:
             self.end_game = self.engine.isover()
             statehash = self.tobytes(self.engine.board)
 
-        self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))
+        # self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))
         self.expand(statehash)
         self.backpropagation()
 
@@ -165,8 +151,7 @@ class MCTSNjit:
         """
         s_v = state_data['visits']
         sa_v, sa_r = state_data['stateAction']
-        sa_v += 1   # Init this value at 1 ?
-        ucbs = sa_r / sa_v + self.c * np.sqrt(np.log(s_v) / sa_v)
+        ucbs = sa_r / (sa_v + 1) + self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
         # if self.is_pruning:
         #     return ucbs * state_data.pruning
         return ucbs
@@ -214,20 +199,6 @@ class MCTSNjit:
                 else:
                     actions[x, y] = 0
 
-    # def selection(self, policy: np.ndarray, state_data: Typing.nbState) -> Typing.nbTuple:
-    #     best_action = np.zeros(2, dtype=Typing.MCTSIntDtype)
-    #     available_actions = policy * state_data['actions']     # Avaible actions
-    #     # available_actions = policy * state_data.actions     # Avaible actions
-        
-    #     best_actions = np.argwhere(available_actions == np.amax(available_actions))
-        
-    #     action = best_actions[np.random.randint(len(best_actions))]
-    #     best_action[0] = action[0]
-    #     best_action[1] = action[1]
-    #     # return Typing.nbTuple(best_action)
-    #     breakpoint()
-    #     return best_action
-
     def fill_path(self, statehash, best_action: np.ndarray):
         # print(f"Fill path depth {self.depth} statehash:\n{statehash}")
 
@@ -246,14 +217,19 @@ class MCTSNjit:
         self.states[statehash] = np.zeros(1, dtype=Typing.StateDataDtype)
 
         actions = self.engine.get_actions()
-        self.reward = self.award_end_game() if self.end_game else self.award()
+        self.reward = self.award_end_game() if self.end_game else self.award()  # After get_action bc detroy engine
 
         self.states[statehash][0]['depth'] = self.depth
         self.states[statehash][0]['visits'] = 1
-        self.states[statehash][0]['actions'][:] = actions
+        self.states[statehash][0]['rewards'] = self.reward
+        self.states[statehash][0]['stateAction'][...] = 0.
+        self.states[statehash][0]['actions'][...] = actions
         self.states[statehash][0]['heuristic'] = self.reward
+        self.states[statehash][0]['pruning'][...] = np.zeros((19, 19), dtype=Typing.MCTSIntDtype)
         # if self.is_pruning:
         #     self.states[statehash][0].pruning = pruning(self.engine)
+    
+        # print(f"Expand:\n{self.states[statehash]}")
 
     def award_end_game(self):
         if self.engine.winner == -1: # Draw
@@ -375,18 +351,20 @@ class MCTSNjit:
 
     def backpropagation(self):
 
-        reward = self.reward
-        for i in range(self.depth, -1, -1):
+        # Start with the last play (Penultimate state/board)
+        reward = 1 - self.reward
+        for i in range(self.depth - 1, -1, -1):
             # print(f"Backprop path index {i}")
             self.backprop_memory(self.path[i], reward)
             reward = 1 - reward
 
     def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
         # print(f"Memory:\n{memory}")
-        # print(f"Memory dtype:\n{memory.dtype}")
         
         board = memory['board']
+        r, c = memory['bestAction']
         # statehash = memory['statehash']
+        # print(f"memory['bestAction']:\n{r} {c}")
 
         # if statehash not in self.states:
         #     print(f"statehash not in states !!! ->\n{statehash}")
@@ -396,17 +374,11 @@ class MCTSNjit:
         # state_data = self.states[statehash][0]
 
         state_data['visits'] += 1                           # update n count
-        state_data['rewards'] += reward                     # update state value
-        
-        bestAction = memory['bestAction']
-        if bestAction[0] == -1:
-            return
+        state_data['rewards'] += reward                     # update state value / Use for ?...
 
-        r, c = bestAction
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         stateAction_update[1] = reward
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
-        # breakpoint()
 
     def tobytes(self, arr: Typing.BoardDtype):
         return ''.join(map(str, map(np.int8, np.nditer(arr)))) # Aled la ligne (nogil parallele mieux ?..)
