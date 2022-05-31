@@ -155,6 +155,13 @@ class Board:
         except:
             pass
 
+        if self.hint_mouse:
+            rsa = round(sa_v[self.hint_mouse[0], self.hint_mouse[1]], 3)
+            nsa = sa_n[self.hint_mouse[0], self.hint_mouse[1]]
+            qsa = round(np.nan_to_num(sa_v[self.hint_mouse[0], self.hint_mouse[1]] / nsa), 3)
+        else:
+            rsa, nsa, qsa = '_', '_', '_'
+
         i = 0
         y = 0
         while i < self.board_size[0] and np.any(board[:, i]):
@@ -162,13 +169,6 @@ class Board:
             i += 1
         if i == self.board_size[0]:
             y = 0
-
-        if self.hint_mouse:
-            rsa = round(sa_v[self.hint_mouse[0], self.hint_mouse[1]], 3)
-            nsa = sa_n[self.hint_mouse[0], self.hint_mouse[1]]
-            qsa = round(np.nan_to_num(sa_v[self.hint_mouse[0], self.hint_mouse[1]] / nsa), 3)
-        else:
-            rsa, nsa, qsa = '_', '_', '_'
 
         if 'Value' in hints_data:
             self.blit_text(
@@ -182,7 +182,7 @@ class Board:
             y
         )
         self.blit_text(
-            f"Q(s,a)[0,1]= {round(qsa, 3)}",
+            f"Q(s,a)[0,1]= {qsa}",
             2 * self.dx / 5,
             y
         )
@@ -192,7 +192,7 @@ class Board:
             y
         )
         self.blit_text(
-            f"R(s,a)= {round(rsa, 3)}/{round(s_v, 3)}",
+            f"R(s,a)= {rsa}/{round(s_v, 3)}",
             4 * self.dx / 5,
             y
         )

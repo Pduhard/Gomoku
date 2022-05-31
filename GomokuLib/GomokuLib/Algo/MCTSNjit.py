@@ -99,7 +99,6 @@ class MCTSNjit:
         # print(f"Qualities: {sa_r / sa_v}")
 
         # print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
-        # breakpoint()
         return int(arg / 19), arg % 19
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
@@ -215,7 +214,8 @@ class MCTSNjit:
         self.states[statehash] = np.zeros(1, dtype=Typing.StateDataDtype)
 
         actions = self.engine.get_actions()
-        self.reward = self.award_end_game() if self.end_game else self.award()  # After get_action bc detroy engine
+        pruning = self.pruning()
+        self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
 
         self.states[statehash][0]['depth'] = self.depth
         self.states[statehash][0]['visits'] = 1
@@ -223,7 +223,7 @@ class MCTSNjit:
         self.states[statehash][0]['stateAction'][...] = 0.
         self.states[statehash][0]['actions'][...] = actions
         self.states[statehash][0]['heuristic'] = self.reward
-        self.states[statehash][0]['pruning'][...] = self.pruning()
+        self.states[statehash][0]['pruning'][...] = pruning
     
         # print(f"Expand:\n{self.states[statehash]}")
 
@@ -232,54 +232,54 @@ class MCTSNjit:
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
 
-    # def award(self):
-    #     """
-    #         Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
-    #     """
-    #     self.rollingout()
-
-    #     if self.engine.isover():
-    #         return self.award_end_game()
-    #     else:
-    #         return 0.5
-
     def award(self):
         """
             Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
         """
-        h_leaf = self.heuristic()
-        if self.rollingout_turns:
-            self.rollingout()
-    
-            if self.engine.isover():
-                return self.award_end_game()
-            else:
-                h = self.heuristic()
-                return (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+        self.rollingout()
+
+        if self.engine.isover():
+            return self.award_end_game()
         else:
-            return h_leaf
+            return 0.5
 
-    def heuristic(self):
-        board = self.engine.board
+    # def award(self):
+    #     """
+    #         Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
+    #     """
+    #     h_leaf = self.heuristic()
+    #     if self.rollingout_turns:
+    #         self.rollingout()
+    
+    #         if self.engine.isover():
+    #             return self.award_end_game()
+    #         else:
+    #             h = self.heuristic()
+    #             return (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+    #     else:
+    #         return h_leaf
 
-        c_board = ffi.from_buffer(board)
-        c_full_board = ffi.from_buffer(board[0] | board[1])
+    # def heuristic(self):
+    #     board = self.engine.board
 
-        cap = self.engine.get_captures()
-        c0 = cap[0]
-        c1 = cap[1]
+    #     c_board = ffi.from_buffer(board)
+    #     c_full_board = ffi.from_buffer(board[0] | board[1])
 
-        game_zone = self.engine.get_game_zone()
-        g0 = game_zone[0]
-        g1 = game_zone[1]
-        g2 = game_zone[2]
-        g3 = game_zone[3]
+    #     cap = self.engine.get_captures()
+    #     c0 = cap[0]
+    #     c1 = cap[1]
 
-        x = _algo.mcts_eval_heuristic(
-            c_board, c_full_board,
-            c0, c1, g0, g1, g2, g3
-        )
-        return x
+    #     game_zone = self.engine.get_game_zone()
+    #     g0 = game_zone[0]
+    #     g1 = game_zone[1]
+    #     g2 = game_zone[2]
+    #     g3 = game_zone[3]
+
+    #     x = _algo.mcts_eval_heuristic(
+    #         c_board, c_full_board,
+    #         c0, c1, g0, g1, g2, g3
+    #     )
+    #     return x
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)

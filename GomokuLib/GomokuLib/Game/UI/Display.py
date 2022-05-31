@@ -34,7 +34,7 @@ class Display:
             else:
                 winner = '_'
 
-            elem = {
+            all_fields = {
                 'Total time': f"{round(tottime / 60, 2)} min",
                 'Mode': ss_data.get('mode', '_'),
                 'Winner': winner,
@@ -52,7 +52,10 @@ class Display:
                 'Total self-play': ss_data.get('self_play', '_'),
                 'Total samples': ss_data.get('dataset_length', '_'),
             }
-            elem = {k: v for k, v in elem.items() if v != '_'}
+            elem = {}
+            for k, v in all_fields.items():
+                if v != '_':
+                    elem[k] = v
 
             items = elem.items()
             dy = self.dy / (len(items) + 1)

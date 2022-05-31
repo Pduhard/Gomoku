@@ -78,7 +78,7 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
-        iter=2000,
+        iter=3000,
         pruning=True,
         rollingout_turns=10
     )
