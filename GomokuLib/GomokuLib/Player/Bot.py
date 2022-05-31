@@ -10,8 +10,11 @@ class Bot:
     def __str__(self):
         return f"Bot with algo: {str(self.algo)}"
 
-    def _play_turn(self, runner) -> tuple[int]:
-        return self.algo(runner.engine)[1]
+    # def _play_turn(self, runner) -> tuple[int]:
+    #     return self.algo(runner.engine)[1]
+
+    # def play_njit_turn(self, runner) -> tuple[int]:
+    #     return self.algo.do_your_fck_work(runner.engine)
 
     def _play_njit_turn(self, runner) -> tuple[int]:
         return self.algo.do_your_fck_work(runner.engine)
