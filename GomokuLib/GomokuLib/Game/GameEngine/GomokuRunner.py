@@ -30,6 +30,7 @@ class GomokuRunner:
 
             self.engine.apply_action(player_action)
             self.engine.next_turn()
+            print(f"self.engine.board:\n{self.engine.board}\n")
 
         print(f"Player {self.engine.winner} win.")
 

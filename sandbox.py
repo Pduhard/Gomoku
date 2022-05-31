@@ -68,13 +68,13 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
-    # runner = GomokuLib.Game.GameEngine.GomokuRunner()
+    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
+    runner = GomokuLib.Game.GameEngine.GomokuRunner()
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
-        iter=1000,
+        iter=5000,
         pruning=True,
         rollingout_turns=10
     )

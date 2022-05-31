@@ -152,9 +152,7 @@ class MCTSNjit:
         s_v = state_data['visits']
         sa_v, sa_r = state_data['stateAction']
         ucbs = sa_r / (sa_v + 1) + self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
-        # if self.is_pruning:
-        #     return ucbs * state_data.pruning
-        return ucbs
+        return ucbs * state_data['pruning']
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
         best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
@@ -225,9 +223,7 @@ class MCTSNjit:
         self.states[statehash][0]['stateAction'][...] = 0.
         self.states[statehash][0]['actions'][...] = actions
         self.states[statehash][0]['heuristic'] = self.reward
-        self.states[statehash][0]['pruning'][...] = np.zeros((19, 19), dtype=Typing.MCTSIntDtype)
-        # if self.is_pruning:
-        #     self.states[statehash][0].pruning = pruning(self.engine)
+        self.states[statehash][0]['pruning'][...] = self.pruning()
     
         # print(f"Expand:\n{self.states[statehash]}")
 
@@ -336,7 +332,10 @@ class MCTSNjit:
 
     def pruning(self):
 
-        full_board = (self.engine.board[0] | self.engine.board[1]).astype(np.bool8)
+        if not self.is_pruning:
+            return np.ones((19, 19), dtype=Typing.MCTSIntDtype)
+
+        full_board = (self.engine.board[0] | self.engine.board[1]).astype(Typing.MCTSIntDtype)
         non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
 
         # if hard_pruning:
