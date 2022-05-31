@@ -17,14 +17,15 @@ ffi = _fastcore.ffi
 
 
 
-# @numba.vectorize('float64(int8, float64)')
-# def valid_action(actions, policy):
-#     if actions > 0:
-#         return policy
-#     else:
-#         return 0
+@nb.vectorize('float64(int32, float64)')
+def _valid_policy_action(actions, policy):
+    if actions > 0:
+        return policy
+    else:
+        return 0
 
-@jitclass()
+
+# @jitclass()
 class MCTSNjit:
 
     engine: Gomoku
@@ -91,7 +92,7 @@ class MCTSNjit:
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
-        print(f"\n[MCTSNjit __call__()]\n")
+        print(f"\n[MCTSNjit __call__() for {self.mcts_iter} iter]\n")
         for mcts_iter in range(self.mcts_iter):
             self.engine.update(game_engine)
             self.mcts(mcts_iter)
@@ -104,7 +105,9 @@ class MCTSNjit:
         # print(f"StateAction visits: {sa_v}")
         # print(f"StateAction reward: {sa_r}")
         # print(f"Qualities: {sa_r / sa_v}")
-        print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
+
+        # print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
+        # breakpoint()
         return int(arg / 19), arg % 19
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
@@ -121,6 +124,11 @@ class MCTSNjit:
             # best_action = self.selection(policy, state_data)
             best_action = self.lazy_selection(policy, state_data['actions'])
 
+            with nb.objmode():
+                print(policy)
+                breakpoint()
+                print(best_action)
+            
             # print(f"MCTS_iter={mcts_iter} | depth={self.depth} | statehash in self.states={'True' if statehash in self.states else 'False'} | actions {best_action[0]} {best_action[1]}")
             # if any([np.all(best_action == p['bestAction']) for p in self.path[:self.depth+1]]):
             #     # with nb.objmode():
@@ -130,12 +138,12 @@ class MCTSNjit:
             #     print(f"self.path[:self.depth]['bestAction'] ->\n{self.path[:self.depth+1]['bestAction']}")
             #     breakpoint()
 
-            # if self.depth > 20:
-            #     print(f"Depth > 20")
-            #     with nb.objmode():
-            #         breakpoint()
+            if self.depth > 50:
+                print(f"Depth > 50")
+                with nb.objmode():
+                    breakpoint()
 
-            self.fill_path(best_action)
+            self.fill_path(statehash, best_action)
             self.engine.apply_action(best_action)
             self.engine.next_turn()
             self.depth += 1
@@ -143,7 +151,7 @@ class MCTSNjit:
             self.end_game = self.engine.isover()
             statehash = self.tobytes(self.engine.board)
 
-        self.fill_path(np.full(2, -1, Typing.MCTSIntDtype))
+        self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))
         self.expand(statehash)
         self.backpropagation()
 
@@ -166,12 +174,14 @@ class MCTSNjit:
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
         best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
 
-        action_policy = np.where(actions > 0, policy, 0) # Replace by @nb.vectorize ?
-        max = np.amax(action_policy)
+        # action_policy = np.where(actions > 0, policy, 0) # Replace by @nb.vectorize ?
+        action_policy = _valid_policy_action(actions, policy)
+
+        pmax = np.amax(action_policy)
         k = 0
         for i in range(19):
             for j in range(19):
-                if max == action_policy[i, j]:
+                if pmax == action_policy[i, j]:
                     best_actions[k][0] = i
                     best_actions[k][1] = j
                     k += 1
@@ -186,10 +196,10 @@ class MCTSNjit:
             arr = self.get_best_policy_actions(policy, actions)
 
             len = arr[-1, 0]
-            if (len == 0):
-                with nb.objmode():
-                    print('aled lazy selection')
-                return gAction
+            # if (len == 0):
+            #     with nb.objmode():
+            #         print('aled lazy selection')
+            #     return gAction
 
             arr_pick = np.arange(len)
             np.random.shuffle(arr_pick) # Slow ...
@@ -218,12 +228,21 @@ class MCTSNjit:
     #     breakpoint()
     #     return best_action
 
-    def fill_path(self, best_action: np.ndarray):
+    def fill_path(self, statehash, best_action: np.ndarray):
+        # print(f"Fill path depth {self.depth} statehash:\n{statehash}")
+
+        # sh = np.unicode_(statehash)
+        # print(f"Statehash : {sh} {sh.dtype}")
+
         self.path[self.depth]['board'][...] = self.engine.board
+        # self.path[self.depth]['statehash'] = statehash
         self.path[self.depth]['player_idx'] = self.engine.player_idx
         self.path[self.depth]['bestAction'][:] = best_action
+        # with nb.objmode():
+        #     print(f"Fill path depth {self.depth} statehash:\n{self.path[self.depth]['statehash']}")
 
     def expand(self, statehash: str):
+        # print(f"Expand depth {self.depth} statehash:\n{statehash}")
         self.states[statehash] = np.zeros(1, dtype=Typing.StateDataDtype)
 
         actions = self.engine.get_actions()
@@ -241,59 +260,60 @@ class MCTSNjit:
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
 
-    def award(self):
-        """
-            Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
-        """
-        # self.rollingout()
-
-        if self.engine.isover():
-            return self.award_end_game()
-        else:
-            return 0.5
     # def award(self):
     #     """
     #         Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
     #     """
-    #     h_leaf = self.heuristic()
-    #     if self.rollingout_turns:
-    #         self.rollingout()
-    #
-    #         if self.engine.isover():
-    #             return self.award_end_game()
-    #         else:
-    #             h = self.heuristic()
-    #             return (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+    #     self.rollingout()
+
+    #     if self.engine.isover():
+    #         return self.award_end_game()
     #     else:
-    #         return h_leaf
+    #         return 0.5
 
-    # def heuristic(self):
-    #     board = self.engine.board
+    def award(self):
+        """
+            Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
+        """
+        h_leaf = self.heuristic()
+        if self.rollingout_turns:
+            self.rollingout()
+    
+            if self.engine.isover():
+                return self.award_end_game()
+            else:
+                h = self.heuristic()
+                return (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+        else:
+            return h_leaf
 
-    #     c_board = ffi.from_buffer(board)
-    #     c_full_board = ffi.from_buffer(board[0] | board[1])
+    def heuristic(self):
+        board = self.engine.board
 
-    #     cap = self.engine.get_captures()
-    #     c0 = cap[0]
-    #     c1 = cap[1]
+        c_board = ffi.from_buffer(board)
+        c_full_board = ffi.from_buffer(board[0] | board[1])
 
-    #     game_zone = self.engine.get_game_zone()
-    #     g0 = game_zone[0]
-    #     g1 = game_zone[1]
-    #     g2 = game_zone[2]
-    #     g3 = game_zone[3]
+        cap = self.engine.get_captures()
+        c0 = cap[0]
+        c1 = cap[1]
 
-    #     x = _algo.mcts_eval_heuristic(
-    #         c_board, c_full_board,
-    #         c0, c1, g0, g1, g2, g3
-    #     )
-    #     return x
+        game_zone = self.engine.get_game_zone()
+        g0 = game_zone[0]
+        g1 = game_zone[1]
+        g2 = game_zone[2]
+        g3 = game_zone[3]
+
+        x = _algo.mcts_eval_heuristic(
+            c_board, c_full_board,
+            c0, c1, g0, g1, g2, g3
+        )
+        return x
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
         turn = 0
-        # while not self.engine.isover() and turn < self.rollingout_turns:
-        while not self.engine.isover():
+        while not self.engine.isover() and turn < self.rollingout_turns:
+        # while not self.engine.isover():
 
             pruning = self.pruning().flatten().astype(np.bool8)
 
@@ -309,6 +329,7 @@ class MCTSNjit:
             if (action_number == 0):
                 with nb.objmode():
                     print('rollingout action number 0')
+                    breakpoint()
                 return
 
             i = np.random.randint(action_number)
@@ -356,19 +377,28 @@ class MCTSNjit:
 
         reward = self.reward
         for i in range(self.depth, -1, -1):
+            # print(f"Backprop path index {i}")
             self.backprop_memory(self.path[i], reward)
             reward = 1 - reward
 
     def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
         # print(f"Memory:\n{memory}")
         # print(f"Memory dtype:\n{memory.dtype}")
+        
         board = memory['board']
-        bestAction = memory['bestAction']
+        # statehash = memory['statehash']
 
+        # if statehash not in self.states:
+        #     print(f"statehash not in states !!! ->\n{statehash}")
+        #     breakpoint()
+        #     pass
         state_data = self.states[self.tobytes(board)][0]
+        # state_data = self.states[statehash][0]
 
         state_data['visits'] += 1                           # update n count
         state_data['rewards'] += reward                     # update state value
+        
+        bestAction = memory['bestAction']
         if bestAction[0] == -1:
             return
 
@@ -378,5 +408,6 @@ class MCTSNjit:
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
         # breakpoint()
 
-    def tobytes(self, arr: Typing.nbBoard):
-        return ''.join(map(str, map(np.int8, np.nditer(arr))))
+    def tobytes(self, arr: Typing.BoardDtype):
+        return ''.join(map(str, map(np.int8, np.nditer(arr)))) # Aled la ligne (nogil parallele mieux ?..)
+        # return np.char.join('', map(np.unicode_, np.nditer(arr)))

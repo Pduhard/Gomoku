@@ -22,28 +22,12 @@ from fastcore._rules import ffi, lib as fastcore
 from fastcore._algo import lib as fastcore_algo
 
 """
-
-    Today :
-
-        Worker
-    
-    
-        Les captures sont dans le endturn du next_turn() donc quand
-        on compute l'heuristic pour l'UI, le nbr de capture n'est pas update
-            Add callbacks to next_turn
-        
-        Reward du mcts doit diminuer dans la backprop ?
-
-    TODO (Important):
-
-        
-        Dupliquer l'heuristic pour valoriser les coups de l'adversaire (Qui ne sont pas les même)
-            Valoriser les alignement de 4 ou il en manque qu'un !
-        
-        UI fonction pour afficher un board
+    Modif a faire pour opti:
+        Enlever les full_board = board0 | board1 qui sont de partout
+        if pruning.any(): à enlever dans rollingout ?
 
 
-    TODO (Pas très important):
+    TODO:
 
         Faire un config file avec toute les constantes du RL
         afficher le nbr de train / epochs effectué 
@@ -92,18 +76,18 @@ def duel():
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    mcts_p2 = GomokuLib.Algo.MCTSNjit(
-        engine=runner.engine,
-        iter=1000,
-        pruning=True,
-        rollingout_turns=10
-    )
-    p2 = GomokuLib.Player.Bot(mcts_p2)
+    # mcts_p2 = GomokuLib.Algo.MCTSNjit(
+    #     engine=runner.engine,
+    #     iter=1000,
+    #     pruning=True,
+    #     rollingout_turns=10
+    # )
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
 
-    # if 'p2' not in locals():
-    #     print("new p2")
-    #     p2 = p1
-    #     mcts_p2 = mcts_p1
+    if 'p2' not in locals():
+        print("new p2")
+        p2 = p1
+        mcts_p2 = mcts_p1
 
     old1 = mcts_p1.mcts_iter
     old2 = mcts_p2.mcts_iter
@@ -119,7 +103,7 @@ def duel():
     # profiler = cProfile.Profile()
     # profiler.enable()
 
-    winner = runner.run([p1, p2])  # White: 0 / Black: 1
+    # winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')
