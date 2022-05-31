@@ -2,31 +2,39 @@ import time
 
 import numpy as np
 
-import fastcore
 from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib import Typing
-from fastcore._algo import ffi, lib as fastcore
 from numba import njit
 
+from numba.core.typing import cffi_utils
+import fastcore._algo as _fastcore
+
+
+cffi_utils.register_module(_fastcore)
+_algo = _fastcore.lib
+ffi = _fastcore.ffi
 from .MCTS import MCTS
 
-njit()
+@njit()
 def heuristic(engine):
     board = engine.board
-    full_board = (board[0] | board[1]).astype(Typing.BoardDtype)
-    c_board = ffi.cast("char *", board.ctypes.data)
-    c_full_board = ffi.cast("char *", full_board.ctypes.data)
-    # if not engine.board.flags['C_CONTIGUOUS']:
-    #     print(f"NOT continuoueo_iyfhg_uièyergbiuybziruygbirzuy")
-    #     engine.board = np.ascontiguousarray(engine.board)
-    # if not engine.full_board.flags['C_CONTIGUOUS']:
-    #     print(f"NOT continuoueo_iyfhg_uièyergbiuybziruygbirzuy 2")
-    #     engine.full_board = np.ascontiguousarray(engine.full_board)
 
-    x = fastcore.mcts_eval_heuristic(
+    c_board = ffi.from_buffer(board)
+    c_full_board = ffi.from_buffer(board[0] | board[1])
+
+    cap = engine.get_captures()
+    c0 = cap[0]
+    c1 = cap[1]
+
+    game_zone = engine.get_game_zone()
+    g0 = game_zone[0]
+    g1 = game_zone[1]
+    g2 = game_zone[2]
+    g3 = game_zone[3]
+
+    x = _algo.mcts_eval_heuristic(
         c_board, c_full_board,
-        *engine.get_captures(),
-        *engine.get_game_zone()
+        c0, c1, g0, g1, g2, g3
     )
     return x
 
@@ -106,6 +114,7 @@ class MCTSEval(MCTS):
 
         all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
         self.all_actions = np.array(all_actions).T.reshape(self.cells_count, 2).astype(np.int32) # Shape (361, 2): [(x, y), ...]
+
 
     def __str__(self):
         return f"MCTSEval with: Pruning / Heuristics ({self.mcts_iter} iter)"

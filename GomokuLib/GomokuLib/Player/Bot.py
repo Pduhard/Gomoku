@@ -1,20 +1,19 @@
-from __future__ import annotations
-from typing import Union, TYPE_CHECKING
+# from GomokuLib.Algo.MCTSNjit import MCTSNjit
 
-import numpy as np
-
-if TYPE_CHECKING:
-    from GomokuLib.Algo.AbstractAlgorithm import AbstractAlgorithm
-    from GomokuLib.Game.State.AbstractState import AbstractState
-
-    # 'AbstractGameEngine',
 class Bot:
 
-    def __init__(self, algorithm: AbstractAlgorithm) -> None:
+    def __init__(self, algorithm) -> None:
         self.algo = algorithm
+        # self.play_turn = self.play_njit_turn if isinstance(self.algo, MCTSNjit) else self._play_turn
 
     def __str__(self):
         return f"Bot with algo: {str(self.algo)}"
 
-    def play_turn(self, engine) -> tuple[int]:
-        return self.algo(engine)[1]
+    # def _play_turn(self, runner) -> tuple[int]:
+    #     return self.algo(runner.engine)[1]
+
+    # def play_njit_turn(self, runner) -> tuple[int]:
+    #     return self.algo.do_your_fck_work(runner.engine)
+
+    def play_turn(self, runner) -> tuple[int]:
+        return self.algo(runner.engine)[1]

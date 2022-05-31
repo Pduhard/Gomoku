@@ -9,6 +9,7 @@ import numpy as np
 import multiprocessing as mp
 import threading
 import time
+from time import perf_counter
 
 from GomokuLib.Game.UI.UIManager import UIManager
 import GomokuLib
@@ -54,7 +55,10 @@ class GomokuGUIRunner(GomokuRunner):
             self.get_gui_input()
 
             p = players[self.engine.player_idx]
-            player_action = p.play_turn(self.engine)
+            ts = perf_counter()
+            player_action = p.play_turn(self)
+            ta = perf_counter()
+            print(f"Played in {(ta - ts) * 1000}")
 
             if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
                 turn_data = p.algo.get_state_data(self.engine)
