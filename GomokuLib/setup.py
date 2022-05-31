@@ -19,7 +19,8 @@ setup(
         'GomokuLib.Game.UI',
         'GomokuLib.Media',
         'GomokuLib.Player',
-        'GomokuLib.Typing'
+        'GomokuLib.Typing',
+        'GomokuLib.Sockets',
     ],
     cffi_modules=[
         "./GomokuLib/Game/Rules/C/_build.py:ffibuilder",
@@ -28,7 +29,5 @@ setup(
 
     # long_description=open('README.md').read(),
     install_requires=[
-        # 'numpy==1.19.3',
-        # 'numba==0.43.1'
     ]
 )

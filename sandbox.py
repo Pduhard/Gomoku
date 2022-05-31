@@ -33,6 +33,8 @@ from fastcore._algo import lib as fastcore_algo
 
     TODO:
 
+        Socket: envois un signal d'arrêt afin que l'autre puisse se reco à un autre process pa rla suite
+
         Faire un config file avec toute les constantes du RL
         afficher le nbr de train / epochs effectué 
 
@@ -68,13 +70,15 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
-    runner = GomokuLib.Game.GameEngine.GomokuRunner()
+    # runner = GomokuLib.Game.GameEngine.GomokuRunner()
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
+        start_UI=False,
+    )
 
     # p1 = GomokuLib.Player.RandomPlayer()
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
-        iter=5000,
+        iter=2000,
         pruning=True,
         rollingout_turns=10
     )

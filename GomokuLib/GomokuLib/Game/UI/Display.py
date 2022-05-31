@@ -23,7 +23,7 @@ class Display:
         screen = pygame.Rect(self.origin, self.size)
         pygame.draw.rect(self.win, (200, 200, 200), screen)
 
-    def draw(self, ss_data: dict, dtime: time.time, tottime: time.time):
+    def draw(self, ss_data: dict, ss_i: int, ss_num: int, dtime: time.time, tottime: time.time):
 
         pygame.draw.rect(self.win, (200, 200, 200), self.square)
 
@@ -42,6 +42,7 @@ class Display:
                 'Black': ss_data.get('p2', '_'),
                 'Turn': ss_data.get('turn', '_'),
                 'dtime': f"{round(dtime, 2)} s",
+                'Snapshot': f"{ss_i + 1}/{ss_num}",
                 'Waiting': 'Black' if ss_data.get('player_idx', '_') else 'White',
                 'Captures': ss_data.get('captures', '_'),
                 'Heuristic': ss_data.get('heuristic', '_'),

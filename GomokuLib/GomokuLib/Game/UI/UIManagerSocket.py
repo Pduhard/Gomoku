@@ -13,13 +13,17 @@ from .Board import Board
 from .Button import Button
 from .Display import Display
 
+from GomokuLib.Sockets.UISocket import UISocket
 
-class UIManager:
+class UIManagerSocket:
 
-    def __init__(self, engine: Gomoku, win_size: tuple):
+    def __init__(self, engine: Gomoku, win_size: tuple, host: str = None, port: int = None):
 
         self.engine = engine.clone()
         self.win_size = win_size
+        self.host = host
+        self.port = port
+
         self.board_size = self.engine.board_size
         self.callbacks = {}
         self.current_snapshot_idx = -1
@@ -28,12 +32,15 @@ class UIManager:
         self.game_data = {}
         self.init_time = time.time()
 
-    def __call__(self, inqueue, outqueue): # Thread function
+    def __call__(self): # Thread function
+
+        print(f"UISocket UIManager start init")
+        self.uisock = UISocket(host=self.host, port=self.port, as_client=True, name="UI")
+        self.uisock.start_sock_thread()
+        print(f"UISocket UIManager end init")
 
         self.initUI(self.win_size)
         print("UIManager __call__()\n")
-        self.inqueue = inqueue
-        self.outqueue = outqueue
 
         self.request_player_action = False
         self.pause = False
@@ -79,22 +86,27 @@ class UIManager:
             self.callbacks[str(event_type)] = [callback]
 
     def read_inqueue(self):
-        try:
-            while True:
-                self.inputs.append(self.inqueue.get_nowait())
-        except:
-            pass
+
+        queue = self.uisock.get_recv_queue()
+        self.inputs.extend(queue)
+        #
+        # try:
+        #     while True:
+        #         self.inputs.append(self.inqueue.get_nowait())
+        # except:
+        #     pass
 
     def process_events(self):
         for event in pygame.event.get():
             # print(event.type, pygame.event.event_name(event.type))
             if event.type == pygame.QUIT:
-                self.outqueue.put({
+                # self.outqueue.put({
+                #     'code': 'shutdown',
+                # })
+                self.uisock.add_sending_queue({
                     'code': 'shutdown',
                 })
-                pygame.quit()
-                #  or event.type == pygame.K_ESCAPE:
-                exit(0)
+                self.UI_quit()
 
             if str(event.type) not in self.callbacks:
                 continue
@@ -107,9 +119,12 @@ class UIManager:
         tmp_idx_snapshot = self.current_snapshot_idx
 
         for input in self.inputs:
+            # print(f"input (type={type(input)}):\n{input}\n")
+
             code = input['code']
 
             if code == 'request-player-action':
+                print(f"<- UI Recv request-player-action ...")
                 self.request_player_action = True
 
             elif code == 'board-click':
@@ -160,11 +175,24 @@ class UIManager:
         if self.request_player_action and self.board_clicked_action and not self.pause:
             if self.engine.is_valid_action(self.board_clicked_action):
 
-                if self.current_snapshot_idx != len(self.game_snapshots) - 1:   # Nes state never seen
-                    self.update_engines(self.game_snapshots[self.current_snapshot_idx])
+                if self.current_snapshot_idx != len(self.game_snapshots) - 1:  # New state never seen
+                    breakpoint() # Need debug ?
+                    # self.outqueue.put({  # Update GUI engine to re-continue with new state
+                    #     'code': 'game-snapshot',
+                    #     'data': self.game_snapshots[self.current_snapshot_idx]['snapshot']
+                    # })
+                    self.uisock.add_sending_queue({  # Update GUI engine to re-continue with new state
+                        'code': 'game-snapshot',
+                        'data': self.game_snapshots[self.current_snapshot_idx]['snapshot']
+                    })
+                    del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
 
                 self.request_player_action = False
-                self.outqueue.put({
+                # self.outqueue.put({
+                #     'code': 'response-player-action',
+                #     'data': self.board_clicked_action,
+                # })
+                self.uisock.add_sending_queue({
                     'code': 'response-player-action',
                     'data': self.board_clicked_action,
                 })
@@ -174,19 +202,17 @@ class UIManager:
             ss_data = ss['ss_data']
             dtime = ss['dtime']
             tottime = ss.get('tottime', ss['time'] - self.init_time)
+
             for o in self.components:
-                o.draw(ss_data=ss_data, dtime=dtime, tottime=tottime)
+                o.draw(ss_data=ss_data, ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), dtime=dtime, tottime=tottime)
 
         pygame.display.flip()
 
         self.board_clicked_action = None
         self.inputs = []
 
-    def update_engines(self, snapshot):
-        Snapshot.update_from_snapshot(self.engine, snapshot['snapshot']) # Update local engine to draw
-        self.outqueue.put({                   # Update GUI engine to re-continue with new state
-            'code': 'game-snapshot',
-            'data': snapshot['snapshot']
-        })
-        del self.game_snapshots[self.current_snapshot_idx + 1:]
-        self.snapshot_idx_modified = False
+    def UI_quit(self):
+        self.uisock.stop_sock_thread()
+        self.uisock.disconnect()
+        pygame.quit()
+        exit(0)

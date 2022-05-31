@@ -135,7 +135,7 @@ class Board:
         # print(f"Board.draw() -> hints_data: {hints_data}")
         # (sa_n, sa_v), actions = hints_data['mcts_state_data'][2:4]
         state_data = hints_data['mcts_state_data']
-        (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
+        (sa_n, sa_v), actions = state_data['stateAction'], state_data['actions']
 
         if self.hint_type == 0 and 'Policy' in state_data:
             self.draw_model_hints(state_data['Policy'])
@@ -148,9 +148,12 @@ class Board:
 
         # s_n, s_v, (sa_n, sa_v) = hints_data['mcts_state_data'][:3]
         state_data = hints_data['mcts_state_data']
-        s_n, s_v, (sa_n, sa_v) = state_data['Visits'], state_data['Rewards'], state_data['StateAction']
+        s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
 
-        mcts_value = np.nan_to_num(s_v / s_n)
+        try:
+            mcts_value = np.nan_to_num(s_v / s_n)
+        except:
+            pass
 
         i = 0
         y = 0
@@ -179,7 +182,7 @@ class Board:
             y
         )
         self.blit_text(
-            f"Q(s,a)[0,1]= {qsa}",
+            f"Q(s,a)[0,1]= {round(qsa, 3)}",
             2 * self.dx / 5,
             y
         )
@@ -189,7 +192,7 @@ class Board:
             y
         )
         self.blit_text(
-            f"R(s,a)= {rsa}/{round(s_v, 3)}",
+            f"R(s,a)= {round(rsa, 3)}/{round(s_v, 3)}",
             4 * self.dx / 5,
             y
         )
