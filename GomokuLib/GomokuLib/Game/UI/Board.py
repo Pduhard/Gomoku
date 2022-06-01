@@ -1,7 +1,9 @@
+import os
 import pygame
 import numpy as np
 import torch
 
+# from GomokuLib.Media import WoodBGBoard_img, WhiteStone_img, BlackStone_img
 
 class Board:
     """
@@ -25,6 +27,12 @@ class Board:
         # self.dx, self.dy = min(self.dx, self.dy), min(self.dx, self.dy)     # To square that thing
         self.board_size = board_size
 
+        folder_name = os.path.basename(os.path.abspath("."))
+        assert folder_name == "Gomoku"
+
+        # self.bg = WoodBGBoard_img.convert()
+        # self.whitestone = WhiteStone_img.convert_alpha()
+        # self.blackstone = BlackStone_img.convert_alpha()
         self.bg = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WoodBGBoard.jpg").convert()
         self.whitestone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WhiteStone.png").convert_alpha()
         self.blackstone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/BlackStone.png").convert_alpha()

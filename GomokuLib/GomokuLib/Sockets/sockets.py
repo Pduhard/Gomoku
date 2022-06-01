@@ -16,9 +16,6 @@
 
 """
 
-import socket
-import time
-
 import GomokuLib
 import numpy as np
 from GomokuLib.Game.UI import UIManagerSocket

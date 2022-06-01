@@ -3,6 +3,7 @@ from . import Algo
 from . import Game
 from . import Player
 from . import Typing
+# from . import Media
 from . import Sockets
 
 __all__ = [
@@ -11,5 +12,6 @@ __all__ = [
     'Game',
     'Player',
     'Typing',
+    # 'Media',
     'Sockets',
 ]
