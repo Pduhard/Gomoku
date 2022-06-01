@@ -25,46 +25,46 @@ from GomokuLib.Game.UI import UIManagerSocket
 
 from UISocket import UISocket
 
-def send():
+# def send():
 
-    # s = UISocket(host="192.168.1.6", as_client=True)
-    s = UISocket(as_client=True)
-    s.start_sock_thread()
+#     # s = UISocket(host="192.168.1.6", as_client=True)
+#     s = UISocket(as_client=True)
+#     s.start_sock_thread()
 
-    try:
-        i = 0
-        while True:
+#     try:
+#         i = 0
+#         while True:
 
-            data = s.get_recv_queue()
-            for d in data:
+#             data = s.get_recv_queue()
+#             for d in data:
 
-                if d == "request":
-                    s.add_sending_queue("response")
+#                 if d == "request":
+#                     s.add_sending_queue("response")
 
-                if d:
-                    print(f"Client: New d: {d}\n")
-                    i += 1
+#                 if d:
+#                     print(f"Client: New d: {d}\n")
+#                     i += 1
 
-            if i == 5:
-                s.add_sending_queue("stop-order")
-                raise Exception()
+#             if i == 5:
+#                 s.add_sending_queue("stop-order")
+#                 raise Exception()
 
-            time.sleep(0.1)
+#             time.sleep(0.1)
 
-    except:
-        pass
-    finally:
-        # while s.stats['send'] != s.stats['recv']:
-        #     time.sleep(2)
-        #     print(s.stats, len(s.send_queue), len(s.recv_queue))
+#     except:
+#         pass
+#     finally:
+#         # while s.stats['send'] != s.stats['recv']:
+#         #     time.sleep(2)
+#         #     print(s.stats, len(s.send_queue), len(s.recv_queue))
 
-        try:
-            s.stop_sock_thread()
-        except:
-            pass
+#         try:
+#             s.stop_sock_thread()
+#         except:
+#             pass
 
-        print(s.stats, len(s.send_queue), len(s.recv_queue))
-        s.disconnect()
+#         print(s.stats, len(s.send_queue), len(s.recv_queue))
+#         s.disconnect()
 
 
 def UI_program():

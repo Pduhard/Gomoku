@@ -124,24 +124,19 @@ class UIManagerSocket:
             code = input['code']
 
             if code == 'request-player-action':
-                print(f"<- UI Recv request-player-action ...")
+                # print(f"-> UI Recv request-player-action")
                 self.request_player_action = True
 
             elif code == 'board-click':
                 x, y = input['data']
                 self.board_clicked_action = (x, y)
-                print(input, x, y, self.board_clicked_action)
+                # print(input, x, y, self.board_clicked_action)
 
             elif code == 'game-snapshot':
 
-                # if len(self.game_snapshots):
-                #     prev_sp_time = self.game_snapshots[-1]['time']
-                # else:
-                #     prev_sp_time = time.time()
-                # input['data']['dtime'] = input['data']['time'] - prev_sp_time
-
                 self.game_snapshots.append(input['data'])
                 print(f"New snapshot receive, pause={self.pause}\t, dtime={input['data']['ss_data'].get('dtime', '_')}")
+
                 if not self.pause and self.current_snapshot_idx < len(self.game_snapshots) - 1:
                     self.current_snapshot_idx += 1
 
@@ -177,10 +172,6 @@ class UIManagerSocket:
 
                 if self.current_snapshot_idx != len(self.game_snapshots) - 1:  # New state never seen
                     breakpoint() # Need debug ?
-                    # self.outqueue.put({  # Update GUI engine to re-continue with new state
-                    #     'code': 'game-snapshot',
-                    #     'data': self.game_snapshots[self.current_snapshot_idx]['snapshot']
-                    # })
                     self.uisock.add_sending_queue({  # Update GUI engine to re-continue with new state
                         'code': 'game-snapshot',
                         'data': self.game_snapshots[self.current_snapshot_idx]['snapshot']
@@ -188,14 +179,11 @@ class UIManagerSocket:
                     del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
 
                 self.request_player_action = False
-                # self.outqueue.put({
-                #     'code': 'response-player-action',
-                #     'data': self.board_clicked_action,
-                # })
                 self.uisock.add_sending_queue({
                     'code': 'response-player-action',
                     'data': self.board_clicked_action,
                 })
+                # print(f"-> UI Send response-player-action")
 
         if len(self.game_snapshots):
             ss = self.game_snapshots[self.current_snapshot_idx]

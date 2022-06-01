@@ -45,6 +45,8 @@ class UISocket:
         else:
             self.connect = self._connect_as_client
 
+        # self.thread = threading.Thread(target=self._communication, daemon=True)
+        self.thread = threading.Thread(target=self._communication)
         self.sock_thread = False
         self.send_all_before_quit = False
         self.send_queue = []
@@ -194,8 +196,6 @@ class UISocket:
 
     def start_sock_thread(self):
         self.sock_thread = True
-        # self.thread = threading.Thread(target=self._communication, daemon=True)
-        self.thread = threading.Thread(target=self._communication)
         self.thread.start()
 
     def stop_sock_thread(self, send_all: bool = False):
@@ -209,12 +209,16 @@ class UISocket:
         print(f"UISocket: {self.name}: Thread.join() end")
 
     def _communication(self):
+        print(f"UISocket: {self.name}: START COMMUNICATIONS")
+
         while self.sock_thread or (self.send_all_before_quit and len(self.send_queue)):
 
             # if self.as_server:
             #     self.connect()  # Always search to connect with new client (No detection of client deco)
             if not self.connected:
+                print(f"Try to connect ?")
                 self.connect()
+                print(f"Connect ...")
 
             try:
                 if len(self.send_queue):
@@ -224,7 +228,7 @@ class UISocket:
                             del self.send_queue[0]
                     self.send_queue_lock.release()
             except Exception as e:
-                # print(f"UISocket: {self.name}: _communication(): raise {e}")
+                print(f"UISocket: {self.name}: {e}")
                 continue
 
             try:
@@ -234,10 +238,10 @@ class UISocket:
                         self.recv_queue.append(data)
                     self.recv_queue_lock.release()
             except Exception as e:
-                # print(f"UISocket: {self.name}: _communication(): raise {e}")
+                print(f"UISocket: {self.name}: {e}")
                 continue
 
-            # print(f"UISocket: {self.name}: will_send={len(self.send_queue)}, hav_recv={len(self.recv_queue)}")
+            print(f"UISocket: {self.name}: will_send={len(self.send_queue)}, hav_recv={len(self.recv_queue)}")
             time.sleep(0.2)
 
         # while len(self.send_queue):

@@ -54,7 +54,7 @@ class Board:
             'code': 'board-click',
             'data': action_pos
         }
-        print('mouse_click return ', res)
+        # print('mouse_click return ', res)
         return res
 
     def mouse_move(self, event):

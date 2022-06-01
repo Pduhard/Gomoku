@@ -63,12 +63,14 @@ class GomokuGUIRunnerSocket(GomokuRunner):
         self.uisock.start_sock_thread()
         self.update_UI(mode=mode)
 
+        is_bots = [isinstance(p, GomokuLib.Player.Bot) for p in players]
         while not self.engine.isover():
 
             print(f"\nTurn {self.engine.turn}. Player {self.engine.player_idx} to play ...")
             self.get_gui_input()
 
             p = players[self.engine.player_idx]
+            is_bot = is_bots[self.engine.player_idx]
             time_before_turn = perf_counter()
 
             player_action = p.play_turn(self)
@@ -77,35 +79,31 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             dtime_turn = int((time_after_turn - time_before_turn) * 1000)
             print(f"Played in {dtime_turn} ms")
 
-            if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
-                algo_turn_data = dict(p.algo.get_state_data(self.engine))
-                
-                self.engine.apply_action(player_action)
-                self.engine._next_turn_rules()
-                
-                algo_end_turn_data = dict(p.algo.get_state_data_after_action(self.engine))
+            algo_data = {}
+            if is_bot:
+                algo_data.update(dict(p.algo.get_state_data(self.engine)))
 
-                # breakpoint()
-                self.update_UI(
-                    mode=mode,
-                    p1=str(players[0]),
-                    p2=str(players[1]),
-                    turn=self.engine.turn,
-                    dtime=dtime_turn, 
-                    board=self.engine.board,
-                    player_idx=self.engine.player_idx,
-                    captures=self.engine.get_captures(),
-                    winner=self.engine.winner,
-                    **algo_turn_data,
-                    **algo_end_turn_data,
-                )
+            self.engine.apply_action(player_action)
+            self.engine._next_turn_rules()
 
-                self.engine._shift_board()
+            if is_bot:
+                algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
 
-            else:
-                self.engine.apply_action(player_action)
-                self.engine.next_turn()
-            # print(f"Game zone: {self.game_zone[0]} {self.game_zone[1]} into {self.game_zone[2]} {self.game_zone[3]}")
+            # breakpoint()
+            self.update_UI(
+                mode=mode,
+                p1=str(players[0]),
+                p2=str(players[1]),
+                turn=self.engine.turn,
+                dtime=dtime_turn, 
+                board=self.engine.board,
+                player_idx=self.engine.player_idx,
+                captures=self.engine.get_captures(),
+                winner=self.engine.winner,
+                **algo_data
+            )
+
+            self.engine._shift_board()
 
         print(f"Player {self.engine.winner} win.")
         self.GUI_quit()
@@ -130,7 +128,7 @@ class GomokuGUIRunnerSocket(GomokuRunner):
         self.uisock.add_sending_queue({
             'code': 'request-player-action'
         })
-        print(f"<- GUI send request-player-action ...")
+        print(f"GUI send request-player-action ->")
         while True:
             self.get_gui_input()
 
