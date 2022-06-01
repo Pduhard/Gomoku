@@ -11,8 +11,8 @@ if __name__ == "__main__":
 
     gui = GomokuLib.Game.UI.UIManagerSocket(
         win_size=(1500, 1000),
-        host=args.host[0],
-        port=args.port[0]
+        host=args.host[0] if args.host else None,
+        port=args.port[0] if args.port else None
     )
 
     while True:
