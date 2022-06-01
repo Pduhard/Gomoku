@@ -81,23 +81,23 @@ def duel():
 
     # p1 = GomokuLib.Player.RandomPlayer()
 
-    # mcts_p1 = GomokuLib.Algo.MCTSNjit(
-    #     engine=runner.engine,
-    #     iter=1000,
-    #     pruning=True,
-    #     rollingout_turns=10
-    # )
-    # p1 = GomokuLib.Player.Bot(mcts_p1)
+    mcts_p1 = GomokuLib.Algo.MCTSNjit(
+        engine=runner.engine,
+        iter=3000,
+        pruning=True,
+        rollingout_turns=10
+    )
+    p1 = GomokuLib.Player.Bot(mcts_p1)
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=1000,
+        iter=3000,
         hard_pruning=True,
         rollingout_turns=10
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
-    p1 = GomokuLib.Player.Human(runner)
+    # p1 = GomokuLib.Player.Human(runner)
 
     if 'p1' not in locals():
         print("new p1")

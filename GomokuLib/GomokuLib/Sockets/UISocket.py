@@ -216,9 +216,9 @@ class UISocket:
             # if self.as_server:
             #     self.connect()  # Always search to connect with new client (No detection of client deco)
             if not self.connected:
-                print(f"Try to connect ?")
+                # print(f"Try to connect ?")
                 self.connect()
-                print(f"Connect ...")
+                # print(f"Connect ...")
 
             try:
                 if len(self.send_queue):
@@ -241,7 +241,7 @@ class UISocket:
                 print(f"UISocket: {self.name}: {e}")
                 continue
 
-            print(f"UISocket: {self.name}: will_send={len(self.send_queue)}, hav_recv={len(self.recv_queue)}")
+            # print(f"UISocket: {self.name}: will_send={len(self.send_queue)}, hav_recv={len(self.recv_queue)}")
             time.sleep(0.2)
 
         # while len(self.send_queue):
