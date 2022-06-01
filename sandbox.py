@@ -22,18 +22,23 @@ from fastcore._rules import ffi, lib as fastcore
 from fastcore._algo import lib as fastcore_algo
 
 """
+    Random values in state_date of MCTSNjit
+
     Modif a faire pour opti:
         Enlever les full_board = board0 | board1 qui sont de partout
         if pruning.any(): à enlever dans rollingout ?
 
         On utilise ou la rewards du state_data ???
+        heuristic -> _##_#_ / _#_##_
 
         Pourquoi self.states[statehash][0]['pruning'][...] = 0 ne marche pas ?
 
 
     TODO:
 
+        Clean le Typing et les truc useless dedans
         Socket: envois un signal d'arrêt afin que l'autre puisse se reco à un autre process pa rla suite
+
 
         Faire un config file avec toute les constantes du RL
         afficher le nbr de train / epochs effectué 
@@ -77,22 +82,27 @@ def duel():
     )
 
     # p1 = GomokuLib.Player.RandomPlayer()
+
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
-        iter=3000,
+        iter=5000,
         pruning=True,
         rollingout_turns=10
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    # mcts_p2 = GomokuLib.Algo.MCTSNjit(
+    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
-    #     iter=1000,
-    #     pruning=True,
+    #     iter=5000,
+    #     hard_pruning=True,
     #     rollingout_turns=10
     # )
     # p2 = GomokuLib.Player.Bot(mcts_p2)
 
+    if 'p1' not in locals():
+        print("new p1")
+        p1 = p2
+        mcts_p1 = mcts_p2
     if 'p2' not in locals():
         print("new p2")
         p2 = p1
@@ -112,15 +122,17 @@ def duel():
     # profiler = cProfile.Profile()
     # profiler.enable()
 
-    for i in range(3):
+    winners = []
+    for i in range(1):
         winner = runner.run([p1, p2])  # White: 0 / Black: 1
+        winners.append(str(winner))
 
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')
     # stats.print_stats()
     # stats.dump_stats('tmp_profile_from_script.prof')
 
-    print(f"Winner is {winner}")
+    print(f"Winners: {winners}")
     # breakpoint()
 
 
@@ -145,32 +157,6 @@ def RLmain():
         nbr_games_per_tl=10,
         epochs=2
     )
-
-
-def parallel_tests():
-
-    # runner = GomokuLib.Game.GameEngine.GomokuRunner()
-    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket()
-    # mcts = GomokuLib.Algo.MCTSParallel(runner.engine)
-    mcts = GomokuLib.Algo.MCTSParallel(
-        runner.engine,
-        num_workers=10,
-        batch_size=5,
-        pool_num=10,
-        mcts_iter=1000
-    )
-    p1 = GomokuLib.Player.Bot(mcts)
-    # ret = mcts(runner.engine)
-
-    if 'p2' not in locals():
-        print("new p2")
-        p2 = p1
-
-    # s = time.perf_counter()
-    # e = time.perf_counter()
-    # print(f"sandbox: {ret} in {(e - s) * 1000} ms")
-
-    winner = runner.run([p1, p2])  # White: 0 / Black: 1
 
 
 if __name__ == '__main__':

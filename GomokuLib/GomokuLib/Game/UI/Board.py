@@ -134,8 +134,16 @@ class Board:
 
         # print(f"Board.draw() -> hints_data: {hints_data}")
         # (sa_n, sa_v), actions = hints_data['mcts_state_data'][2:4]
-        state_data = hints_data['mcts_state_data']
-        (sa_n, sa_v), actions = state_data['stateAction'], state_data['actions']
+        
+        try:
+            state_data = hints_data['mcts_state_data'][0]
+        except:
+            state_data = hints_data['mcts_state_data']
+
+        try:
+            (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
+        except:
+            (sa_n, sa_v), actions = state_data['stateAction'], state_data['actions']
 
         if self.hint_type == 0 and 'Policy' in state_data:
             self.draw_model_hints(state_data['Policy'])
@@ -147,8 +155,15 @@ class Board:
     def draw_stats(self, board: np.ndarray, hints_data: dict):
 
         # s_n, s_v, (sa_n, sa_v) = hints_data['mcts_state_data'][:3]
-        state_data = hints_data['mcts_state_data']
-        s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
+        try:
+            state_data = hints_data['mcts_state_data'][0]
+        except:
+            state_data = hints_data['mcts_state_data']
+
+        try:
+           s_n, s_v, (sa_n, sa_v) = state_data['Visits'], state_data['Rewards'], state_data['StateAction']
+        except:
+           s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
 
         try:
             mcts_value = np.nan_to_num(s_v / s_n)
@@ -156,9 +171,9 @@ class Board:
             pass
 
         if self.hint_mouse:
-            rsa = round(sa_v[self.hint_mouse[0], self.hint_mouse[1]], 3)
+            rsa = round(float(sa_v[self.hint_mouse[0], self.hint_mouse[1]]), 3)
             nsa = sa_n[self.hint_mouse[0], self.hint_mouse[1]]
-            qsa = round(np.nan_to_num(sa_v[self.hint_mouse[0], self.hint_mouse[1]] / nsa), 3)
+            qsa = round(float(np.nan_to_num(sa_v[self.hint_mouse[0], self.hint_mouse[1]] / nsa)), 3)
         else:
             rsa, nsa, qsa = '_', '_', '_'
 

@@ -126,7 +126,7 @@ class UISocket:
         self.sock.bind((self.host, self.port))
         # self.sock.setblocking(False)
         self.sock.settimeout(1)
-        print(f"UISocket: {self.name}: New socket at {self.host} (port {self.port})")
+        # print(f"UISocket: {self.name}: New socket at {self.host} (port {self.port})")
 
     def _connect_as_server(self):
         """ Server looks for new connections to accept """
@@ -153,7 +153,8 @@ class UISocket:
             #     print(f"UISocket: {self.name}: No new connection")
 
         except socket.error:
-            print(f"UISocket: {self.name}: socket.accept({(self.host, self.port)}): socket.error")
+            # print(f"UISocket: {self.name}: socket.accept({(self.host, self.port)}): socket.error")
+            pass
         #
         # except BlockingIOError:
         #     self.connected = False
@@ -223,7 +224,7 @@ class UISocket:
                             del self.send_queue[0]
                     self.send_queue_lock.release()
             except Exception as e:
-                print(f"UISocket: {self.name}: _communication(): raise {e}")
+                # print(f"UISocket: {self.name}: _communication(): raise {e}")
                 continue
 
             try:
@@ -233,7 +234,7 @@ class UISocket:
                         self.recv_queue.append(data)
                     self.recv_queue_lock.release()
             except Exception as e:
-                print(f"UISocket: {self.name}: _communication(): raise {e}")
+                # print(f"UISocket: {self.name}: _communication(): raise {e}")
                 continue
 
             # print(f"UISocket: {self.name}: will_send={len(self.send_queue)}, hav_recv={len(self.recv_queue)}")

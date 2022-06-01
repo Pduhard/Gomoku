@@ -134,14 +134,14 @@ class UIManagerSocket:
 
             elif code == 'game-snapshot':
 
-                if len(self.game_snapshots):
-                    prev_sp_time = self.game_snapshots[-1]['time']
-                else:
-                    prev_sp_time = time.time()
-                input['data']['dtime'] = input['data']['time'] - prev_sp_time
+                # if len(self.game_snapshots):
+                #     prev_sp_time = self.game_snapshots[-1]['time']
+                # else:
+                #     prev_sp_time = time.time()
+                # input['data']['dtime'] = input['data']['time'] - prev_sp_time
 
                 self.game_snapshots.append(input['data'])
-                print(f"New snapshot receive, pause={self.pause}\t, dtime={input['data']['dtime']}")
+                print(f"New snapshot receive, pause={self.pause}\t, dtime={input['data']['ss_data'].get('dtime', '_')}")
                 if not self.pause and self.current_snapshot_idx < len(self.game_snapshots) - 1:
                     self.current_snapshot_idx += 1
 
@@ -200,11 +200,10 @@ class UIManagerSocket:
         if len(self.game_snapshots):
             ss = self.game_snapshots[self.current_snapshot_idx]
             ss_data = ss['ss_data']
-            dtime = ss['dtime']
             tottime = ss.get('tottime', ss['time'] - self.init_time)
 
             for o in self.components:
-                o.draw(ss_data=ss_data, ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), dtime=dtime, tottime=tottime)
+                o.draw(ss_data=ss_data, ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), tottime=tottime)
 
         pygame.display.flip()
 

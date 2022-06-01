@@ -7,6 +7,7 @@ from numba.core import types
 BoardDtype = np.int8
 ActionDtype = np.int8
 GameZoneDtype = np.int8
+PruningDtype = np.int8
 TupleDtype = np.int32
 MCTSIntDtype = np.int32
 MCTSFloatDtype = np.float32
@@ -24,9 +25,9 @@ StateDataDtype = np.dtype([
     ('visits', MCTSIntDtype),
     ('rewards', MCTSFloatDtype),
     ('stateAction', MCTSFloatDtype, (2, 19, 19)),
-    ('actions', MCTSIntDtype, (19, 19)),
+    ('actions', ActionDtype, (19, 19)),
     ('heuristic', MCTSFloatDtype),
-    ('pruning', MCTSIntDtype, (19, 19))
+    ('pruning', PruningDtype, (19, 19))
     # ('AMAF', np.int32, (2, 19, 19)),
 ], align=True)
 
@@ -75,6 +76,8 @@ __all__ = [
 
     'ActionDtype',
     'nbAction',
+
+    'PruningDtype',
 
     'nbState',
 

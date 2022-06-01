@@ -70,15 +70,22 @@ class MCTSNjit:
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
     def __str__(self):
-        return f"MCTSNjit iter={self.mcts_iter}"
+        return f"MCTSNjit ({self.mcts_iter} iter)"
 
-    def get_state_data(self, engine: Gomoku):
-        return {
-            'mcts_state_data': self.states[self.tobytes(engine.board)][0],
-        }
+    def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
-    def get_state_data_after_action(self, engine: Gomoku):
-        statehash = self.tobytes(engine.board)
+        _state_data = nb.typed.Dict.empty(
+            key_type=nb.types.unicode_type,
+            value_type=Typing.nbState
+        )
+        _state_data['mcts_state_data'] = self.states[self.tobytes(game_engine.board)]
+        return _state_data
+        # return {
+        #     'mcts_state_data': self.states[self.tobytes(game_engine.board)][0],
+        # }
+
+    def get_state_data_after_action(self, game_engine: Gomoku):
+        statehash = self.tobytes(game_engine.board)
         return {
             'heuristic': self.states[statehash][0]['heuristic'] if statehash in self.states else -42
         }
@@ -213,7 +220,8 @@ class MCTSNjit:
         # print(f"Expand depth {self.depth} statehash:\n{statehash}")
         self.states[statehash] = np.zeros(1, dtype=Typing.StateDataDtype)
 
-        actions = self.engine.get_actions()
+        actions = self.engine.get_lazy_actions()
+        # actions = self.engine.get_actions()
         pruning = self.pruning()
         self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
 
@@ -225,61 +233,62 @@ class MCTSNjit:
         self.states[statehash][0]['heuristic'] = self.reward
         self.states[statehash][0]['pruning'][...] = pruning
     
-        # print(f"Expand:\n{self.states[statehash]}")
+        # with nb.objmode():
+        #     print(f"Expand:\n{self.states[statehash]}")
 
     def award_end_game(self):
         if self.engine.winner == -1: # Draw
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
 
-    def award(self):
-        """
-            Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
-        """
-        self.rollingout()
-
-        if self.engine.isover():
-            return self.award_end_game()
-        else:
-            return 0.5
-
     # def award(self):
     #     """
     #         Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
     #     """
-    #     h_leaf = self.heuristic()
-    #     if self.rollingout_turns:
-    #         self.rollingout()
-    
-    #         if self.engine.isover():
-    #             return self.award_end_game()
-    #         else:
-    #             h = self.heuristic()
-    #             return (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+    #     self.rollingout()
+
+    #     if self.engine.isover():
+    #         return self.award_end_game()
     #     else:
-    #         return h_leaf
+    #         return 0.5
 
-    # def heuristic(self):
-    #     board = self.engine.board
+    def award(self):
+        """
+            Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
+        """
+        h_leaf = self.heuristic()
+        if self.rollingout_turns:
+            self.rollingout()
+    
+            if self.engine.isover():
+                return self.award_end_game()
+            else:
+                h = self.heuristic()
+                return (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+        else:
+            return h_leaf
 
-    #     c_board = ffi.from_buffer(board)
-    #     c_full_board = ffi.from_buffer(board[0] | board[1])
+    def heuristic(self):
+        board = self.engine.board
 
-    #     cap = self.engine.get_captures()
-    #     c0 = cap[0]
-    #     c1 = cap[1]
+        c_board = ffi.from_buffer(board)
+        c_full_board = ffi.from_buffer(board[0] | board[1])
 
-    #     game_zone = self.engine.get_game_zone()
-    #     g0 = game_zone[0]
-    #     g1 = game_zone[1]
-    #     g2 = game_zone[2]
-    #     g3 = game_zone[3]
+        cap = self.engine.get_captures()
+        c0 = cap[0]
+        c1 = cap[1]
 
-    #     x = _algo.mcts_eval_heuristic(
-    #         c_board, c_full_board,
-    #         c0, c1, g0, g1, g2, g3
-    #     )
-    #     return x
+        game_zone = self.engine.get_game_zone()
+        g0 = game_zone[0]
+        g1 = game_zone[1]
+        g2 = game_zone[2]
+        g3 = game_zone[3]
+
+        x = _algo.mcts_eval_heuristic(
+            c_board, c_full_board,
+            c0, c1, g0, g1, g2, g3
+        )
+        return x
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
@@ -316,7 +325,7 @@ class MCTSNjit:
 
     def get_neighbors_mask(self, board):
 
-        neigh = np.zeros((19, 19), dtype=board.dtype)
+        neigh = np.zeros((19, 19), dtype=Typing.PruningDtype)
 
         neigh[:-1, :] |= board[1:, :]  # Roll cols to left
         neigh[1:, :] |= board[:-1, :]  # Roll cols to right
@@ -333,9 +342,9 @@ class MCTSNjit:
     def pruning(self):
 
         if not self.is_pruning:
-            return np.ones((19, 19), dtype=Typing.MCTSIntDtype)
+            return np.ones((19, 19), dtype=Typing.PruningDtype)
 
-        full_board = (self.engine.board[0] | self.engine.board[1]).astype(Typing.MCTSIntDtype)
+        full_board = (self.engine.board[0] | self.engine.board[1]).astype(Typing.PruningDtype)
         non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
 
         # if hard_pruning:

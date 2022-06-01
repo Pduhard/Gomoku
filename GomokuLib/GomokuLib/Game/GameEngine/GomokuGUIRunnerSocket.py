@@ -39,7 +39,7 @@ class GomokuGUIRunnerSocket(GomokuRunner):
         self.player_action = None
         self.socket_queue = []
 
-        print("END __init__() GomokuGUIRunner\n")
+        print("END __init__() GomokuGUIRunnerSocket\n")
 
     def update_UI(self, **kwargs):
         """
@@ -52,7 +52,7 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             'captures': self.engine.get_captures()[::-1],
             'board': self.engine.board,
             'turn': self.engine.turn,
-            'player_idx': self.engine.player_idx,
+            'player_idx': self.engine.player_idx ^ 1,
             'winner': self.engine.winner
         })
         self.uisock.add_sending_queue({
@@ -71,13 +71,18 @@ class GomokuGUIRunnerSocket(GomokuRunner):
         self.update_UI(mode=mode)
 
         while not self.engine.isover():
+
+            print(f"\nTurn {self.engine.turn}. Player {self.engine.player_idx} to play ...")
             self.get_gui_input()
 
             p = players[self.engine.player_idx]
-            ts = perf_counter()
+            time_before_turn = perf_counter()
+
             player_action = p.play_turn(self)
-            ta = perf_counter()
-            print(f"Played in {(ta - ts) * 1000}")
+
+            time_after_turn = perf_counter()
+            dtime_turn = int((time_after_turn - time_before_turn) * 1000)
+            print(f"Played in {dtime_turn} ms")
 
             if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
                 turn_data = dict(p.algo.get_state_data(self.engine))
@@ -98,6 +103,7 @@ class GomokuGUIRunnerSocket(GomokuRunner):
                 self.update_UI(
                     **turn_data,
                     mode=mode,
+                    dtime=dtime_turn
                 )
 
             else:
