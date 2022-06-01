@@ -43,7 +43,7 @@ class Display:
                 'Turn': ss_data.get('turn', '_'),
                 'dtime (ms)': ss_data.get('dtime', '_'),
                 'Snapshot': f"{ss_i + 1}/{ss_num}",
-                'Waiting': 'Black' if ss_data.get('player_idx', '_') else 'White',
+                'Waiting': 'White' if ss_data.get('player_idx', '_') else 'Black',
                 'Captures': ss_data.get('captures', '_'),
                 'Heuristic': ss_data.get('heuristic', '_'),
                 'Award': ss_data.get('award', '_'),

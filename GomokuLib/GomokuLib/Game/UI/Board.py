@@ -105,7 +105,6 @@ class Board:
         if ss_data and 'mcts_state_data' in ss_data:
             self.draw_hints(ss_data)
 
-        # print(self.cells_coord.shape,  self.state.board[np.newaxis, ...].shape)
         stone_x, stone_y = self.cells_coord * board[player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
         empty_cells = stone_x != 0                               # Boolean array to remove empty cells
         stone_x = stone_x[empty_cells]

@@ -48,13 +48,6 @@ class GomokuGUIRunnerSocket(GomokuRunner):
         print(f"New snapshot add to socket queue")
         # breakpoint()
 
-        kwargs.update({ 
-            'captures': self.engine.get_captures()[::-1],
-            'board': self.engine.board,
-            'turn': self.engine.turn,
-            'player_idx': self.engine.player_idx ^ 1,
-            'winner': self.engine.winner
-        })
         self.uisock.add_sending_queue({
             'code': 'game-snapshot',
             'data': {
@@ -85,26 +78,29 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             print(f"Played in {dtime_turn} ms")
 
             if isinstance(p, GomokuLib.Player.Bot): # Send player data after its turn
-                turn_data = dict(p.algo.get_state_data(self.engine))
+                algo_turn_data = dict(p.algo.get_state_data(self.engine))
                 
                 self.engine.apply_action(player_action)
                 self.engine._next_turn_rules()
                 
-                end_turn_data = dict(p.algo.get_state_data_after_action(self.engine))
-                turn_data.update(end_turn_data)
-                
-                self.engine._shift_board()
-
-                if mode == "GomokuGUIRunner.run()":
-                    turn_data['p1'] = str(players[0])
-                    turn_data['p2'] = str(players[1])
+                algo_end_turn_data = dict(p.algo.get_state_data_after_action(self.engine))
 
                 # breakpoint()
                 self.update_UI(
-                    **turn_data,
                     mode=mode,
-                    dtime=dtime_turn
+                    p1=str(players[0]),
+                    p2=str(players[1]),
+                    turn=self.engine.turn,
+                    dtime=dtime_turn, 
+                    board=self.engine.board,
+                    player_idx=self.engine.player_idx,
+                    captures=self.engine.get_captures(),
+                    winner=self.engine.winner,
+                    **algo_turn_data,
+                    **algo_end_turn_data,
                 )
+
+                self.engine._shift_board()
 
             else:
                 self.engine.apply_action(player_action)
