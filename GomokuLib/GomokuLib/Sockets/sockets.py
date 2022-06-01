@@ -69,8 +69,7 @@ def UI_program():
     # try:
     print(f"UI program start init")
     gui = UIManagerSocket(
-        GomokuLib.Game.GameEngine.Gomoku(),
-        (1500, 1000)
+        win_size=(1500, 1000)
     )
     print(f"UI program end init")
     gui()

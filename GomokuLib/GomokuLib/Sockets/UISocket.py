@@ -4,7 +4,7 @@ import pickle
 import select
 import threading
 import time
-
+import multiprocessing
 import numpy as np
 
 
@@ -45,7 +45,7 @@ class UISocket:
         else:
             self.connect = self._connect_as_client
 
-        # self.thread = threading.Thread(target=self._communication, daemon=True)
+        # self.thread = multiprocessing.Process(target=self._communication)
         self.thread = threading.Thread(target=self._communication)
         self.sock_thread = False
         self.send_all_before_quit = False
@@ -189,8 +189,17 @@ class UISocket:
             except socket.error:
                 time.sleep(0.5)
                 pass
-
         print(f"UISocket: {self.name}: Connected at {self.host}(port {self.port}) as client")
+
+    # def _connect_as_client(self):
+    #     """Try to establish a connection to the server"""
+
+    #     self._init_socket_as_client()
+    #     print(f"UISocket: {self.name}: {time.time()}: Connection to {(self.host, self.port)}")
+
+    #     self.sock.connect((self.host, self.port))
+    #     self.connected = True
+    #     print(f"UISocket: {self.name}: Connected at {self.host}(port {self.port}) as client")
 
     """ Thread part """
 
@@ -213,12 +222,15 @@ class UISocket:
 
         while self.sock_thread or (self.send_all_before_quit and len(self.send_queue)):
 
-            # if self.as_server:
-            #     self.connect()  # Always search to connect with new client (No detection of client deco)
-            if not self.connected:
-                # print(f"Try to connect ?")
-                self.connect()
-                # print(f"Connect ...")
+            try:
+                if not self.connected:
+                    self.connect()
+            except socket.error:
+                time.sleep(0.5)
+                continue
+
+            except Exception as e:
+                print(f"UISocket: {self.name}: Connection error: {e}")
 
             try:
                 if len(self.send_queue):
@@ -242,7 +254,7 @@ class UISocket:
                 continue
 
             # print(f"UISocket: {self.name}: will_send={len(self.send_queue)}, hav_recv={len(self.recv_queue)}")
-            time.sleep(0.2)
+            time.sleep(0.1)
 
         # while len(self.send_queue):
         #     print(f"UISocket: {self.name}: Last send ...")

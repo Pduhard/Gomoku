@@ -15,11 +15,13 @@ from .Display import Display
 
 from GomokuLib.Sockets.UISocket import UISocket
 
+
 class UIManagerSocket:
 
-    def __init__(self, engine: Gomoku, win_size: tuple, host: str = None, port: int = None):
+    def __init__(self, win_size: tuple, host: str = None, port: int = None):
 
-        self.engine = engine.clone()
+        # self.engine = engine.clone()
+        self.engine = Gomoku()
         self.win_size = win_size
         self.host = host
         self.port = port
@@ -34,13 +36,11 @@ class UIManagerSocket:
 
     def __call__(self): # Thread function
 
-        print(f"UISocket UIManager start init")
+        print("UIManager __call__()\n")
         self.uisock = UISocket(host=self.host, port=self.port, as_client=True, name="UI")
         self.uisock.start_sock_thread()
-        print(f"UISocket UIManager end init")
 
         self.initUI(self.win_size)
-        print("UIManager __call__()\n")
 
         self.request_player_action = False
         self.pause = False
@@ -202,4 +202,4 @@ class UIManagerSocket:
         self.uisock.stop_sock_thread()
         self.uisock.disconnect()
         pygame.quit()
-        exit(0)
+        raise Exception("Cross shutdown asked")
