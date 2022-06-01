@@ -22,8 +22,6 @@ from fastcore._rules import ffi, lib as fastcore
 from fastcore._algo import lib as fastcore_algo
 
 """
-    Random values in state_date of MCTSNjit
-
     Modif a faire pour opti:
         Enlever les full_board = board0 | board1 qui sont de partout
         if pruning.any(): à enlever dans rollingout ?
