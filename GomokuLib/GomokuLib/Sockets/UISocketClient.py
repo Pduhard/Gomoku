@@ -5,7 +5,9 @@ from .UISocket import UISocket
 
 class UISocketClient(UISocket):
 
-    """ Socket connection """
+    """ Socket connection
+            Set blocking = True avant la connection et apres
+    """
 
     def __init__(self, name: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -16,8 +18,8 @@ class UISocketClient(UISocket):
         # if self.sock:
         #     self.sock.close()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.settimeout(1)
-        # self.sock.setblocking(False)
+        # self.sock.settimeout(0.5)
+        self.sock.setblocking(True)
         self._send = self.sock.sendall
         self._recv = self.sock.recv
         # print(f"UISocketClient: {self.name}: New socket")
@@ -32,7 +34,6 @@ class UISocketClient(UISocket):
 
             try:
                 self.sock.connect((self.host, self.port))
-                # self.sock.setblocking(False)
                 self.connected = True
                 print(f"UISocketClient: {self.name}: Connected at {self.host}(port {self.port}) as client")
 

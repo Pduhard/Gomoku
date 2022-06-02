@@ -143,6 +143,7 @@ class GomokuGUIRunnerSocket(GomokuRunner):
 
     def GUI_quit(self, send_all_ss):
         if send_all_ss:
+            print(f"\nGomokuGUIRunner: Send disconnection order to UIManager.")
             self.uisock.add_sending_queue({
                 'code': 'end-game'
             })
