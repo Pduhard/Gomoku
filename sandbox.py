@@ -80,7 +80,7 @@ def duel():
     )
 
     # p1 = GomokuLib.Player.RandomPlayer()
-    # p1 = GomokuLib.Player.Human(runner)
+    p1 = GomokuLib.Player.Human(runner)
 
     # mcts_p1 = GomokuLib.Algo.MCTSNjit(
     #     engine=runner.engine,

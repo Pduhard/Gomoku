@@ -72,7 +72,7 @@ class UISocket:
                 if not force:
                     break
 
-            time.sleep(1)
+            time.sleep(0.1)
 
     """ Receive part """
 
