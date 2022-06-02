@@ -92,7 +92,7 @@ def duel():
 
     mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=1000,
+        iter=500,
         hard_pruning=True,
         rollingout_turns=10
     )

@@ -138,7 +138,7 @@ class UIManagerSocket:
             elif code == 'board-click':
                 x, y = input['data']
                 self.board_clicked_action = (x, y)
-                # print(input, x, y, self.board_clicked_action)
+                print(self.board_clicked_action, self.request_player_action)
 
             elif code == 'pause-play':
                 self.pause = not self.pause
@@ -168,7 +168,9 @@ class UIManagerSocket:
             self.snapshot_idx_modified = False
 
         if self.request_player_action and self.board_clicked_action and not self.pause:
+            print(f"Player action catch")
             if self.engine.is_valid_action(self.board_clicked_action):
+                print(f"Player action valid !")
 
                 if self.current_snapshot_idx != len(self.game_snapshots) - 1:  # New state never seen
                     breakpoint() # Need debug ?

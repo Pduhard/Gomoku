@@ -100,7 +100,8 @@ class UISocket:
                 return data
     
         except socket.error:
-            print(f"UISocket: {self.name}: socket.error: No data to recv")
+            pass
+            # print(f"UISocket: {self.name}: socket.error: No data to recv")
 
         except Exception as e:
             print(f"UISocket: {self.name}: recv() failed: {type(e)}: {e}")

@@ -5,7 +5,10 @@ from .UISocket import UISocket
 
 class UISocketServer(UISocket):
 
-    """ Socket connection """
+    """ Socket connection 
+        self.sock.settimeout(0.1) on init
+        self.connection.setblocking(False) after accept
+        """
 
     def __init__(self, name: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -24,7 +27,7 @@ class UISocketServer(UISocket):
     def connect(self):
         """ Server looks for new connections to accept """
 
-        print(f"self.connected: {self.connected}")
+        # print(f"self.connected: {self.connected}")
         if not self.connected:
 
             try:
