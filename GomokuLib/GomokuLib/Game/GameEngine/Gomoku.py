@@ -60,14 +60,14 @@ class Gomoku:
         self.basic_rules = BasicRule(self.board)
 
     def get_lazy_actions(self) -> np.ndarray:
-        full_board = (self.board[0] | self.board[1]).astype(Typing.ActionDtype)
+        full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         return self.basic_rules.get_valid(full_board)
 
     def get_actions(self) -> np.ndarray:
-        masks = np.ones((19, 19), dtype=Typing.ActionDtype)
+        masks = np.ones((19, 19), dtype=Typing.BoardDtype)
 
         full_board = self.board[0] | self.board[1]
-        # full_board = (self.board[0] | self.board[1]).astype(Typing.ActionDtype)
+        # full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         masks &= self.basic_rules.get_valid(full_board)
         if self.is_no_double_threes_active:
             masks &= self.no_double_threes.get_valid(full_board)
@@ -76,7 +76,7 @@ class Gomoku:
     def is_valid_action(self, action: np.ndarray) -> bool:
         ar, ac = action
         full_board = self.board[0] | self.board[1]
-        # full_board = (self.board[0] | self.board[1]).astype(Typing.ActionDtype)
+        # full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         is_valid = self.basic_rules.is_valid(full_board, ar, ac)
         if self.is_no_double_threes_active:
             is_valid &= self.no_double_threes.is_valid(full_board, ar, ac)

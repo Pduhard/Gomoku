@@ -17,7 +17,7 @@ ffi = _fastcore.ffi
 
 
 
-@nb.vectorize('float64(int32, float64)')
+@nb.vectorize('float64(int8, float64)')
 def _valid_policy_action(actions, policy):
     if actions > 0:
         return policy
