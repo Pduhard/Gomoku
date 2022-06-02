@@ -126,7 +126,7 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
 static void count_align_opponent_player(char *board, char *full_board, int ar, int ac, char *align)
 {
     /*
-        X: No matters what value is
+        X: No matters what value it is
 
         Current player heuristic
         Count aligns:                   01|2345
@@ -137,9 +137,6 @@ static void count_align_opponent_player(char *board, char *full_board, int ar, i
 
             3 stones + 3 empty cells ->  _##_#_
             3 stones + 3 empty cells ->  _#_##_
-            4 stones + 2 empty cells ->  _##_##
-            4 stones + 2 empty cells ->  X##_##_
-            4 stones + 2 empty cells ->  _##_##
 
         Opponent player heuristic
         Count aligns:                   01|2345
@@ -148,8 +145,12 @@ static void count_align_opponent_player(char *board, char *full_board, int ar, i
             4 stones + 1 empty cells ->  X####_
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
+
             3 stones + 3 empty cells ->  _##_#_
-            3 stones + 3 empty cells ->  _#_##_
+            3 stones + 3 empty cells ->  _#_##X
+            4 stones + 2 empty cells ->  X#_###X
+            4 stones + 2 empty cells ->  X##_##X
+            4 stones + 2 empty cells ->  X###_#X
     */
     static int  direction[8] = {-1, 1, 0, 1, 1, 1, 1, 0};
     static int  rmax = 19, cmax = 19;
@@ -294,4 +295,35 @@ float mcts_eval_heuristic(char *board, char *full_board, int cap_1, int cap_2, i
         3: 1
         4: 2.5
         5: 6
+*/
+
+
+/*
+    X: No matters what value it is
+
+    Current player heuristic
+        Indexes:                        01|2345
+            5 stones ->                 XX#####
+
+            4 stones + 1 empty cells -> X_####_
+
+            3 stones + 3 empty cells -> __###_X
+            3 stones + 3 empty cells -> X_#_##_
+            3 stones + 3 empty cells -> X_##_#_
+            3 stones + 3 empty cells -> X_###__
+
+    Opponent player heuristic:
+        Indexes:                        01|2345
+            5 stones ->                 XX#####
+
+            4 stones + 1 empty cells -> X_####X
+            4 stones + 1 empty cells -> XX#_###
+            4 stones + 1 empty cells -> XX##_##
+            4 stones + 1 empty cells -> XX###_#
+            4 stones + 1 empty cells -> XX####_
+
+            3 stones + 3 empty cells -> __###_X
+            3 stones + 3 empty cells -> X_#_##_
+            3 stones + 3 empty cells -> X_##_#_
+            3 stones + 3 empty cells -> X_###__
 */

@@ -1,3 +1,6 @@
+import numpy as np
+import GomokuLib.Typing as Typing
+
 from .MCTS import MCTS
 from .MCTSLazy import MCTSLazy
 from .MCTSAMAF import MCTSAMAF
