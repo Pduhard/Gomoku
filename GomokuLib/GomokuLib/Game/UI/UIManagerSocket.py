@@ -13,35 +13,45 @@ from .Board import Board
 from .Button import Button
 from .Display import Display
 
-from GomokuLib.Sockets.UISocket import UISocket
+from GomokuLib.Sockets.UISocketClient import UISocketClient
 
 
 class UIManagerSocket:
 
     def __init__(self, win_size: tuple, host: str = None, port: int = None):
 
-        # self.engine = engine.clone()
-        self.engine = Gomoku()
         self.win_size = win_size
         self.host = host
         self.port = port
 
+        self.engine = Gomoku()
         self.board_size = self.engine.board_size
+
+    def __call__(self): # Thread function
+
+        print("UIManager __call__()\n")
+        self.init()
+
+        self.cross_shutdown = False
+        while not self.cross_shutdown:
+
+            self.fetch_input()
+
+            self.process_events()
+            self.process_inputs()
+            self.update()
+
+            self.uisock.send_all()
+
+    def init(self):
+
         self.callbacks = {}
         self.current_snapshot_idx = -1
         self.snapshot_idx_modified = False
         self.pause = False
         self.game_data = {}
         self.init_time = time.time()
-
-    def __call__(self): # Thread function
-
-        print("UIManager __call__()\n")
-        self.uisock = UISocket(host=self.host, port=self.port, as_client=True, name="UI")
-        self.uisock.start_sock_thread()
-
-        self.initUI(self.win_size)
-
+        self.uisock = UISocketClient(host=self.host, port=self.port, name="UIManager")
         self.request_player_action = False
         self.pause = False
         self.board_clicked_action = None
@@ -49,12 +59,8 @@ class UIManagerSocket:
         self.game_snapshots = []
         self.snapshot_idx_modified = False
 
-        while True:
-            self.read_inqueue()
-            self.process_events()
-            self.process_inputs()
-            self.update()
-
+        self.initUI(self.win_size)
+        
     def initUI(self, win_size: Union[list[int], tuple[int]]):
 
         print(f"board_size: {self.board_size}")
@@ -85,27 +91,16 @@ class UIManagerSocket:
         else:
             self.callbacks[str(event_type)] = [callback]
 
-    def read_inqueue(self):
-
-        queue = self.uisock.get_recv_queue()
-        self.inputs.extend(queue)
-        #
-        # try:
-        #     while True:
-        #         self.inputs.append(self.inqueue.get_nowait())
-        # except:
-        #     pass
+    def fetch_input(self):
+        recv_queue = self.uisock.recv()
+        if recv_queue:
+            self.inputs.append(recv_queue)
+            # print(f"recv_queue / self.inputs length -> {len(recv_queue)} / {len(self.inputs)}")
 
     def process_events(self):
         for event in pygame.event.get():
             # print(event.type, pygame.event.event_name(event.type))
             if event.type == pygame.QUIT:
-                # self.outqueue.put({
-                #     'code': 'shutdown',
-                # })
-                self.uisock.add_sending_queue({
-                    'code': 'shutdown',
-                })
                 self.UI_quit()
 
             if str(event.type) not in self.callbacks:
@@ -127,11 +122,6 @@ class UIManagerSocket:
                 # print(f"-> UI Recv request-player-action")
                 self.request_player_action = True
 
-            elif code == 'board-click':
-                x, y = input['data']
-                self.board_clicked_action = (x, y)
-                # print(input, x, y, self.board_clicked_action)
-
             elif code == 'game-snapshot':
 
                 self.game_snapshots.append(input['data'])
@@ -139,6 +129,14 @@ class UIManagerSocket:
 
                 if not self.pause and self.current_snapshot_idx < len(self.game_snapshots) - 1:
                     self.current_snapshot_idx += 1
+
+            elif code == 'end-game':
+                self.uisock.connected = False
+
+            elif code == 'board-click':
+                x, y = input['data']
+                self.board_clicked_action = (x, y)
+                # print(input, x, y, self.board_clicked_action)
 
             elif code == 'pause-play':
                 self.pause = not self.pause
@@ -199,7 +197,11 @@ class UIManagerSocket:
         self.inputs = []
 
     def UI_quit(self):
-        self.uisock.stop_sock_thread()
+        # pygame.quit()
+        self.uisock.add_sending_queue({
+            'code': 'shutdown',
+        })
+        self.uisock.send_all()
         self.uisock.disconnect()
-        pygame.quit()
-        raise Exception("Cross shutdown asked")
+        self.cross_shutdown = True
+        print(f"UIManager: DISCONNECTION.\n")

@@ -15,9 +15,13 @@ if __name__ == "__main__":
         port=args.port[0] if args.port else None
     )
 
-    while True:
-        try:
-            print(f"UIProgram: Start a new UIManager")
-            gui()
-        except Exception as e:
-            print(f"Exception raised:\n\t{e}")
+    print(f"\nUIProgram: Start a new UIManager")
+    gui()
+
+
+    # while True:
+    #     # try:
+    #         print(f"\nUIProgram: Start a new UIManager")
+    #         gui()
+    #     # except Exception as e:
+    #     #     print(f"Exception raised:\n\t{e}")

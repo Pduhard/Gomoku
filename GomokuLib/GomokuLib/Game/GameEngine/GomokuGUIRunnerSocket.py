@@ -5,7 +5,7 @@ import multiprocessing as mp
 from multiprocessing.dummy import Process
 
 import GomokuLib
-from GomokuLib.Sockets.UISocket import UISocket
+from GomokuLib.Sockets.UISocketServer import UISocketServer
 from GomokuLib.Game.UI.UIManagerSocket import UIManagerSocket
 from GomokuLib.Game.GameEngine.Snapshot import Snapshot
 from GomokuLib.Game.GameEngine.GomokuRunner import GomokuRunner
@@ -21,8 +21,8 @@ class GomokuGUIRunnerSocket(GomokuRunner):
 
         super().__init__(*args, **kwargs)
 
-        print(f"GomokuGUIRunnerSocket.__init__() start UISocket server, ")
-        self.uisock = UISocket(host=host, port=port, as_server=True, name="Runner")
+        print(f"GomokuGUIRunnerSocket.__init__() start UISocketServer server, ")
+        self.uisock = UISocketServer(host=host, port=port, name="Runner")
 
         if start_UI:
             print(f"GomokuGUIRunnerSocket.__init__() start UIManagerSocket client")
@@ -35,7 +35,6 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             self.gui_proc = Process(target=self.gui)
             self.gui_proc.start()
 
-        self.send_all_ss = True
         self.player_action = None
         self.socket_queue = []
 
@@ -56,11 +55,11 @@ class GomokuGUIRunnerSocket(GomokuRunner):
                 'ss_data': kwargs
             },
         })
+        self.uisock.send()
+        # self.uisock.send_all()
 
     def _run(self, players, mode: str = "GomokuGUIRunner.run()", send_all_ss: bool = True):
 
-        self.send_all_ss = send_all_ss
-        self.uisock.start_sock_thread()
         self.update_UI(mode=mode)
 
         is_bots = [isinstance(p, GomokuLib.Player.Bot) for p in players]
@@ -106,18 +105,21 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             self.engine._shift_board()
 
         print(f"Player {self.engine.winner} win.")
-        self.GUI_quit()
+        self.GUI_quit(send_all_ss)
 
     def get_gui_input(self):
 
-        for inpt in self.uisock.get_recv_queue():
-
+        self.uisock.connect()
+        # for inpt in self.uisock.recv_all():
+        inpt = self.uisock.recv()
+        if inpt:
             if inpt['code'] == 'response-player-action':
                 ar, ac = inpt['data']
                 self.player_action = (ar, ac)
 
             elif inpt['code'] == 'shutdown':
-                self.GUI_quit()
+                print(f"Shutdown by UIManager.")
+                self.GUI_quit(False)
                 exit(0)
 
             elif inpt['code'] == 'game-snapshot':
@@ -129,6 +131,8 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             'code': 'request-player-action'
         })
         print(f"GUI send request-player-action ->")
+        self.uisock.send()
+
         while True:
             self.get_gui_input()
 
@@ -137,6 +141,11 @@ class GomokuGUIRunnerSocket(GomokuRunner):
                 self.player_action = None
                 return action
 
-    def GUI_quit(self):
-        self.uisock.stop_sock_thread(self.send_all_ss)
+    def GUI_quit(self, send_all_ss):
+        if send_all_ss:
+            self.uisock.add_sending_queue({
+                'code': 'end-game'
+            })
+            self.uisock.send_all(force=send_all_ss)
         self.uisock.disconnect()
+        print(f"GomokuGUIRunner: DISCONNECTION.\n")

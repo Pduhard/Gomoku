@@ -1,5 +1,7 @@
-from .UISocket import UISocket
+from .UISocketServer import UISocketServer
+from .UISocketClient import UISocketClient
 
 __all__ = [
-    'UISocket'
+    'UISocketServer',
+    'UISocketClient'
 ]
