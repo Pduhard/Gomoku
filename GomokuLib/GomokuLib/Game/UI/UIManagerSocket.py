@@ -132,6 +132,8 @@ class UIManagerSocket:
 
             elif code == 'end-game':
                 self.uisock.connected = False
+                print(f"UIManager: Deconnection asked by GomokuGUIRunner.")
+                time.sleep(1)
 
             elif code == 'board-click':
                 x, y = input['data']
