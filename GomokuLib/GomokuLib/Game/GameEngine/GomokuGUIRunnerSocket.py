@@ -111,7 +111,11 @@ class GomokuGUIRunnerSocket(GomokuRunner):
         try:
             super().run(*args, **kwargs)
         except KeyboardInterrupt:
-            print(f"\nKeyboardInterrupt ! Close properly ...")
+            print(f"\nKeyboardInterrupt !")
+            self.GUI_quit(False)
+
+        except Exception as e:
+            print(f"\nException !!!\n{e}\nClose properly ...")
             self.GUI_quit(False)
 
     def UIManager_exchanges(self):
@@ -129,8 +133,9 @@ class GomokuGUIRunnerSocket(GomokuRunner):
                 exit(0)
 
             elif inpt['code'] == 'game-snapshot':
-                breakpoint() # Need debug ?
+                # breakpoint() # Need debug !
                 Snapshot.update_from_snapshot(self.engine, inpt['data'])
+                self.engine.next_turn()
 
     def wait_player_action(self):
         self.uisock.add_sending_queue({

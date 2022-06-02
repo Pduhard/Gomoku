@@ -22,7 +22,7 @@ from fastcore._rules import ffi, lib as fastcore
 from fastcore._algo import lib as fastcore_algo
 
 """
-    Modif a faire pour opti:
+        DoubleThrees marche pas en faite
         Enlever les full_board = board0 | board1 qui sont de partout
         if pruning.any(): à enlever dans rollingout ?
 
@@ -90,13 +90,15 @@ def duel():
     # )
     # p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=runner.engine,
-        iter=500,
-        hard_pruning=True,
-        rollingout_turns=10
-    )
-    p2 = GomokuLib.Player.Bot(mcts_p2)
+    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+    #     engine=runner.engine,
+    #     iter=1000,
+    #     hard_pruning=True,
+    #     rollingout_turns=10
+    # )
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
+
+    p2 = GomokuLib.Player.Human(runner)
 
     if 'p1' not in locals():
         print("new p1")

@@ -94,7 +94,9 @@ class UIManagerSocket:
     def fetch_input(self):
         recv_queue = self.uisock.recv()
         if recv_queue:
-            self.inputs.append(recv_queue)
+            self.inputs = [recv_queue]
+        else:
+            self.inputs = []
             # print(f"recv_queue / self.inputs length -> {len(recv_queue)} / {len(self.inputs)}")
 
     def process_events(self):
@@ -111,7 +113,9 @@ class UIManagerSocket:
                     self.inputs.append(response)
 
     def process_inputs(self):
+
         tmp_idx_snapshot = self.current_snapshot_idx
+        self.board_clicked_action = None
 
         for input in self.inputs:
             # print(f"input (type={type(input)}):\n{input}\n")
@@ -161,10 +165,12 @@ class UIManagerSocket:
 
     def update(self):
 
+
         if self.snapshot_idx_modified:
             Snapshot.update_from_snapshot(
                 self.engine,
-                self.game_snapshots[self.current_snapshot_idx]['snapshot'])  # Update local engine to draw
+                self.game_snapshots[self.current_snapshot_idx]['snapshot']
+            )  # Update local engine to draw
             self.snapshot_idx_modified = False
 
         if self.request_player_action and self.board_clicked_action and not self.pause:
@@ -172,13 +178,21 @@ class UIManagerSocket:
             if self.engine.is_valid_action(self.board_clicked_action):
                 print(f"Player action valid !")
 
-                if self.current_snapshot_idx != len(self.game_snapshots) - 1:  # New state never seen
-                    breakpoint() # Need debug ?
-                    self.uisock.add_sending_queue({  # Update GUI engine to re-continue with new state
-                        'code': 'game-snapshot',
-                        'data': self.game_snapshots[self.current_snapshot_idx]['snapshot']
-                    })
-                    del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
+                if self.current_snapshot_idx != len(self.game_snapshots) - 1: # New state never seen
+
+                    current_ss = self.game_snapshots[self.current_snapshot_idx]['snapshot']
+                    lastest_ss = self.game_snapshots[-1]['snapshot']
+                    print(f"current_ss['player_idx'] == lastest_ss['player_idx'] ? {current_ss['player_idx']} == {lastest_ss['player_idx']}")
+                    if current_ss['player_idx'] == lastest_ss['player_idx']:    # Human can only play at its turns 
+                        # breakpoint() # Need debug ?
+                        self.uisock.add_sending_queue({  # Update GUI engine to re-continue with new state
+                            'code': 'game-snapshot',
+                            'data': current_ss
+                        })
+                        del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
+
+                    else:
+                        return
 
                 self.request_player_action = False
                 self.uisock.add_sending_queue({
@@ -196,9 +210,6 @@ class UIManagerSocket:
                 o.draw(ss_data=ss_data, ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), tottime=tottime)
 
         pygame.display.flip()
-
-        self.board_clicked_action = None
-        self.inputs = []
 
     def UI_quit(self):
         # pygame.quit()
