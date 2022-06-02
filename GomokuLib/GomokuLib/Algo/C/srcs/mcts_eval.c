@@ -11,6 +11,8 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
             4 stones + 2 empty cells ->  _####_
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
+            3 stones + 3 empty cells ->  _##_#_
+            3 stones + 3 empty cells ->  _#_##_
 
         Opponent player heuristic
         Count aligns:                   01|2345
@@ -19,6 +21,8 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
             4 stones + 1 empty cells ->  X####_
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
+            3 stones + 3 empty cells ->  _##_#_
+            3 stones + 3 empty cells ->  _#_##_
     */
     static int  direction[8] = {-1, 1, 0, 1, 1, 1, 1, 0};
     static int  rmax = 19, cmax = 19;
@@ -35,6 +39,7 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
         int     r1 = ar - dr;
         int     c1 = ac - dc;
 
+        // lineidx initialization
         map_edges[1] = r1 < 0 || rmax <= r1 || c1 < 0 || cmax <= c1;
         if (map_edges[1] == 0)
         {
@@ -46,7 +51,6 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
             if (map_edges[0] == 0)
                 lineidx[0] = r1 * cmax + c1;
         }
-
         r1 = ar + dr;
         c1 = ac + dc;
         map_edges[2] = r1 < 0 || rmax <= r1 || c1 < 0 || cmax <= c1;
@@ -80,8 +84,12 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
 
         if (map_edges[4]) // Need a 4th cell (Implicite check of id 2 and 3)
             continue ;
-        if (board[lineidx[2]] == 0 || board[lineidx[3]] == 0 || // At least 3 stone align and no stone before
-            (map_edges[1] == 0 && board[lineidx[1]] == 1))
+        if (map_edges[1] == 1 || board[lineidx[1]] == 0) // No stone before
+            continue ;
+
+        if (map_edges[5] == 0 && board[361 + lineidx[5]] != 1)
+
+        if (board[lineidx[2]] == 0 || board[lineidx[3]] == 0) // At least 3 stone align 
             continue ;
 
         if (board[lineidx[4]] == 1)       // 4 stone align
@@ -118,12 +126,20 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
 static void count_align_opponent_player(char *board, char *full_board, int ar, int ac, char *align)
 {
     /*
+        X: No matters what value is
+
         Current player heuristic
         Count aligns:                   01|2345
             5 stones ->                   #####
             4 stones + 2 empty cells ->  _####_
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
+
+            3 stones + 3 empty cells ->  _##_#_
+            3 stones + 3 empty cells ->  _#_##_
+            4 stones + 2 empty cells ->  _##_##
+            4 stones + 2 empty cells ->  X##_##_
+            4 stones + 2 empty cells ->  _##_##
 
         Opponent player heuristic
         Count aligns:                   01|2345
@@ -132,6 +148,8 @@ static void count_align_opponent_player(char *board, char *full_board, int ar, i
             4 stones + 1 empty cells ->  X####_
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
+            3 stones + 3 empty cells ->  _##_#_
+            3 stones + 3 empty cells ->  _#_##_
     */
     static int  direction[8] = {-1, 1, 0, 1, 1, 1, 1, 0};
     static int  rmax = 19, cmax = 19;
@@ -261,8 +279,8 @@ float mcts_eval_heuristic(char *board, char *full_board, int cap_1, int cap_2, i
             }
         }
     float x = (cap_1 * cap_1 - cap_2 * cap_2) / 10. + \
-        0.75 * align_1[0] - 1 * align_2[0] + \
-        3 * align_1[1] - 4 * align_2[1] + \
+        1 * align_1[0] - 2 * align_2[0] + \
+        3 * align_1[1] - 5 * align_2[1] + \
         7 * align_1[2] - 9 * align_2[2];
     return 1 / (1 + exp(-0.5 * x));        // Weighted sigmoid (w=-0.4)
 }
