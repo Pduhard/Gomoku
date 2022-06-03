@@ -29,7 +29,7 @@ def old_heuristic(board):
     return x
 
 
-@njit()
+# @njit()
 def find_reward_of_align(board, graph, sr, sc):
 
     dirs = [
@@ -75,7 +75,7 @@ def find_reward_of_align(board, graph, sr, sc):
     return np.sum(rewards)
 
 
-@njit()
+# @njit()
 def new_heuristic(board, my_graph, opp_graph):
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
@@ -87,10 +87,10 @@ def new_heuristic(board, my_graph, opp_graph):
         for x in range(2, 21):
 
             if board_pad[0, y, x]:
-                breakpoint()
+                # breakpoint()
                 rewards[y, x] = find_reward_of_align(board_pad, my_graph, y, x)
             elif board_pad[1, y, x]:
-                breakpoint()
+                # breakpoint()
                 rewards[y, x] = find_reward_of_align(board_pad, opp_graph, y, x)
     
     # print("All rewards ->" ,rewards)
@@ -141,16 +141,16 @@ def heuristics_comp():
                 if board[0, y, x] and board[1, y, x]:
                     board[1, y, x] = 0
 
-        board[0, 0, 0] = 0
-        board[0, 0, 1] = 0
-        board[0, 0, 2] = 0
-        board[0, 0, 3] = 0
-        board[0, 0, 4] = 0
-        board[1, 0, 0] = 1
-        board[1, 0, 1] = 1
-        board[1, 0, 2] = 1
-        board[1, 0, 3] = 1
-        board[1, 0, 4] = 1
+        # board[0, 0, 0] = 0
+        # board[0, 0, 1] = 0
+        # board[0, 0, 2] = 0
+        # board[0, 0, 3] = 0
+        # board[0, 0, 4] = 0
+        # board[1, 0, 0] = 1
+        # board[1, 0, 1] = 1
+        # board[1, 0, 2] = 1
+        # board[1, 0, 3] = 1
+        # board[1, 0, 4] = 1
 
         old_result = old_heuristic(board)
         new_result = new_heuristic(board, my_heuristic_graph, opp_heuristic_graph)

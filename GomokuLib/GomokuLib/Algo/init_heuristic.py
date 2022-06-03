@@ -56,7 +56,7 @@ def get_heuristic_coefs():
 
 
 @njit()
-def create_idx(graph, v, align, i, p):
+def create_idx(graph, player_mark, v, align, i, p):
     """
         Compute index p of array graph using 14 bits
             2 bits per cell, representing empty cell    '_' = 0b00
@@ -70,14 +70,14 @@ def create_idx(graph, v, align, i, p):
         return 
 
     if align[i] == "_":
-        return create_idx(graph, v, align, i + 1, (p << 2) + 0b00)
+        return create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b00)
     if align[i] == "#":
-        return create_idx(graph, v, align, i + 1, (p << 2) + 0b10)
+        return create_idx(graph, player_mark, v, align, i + 1, (p << 2) + player_mark)
 
-    create_idx(graph, v, align, i + 1, (p << 2) + 0b00)
-    create_idx(graph, v, align, i + 1, (p << 2) + 0b01)
-    create_idx(graph, v, align, i + 1, (p << 2) + 0b10)
-    create_idx(graph, v, align, i + 1, (p << 2) + 0b11)
+    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b00)
+    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b01)
+    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)
+    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b11)
 
 
 @njit()
@@ -87,14 +87,14 @@ def init_my_heuristic_graph():
     coefs = get_heuristic_coefs()
 
     # Current player alignments
-    create_idx(my_graph, coefs['my_5'], "XX#####", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_5'], "XX#####", 0, 0)
 
-    create_idx(my_graph, coefs['my_4'], "X_####_", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_4'], "X_####_", 0, 0)
 
-    create_idx(my_graph, coefs['my_3'], "__###_X", 0, 0)
-    # create_idx(my_graph, coefs['my_3'], "X_#_##_", 0, 0)
-    # create_idx(my_graph, coefs['my_3'], "X_##_#_", 0, 0)
-    create_idx(my_graph, coefs['my_3'], "X_###__", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_3'], "__###_X", 0, 0)
+    # create_idx(my_graph, 0b10, coefs['my_3'], "X_#_##_", 0, 0)
+    # create_idx(my_graph, 0b10, coefs['my_3'], "X_##_#_", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_3'], "X_###__", 0, 0)
 
     fill_graph = np.nonzero(my_graph)
     print(fill_graph)
@@ -108,18 +108,18 @@ def init_opp_heuristic_graph():
     coefs = get_heuristic_coefs()
 
     # Opponent alignments
-    create_idx(opp_graph, coefs['opp_5'], "XX#####", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_5'], "XX#####", 0, 0)
 
-    create_idx(opp_graph, coefs['opp_4'], "X_####X", 0, 0)
-    # create_idx(opp_graph, coefs['opp_4'], "XX#_###", 0, 0)
-    # create_idx(opp_graph, coefs['opp_4'], "XX##_##", 0, 0)
-    # create_idx(opp_graph, coefs['opp_4'], "XX###_#", 0, 0)
-    create_idx(opp_graph, coefs['opp_4'], "XX####_", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_4'], "X_####X", 0, 0)
+    # create_idx(opp_graph, 0b01, coefs['opp_4'], "XX#_###", 0, 0)
+    # create_idx(opp_graph, 0b01, coefs['opp_4'], "XX##_##", 0, 0)
+    # create_idx(opp_graph, 0b01, coefs['opp_4'], "XX###_#", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_4'], "XX####_", 0, 0)
 
-    create_idx(opp_graph, coefs['opp_3'], "__###_X", 0, 0)
-    # create_idx(opp_graph, coefs['opp_3'], "X_#_##_", 0, 0)
-    # create_idx(opp_graph, coefs['opp_3'], "X_##_#_", 0, 0)
-    create_idx(opp_graph, coefs['opp_3'], "X_###__", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_3'], "__###_X", 0, 0)
+    # create_idx(opp_graph, 0b01, coefs['opp_3'], "X_#_##_", 0, 0)
+    # create_idx(opp_graph, 0b01, coefs['opp_3'], "X_##_#_", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_3'], "X_###__", 0, 0)
 
     fill_graph = np.nonzero(opp_graph)
     print(fill_graph)
@@ -128,4 +128,5 @@ def init_opp_heuristic_graph():
 
 
 if __name__ == "__main__":
-    print(init_my_heuristic_graph(), init_opp_heuristic_graph())
+    print(init_my_heuristic_graph())
+    print(init_opp_heuristic_graph())
