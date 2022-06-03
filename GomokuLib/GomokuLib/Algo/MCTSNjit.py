@@ -2,6 +2,7 @@ import GomokuLib
 
 import numpy as np
 
+from GomokuLib.Algo.init_heuristic import init_my_heuristic_graph, init_opp_heuristic_graph
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -37,6 +38,8 @@ class MCTSNjit:
     path: Typing.nbPath
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
+    my_heuristic_graph: Typing.nbHeuristicGraph
+    opp_heuristic_graph: Typing.nbHeuristicGraph
 
     depth: Typing.mcts_int_nb_dtype
     end_game: nb.boolean
@@ -65,6 +68,9 @@ class MCTSNjit:
         for i in range(19):
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
+
+        self.my_heuristic_graph = init_my_heuristic_graph()
+        self.opp_heuristic_graph = init_opp_heuristic_graph()
 
         print(f"{self.__str__()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()

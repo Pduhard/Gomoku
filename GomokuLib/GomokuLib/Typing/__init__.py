@@ -8,6 +8,8 @@ BoardDtype = np.int8
 ActionDtype = np.int8
 GameZoneDtype = np.int8
 PruningDtype = np.int8
+HeuristicGraphDtype = np.int8
+
 TupleDtype = np.int32
 MCTSIntDtype = np.int32
 MCTSFloatDtype = np.float32
@@ -36,6 +38,7 @@ board_nb_dtype = nb.from_dtype(BoardDtype)
 action_nb_type = nb.from_dtype(ActionDtype)
 tuple_nb_dtype = nb.from_dtype(TupleDtype)
 game_zone_nb_dtype = nb.from_dtype(GameZoneDtype)
+heuristic_graph_nb_dtype = nb.from_dtype(HeuristicGraphDtype)
 mcts_float_nb_dtype = nb.from_dtype(MCTSFloatDtype)
 mcts_int_nb_dtype = nb.from_dtype(MCTSIntDtype)
 
@@ -45,6 +48,7 @@ state_data_nb_dtype = nb.from_dtype(StateDataDtype)
 
 
 nbTuple = tuple_nb_dtype[:]
+nbHeuristicGraph = heuristic_graph_nb_dtype[:]
 nbBoard = nb.types.Array(dtype=board_nb_dtype, ndim=3, layout="C")
 nbAction = nb.types.Array(dtype=action_nb_type, ndim=2, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
@@ -58,12 +62,19 @@ nbPathBuff = path_nb_dtype[:, :, :]
 nbState = state_data_nb_dtype[:]
 nbStateBuff = state_data_nb_dtype[:, :]
 
+
 state_dict = nb.typed.Dict.empty(
     key_type=nb.types.unicode_type,
     ## obligé de mettre une recarray de taille 1 j'ai l'impression
     value_type=nbState,
 )
 nbStateDict = nb.typeof(state_dict)
+
+heuristic_coefs_dict = nb.typed.Dict.empty(
+    key_type=nb.types.unicode_type,
+    value_type=mcts_int_nb_dtype
+)
+nbHeuristicCoefsDict = nb.typeof(heuristic_coefs_dict)
 
 
 __all__ = [
