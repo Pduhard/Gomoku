@@ -11,8 +11,6 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
             4 stones + 2 empty cells ->  _####_
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
-            3 stones + 3 empty cells ->  _##_#_
-            3 stones + 3 empty cells ->  _#_##_
 
         Opponent player heuristic
         Count aligns:                   01|2345
@@ -21,8 +19,6 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
             4 stones + 1 empty cells ->  X####_
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
-            3 stones + 3 empty cells ->  _##_#_
-            3 stones + 3 empty cells ->  _#_##_
     */
     static int  direction[8] = {-1, 1, 0, 1, 1, 1, 1, 0};
     static int  rmax = 19, cmax = 19;
@@ -99,12 +95,12 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
                 if (board[lineidx[5]] == 1)       // 5 stone align ! #####
                 {
                     align[2]++;
-                    // fprintf(stderr, "5 aligns: %d\n", full_board[lineidx[5]] == 0);
+                    fprintf(stderr, "5 aligns: %d %d\n", ar, ac);
                 }
                 else if (map_edges[1] == 0 && full_board[lineidx[1]] == 0 && full_board[lineidx[5]] == 0)   // 4 stone align with 2 empty cell on side: _####_
                 {
                     align[1]++;
-//                    fprintf(stderr, "4 aligns: %d %d %d\n", map_edges[1] == 0, full_board[lineidx[1]] == 0, full_board[lineidx[5]] == 0);
+                   fprintf(stderr, "4 aligns: %d %d\n", ar, ac);
                 }
             }
             else
@@ -117,7 +113,7 @@ static void count_align_current_player(char *board, char *full_board, int ar, in
             if ((map_edges[0] == 0 && full_board[lineidx[0]] == 0) || (map_edges[5] == 0 && full_board[lineidx[5]] == 0)) // Another empty cell on one side ?
             {
                 align[0]++;
-                // fprintf(stderr, "3 aligns: %d %d\n", map_edges[0] == 0 && full_board[lineidx[0]] == 0, map_edges[5] == 0 && full_board[lineidx[5]] == 0);
+                fprintf(stderr, "3 aligns: %d %d\n", ar, ac);
             }
         }
     }
@@ -131,18 +127,21 @@ static void count_align_opponent_player(char *board, char *full_board, int ar, i
         Current player heuristic
         Count aligns:                   01|2345
             5 stones ->                   #####
+
             4 stones + 2 empty cells ->  _####_
+            
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
-
             3 stones + 3 empty cells ->  _##_#_
             3 stones + 3 empty cells ->  _#_##_
 
         Opponent player heuristic
         Count aligns:                   01|2345
             5 stones ->                   #####
+    
             4 stones + 1 empty cells ->  _####X
             4 stones + 1 empty cells ->  X####_
+
             3 stones + 3 empty cells -> __###_
             3 stones + 3 empty cells ->  _###__
 
@@ -223,13 +222,17 @@ static void count_align_opponent_player(char *board, char *full_board, int ar, i
                 if (board[361 + lineidx[5]] == 1)       // 5 stone align ! #####
                 {
                     align[2]++;
+                    fprintf(stderr, "5 aligns opp: %d %d\n", ar, ac);
                 }
                 else if (map_edges[1] == 0)
                 {
                     // 4 stone align with 1 empty cell on one side and no opp stone on other side: _####X ou X####_
                     if ((full_board[lineidx[1]] == 0 && board[361 + lineidx[5]] != 1) ||
                         (board[361 + lineidx[1]] != 1 && full_board[lineidx[5]] == 0))
+                    {
                         align[1]++;
+                        fprintf(stderr, "4 aligns opp: %d %d\n", ar, ac);
+                    }
                 }
             }
             else
@@ -242,6 +245,7 @@ static void count_align_opponent_player(char *board, char *full_board, int ar, i
             if ((map_edges[0] == 0 && full_board[lineidx[0]] == 0) || (map_edges[5] == 0 && full_board[lineidx[5]] == 0)) // Another empty cell on one side ?
             {
                 align[0]++;
+                fprintf(stderr, "3 aligns opp: %d %d\n", ar, ac);
             }
         }
     }
@@ -279,11 +283,16 @@ float mcts_eval_heuristic(char *board, char *full_board, int cap_1, int cap_2, i
 //                 fprintf(stderr, "board[1, %d, %d] update to %d | %d | %d\n", r, c, align_2[0], align_2[1], align_2[2]);
             }
         }
-    float x = (cap_1 * cap_1 - cap_2 * cap_2) / 10. + \
-        1 * align_1[0] - 2 * align_2[0] + \
-        3 * align_1[1] - 5 * align_2[1] + \
+    
+    return 1 * align_1[0] - 2 * align_2[0] +       // TEMPORARY
+        3 * align_1[1] - 5 * align_2[1] +          // TO COMPARE WITH NEW HEURISTIC
         7 * align_1[2] - 9 * align_2[2];
-    return 1 / (1 + exp(-0.5 * x));        // Weighted sigmoid (w=-0.4)
+
+    // float x = (cap_1 * cap_1 - cap_2 * cap_2) / 10. + \
+    //     1 * align_1[0] - 2 * align_2[0] + \
+    //     3 * align_1[1] - 5 * align_2[1] + \
+    //     7 * align_1[2] - 9 * align_2[2];
+    // return 1 / (1 + exp(-0.5 * x));        // Weighted sigmoid (w=-0.4)
 }
 
 /*

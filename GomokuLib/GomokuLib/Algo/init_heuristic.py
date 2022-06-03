@@ -4,6 +4,38 @@ import GomokuLib.Typing as Typing
 import numba as nb
 from numba import njit
 
+"""
+    _:  Empty cell
+    #:  Current player stone
+    X:  No matters what cell it is
+
+    Current player heuristic
+        Indexes:                        01|2345
+            5 stones ->                 XX#####
+
+            4 stones + 1 empty cells -> X_####_
+
+            3 stones + 3 empty cells -> __###_X
+            3 stones + 3 empty cells -> X_#_##_
+            3 stones + 3 empty cells -> X_##_#_
+            3 stones + 3 empty cells -> X_###__
+
+    Opponent player heuristic:
+        Indexes:                        01|2345
+            5 stones ->                 XX#####
+
+            4 stones + 1 empty cells -> X_####X
+            4 stones + 1 empty cells -> XX#_###
+            4 stones + 1 empty cells -> XX##_##
+            4 stones + 1 empty cells -> XX###_#
+            4 stones + 1 empty cells -> XX####_
+
+            3 stones + 3 empty cells -> __###_X
+            3 stones + 3 empty cells -> X_#_##_
+            3 stones + 3 empty cells -> X_##_#_
+            3 stones + 3 empty cells -> X_###__
+"""
+
 
 @njit()
 def get_heuristic_coefs():
@@ -14,11 +46,11 @@ def get_heuristic_coefs():
     )
     heuristic_coefs_dict = {
         'my_3': 1,
-        'opp_3': 2,
+        'opp_3': -2,
         'my_4': 3,
-        'opp_4': 5,
+        'opp_4': -5,
         'my_5': 7,
-        'opp_5': 9,
+        'opp_5': -9,
     }
     return heuristic_coefs_dict
 
@@ -31,9 +63,9 @@ def create_idx(graph, v, align, i, p):
                                     cell with my stone  '#' = 0b10
                     and cell state that doesn't matter  'X' = 0b00/0b01/0b10
     """
-    print(f"v, align, i, p = ", v, align, i, p)
+    # print(f"v, align, i, p = ", v, align, i, p)
     if i == 7:
-        print(f"graph[p] = v / graph[{p}] = {v}")
+        # print(f"graph[p] = v / graph[{p}] = {v}")
         graph[p] = v
         return 
 
@@ -60,8 +92,8 @@ def init_my_heuristic_graph():
     create_idx(my_graph, coefs['my_4'], "X_####_", 0, 0)
 
     create_idx(my_graph, coefs['my_3'], "__###_X", 0, 0)
-    create_idx(my_graph, coefs['my_3'], "X_#_##_", 0, 0)
-    create_idx(my_graph, coefs['my_3'], "X_##_#_", 0, 0)
+    # create_idx(my_graph, coefs['my_3'], "X_#_##_", 0, 0)
+    # create_idx(my_graph, coefs['my_3'], "X_##_#_", 0, 0)
     create_idx(my_graph, coefs['my_3'], "X_###__", 0, 0)
 
     fill_graph = np.nonzero(my_graph)
@@ -76,18 +108,18 @@ def init_opp_heuristic_graph():
     coefs = get_heuristic_coefs()
 
     # Opponent alignments
-    # create_idx(opp_graph, coefs['opp_5'], "XX#####", 0, 0)
+    create_idx(opp_graph, coefs['opp_5'], "XX#####", 0, 0)
 
-    # create_idx(opp_graph, coefs['opp_4'], "X_####X", 0, 0)
-    create_idx(opp_graph, coefs['opp_4'], "XX#_###", 0, 0)
+    create_idx(opp_graph, coefs['opp_4'], "X_####X", 0, 0)
+    # create_idx(opp_graph, coefs['opp_4'], "XX#_###", 0, 0)
     # create_idx(opp_graph, coefs['opp_4'], "XX##_##", 0, 0)
     # create_idx(opp_graph, coefs['opp_4'], "XX###_#", 0, 0)
-    # create_idx(opp_graph, coefs['opp_4'], "XX####_", 0, 0)
+    create_idx(opp_graph, coefs['opp_4'], "XX####_", 0, 0)
 
-    # create_idx(opp_graph, coefs['opp_3'], "__###_X", 0, 0)
+    create_idx(opp_graph, coefs['opp_3'], "__###_X", 0, 0)
     # create_idx(opp_graph, coefs['opp_3'], "X_#_##_", 0, 0)
     # create_idx(opp_graph, coefs['opp_3'], "X_##_#_", 0, 0)
-    # create_idx(opp_graph, coefs['opp_3'], "X_###__", 0, 0)
+    create_idx(opp_graph, coefs['opp_3'], "X_###__", 0, 0)
 
     fill_graph = np.nonzero(opp_graph)
     print(fill_graph)
