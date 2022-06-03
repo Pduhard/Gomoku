@@ -24,7 +24,8 @@ def _valid_policy_action(actions, policy):
     else:
         return 0
 
-
+unicodelike = 'rtrt'
+unitypr =  nb.typeof(unicodelike)
 @jitclass()
 class MCTSNjit:
 
@@ -41,6 +42,8 @@ class MCTSNjit:
     depth: Typing.mcts_int_nb_dtype
     end_game: nb.boolean
     reward: Typing.mcts_float_nb_dtype
+    current_statehash: unitypr
+    gamestatehash: unitypr
 
     def __init__(self, 
                  engine: Gomoku,
@@ -65,7 +68,7 @@ class MCTSNjit:
         for i in range(19):
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
-
+        self.current_statehash = '0' * 722
         print(f"{self.__str__()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
@@ -92,13 +95,16 @@ class MCTSNjit:
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
+        self.gamestatehash = self.tobytes(game_engine.board)
         print(f"\n[MCTSNjit __call__() for {self.mcts_iter} iter]\n")
+        print('startloop')
         for mcts_iter in range(self.mcts_iter):
+            self.current_statehash = self.gamestatehash
+            print('mctsiter', mcts_iter)
             self.engine.update(game_engine)
             self.mcts(mcts_iter)
 
-        gamestatehash = self.tobytes(game_engine.board)
-        state_data = self.states[gamestatehash][0]
+        state_data = self.states[self.gamestatehash][0]
         sa_v, sa_r = state_data['stateAction']
         arg = np.argmax(sa_r / (sa_v + 1))
         # print(f"StateAction visits: {sa_v}")
@@ -113,11 +119,9 @@ class MCTSNjit:
         # print(f"\n[MCTSNjit mcts function iter {mcts_iter}]\n")
         self.depth = 0
         self.end_game = self.engine.isover()
-        statehash = self.tobytes(self.engine.board)
-        while statehash in self.states and not self.end_game:
+        while self.current_statehash in self.states and not self.end_game:
 
-            state_data = self.states[statehash][0]
-            # print(f"MCTS_iter={mcts_iter} | depth={self.depth} | statehash={statehash}")
+            state_data = self.states[self.current_statehash][0]
 
             policy = self.get_policy(state_data, self.c)
             # best_action = self.selection(policy, state_data)
@@ -135,16 +139,18 @@ class MCTSNjit:
                 with nb.objmode():
                     breakpoint()
 
-            self.fill_path(statehash, best_action)
+            self.fill_path(self.current_statehash, best_action)
+            rawidx = best_action[0] * 19 + best_action[1]
+            self.current_statehash = self.current_statehash[:rawidx] + '1' + self.current_statehash[rawidx + 1:]
             self.engine.apply_action(best_action)
             self.engine.next_turn()
             self.depth += 1
 
             self.end_game = self.engine.isover()
-            statehash = self.tobytes(self.engine.board)
+            # statehash = self.tobytes(self.engine.board)
 
         # self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))
-        self.expand(statehash)
+        self.expand(self.current_statehash)
         self.backpropagation()
 
     def get_policy(self, state_data: Typing.nbState, *args) -> Typing.nbPolicy:
@@ -218,6 +224,7 @@ class MCTSNjit:
 
     def expand(self, statehash: str):
         # print(f"Expand depth {self.depth} statehash:\n{statehash}")
+        
         self.states[statehash] = np.zeros(1, dtype=Typing.StateDataDtype)
 
         actions = self.engine.get_lazy_actions()
@@ -389,5 +396,9 @@ class MCTSNjit:
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
 
     def tobytes(self, arr: Typing.BoardDtype):
+        return ''.join(map(str, map(np.int8, np.nditer(arr)))) # Aled la ligne (nogil parallele mieux ?..)
+        # return np.char.join('', map(np.unicode_, np.nditer(arr)))
+
+    def fast_tobytes(self, arr: Typing.BoardDtype):
         return ''.join(map(str, map(np.int8, np.nditer(arr)))) # Aled la ligne (nogil parallele mieux ?..)
         # return np.char.join('', map(np.unicode_, np.nditer(arr)))

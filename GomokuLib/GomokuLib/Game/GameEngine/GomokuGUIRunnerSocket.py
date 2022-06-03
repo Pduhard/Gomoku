@@ -108,15 +108,15 @@ class GomokuGUIRunnerSocket(GomokuRunner):
         self.GUI_quit(send_all_ss)
 
     def run(self, *args, **kwargs):
-        try:
-            super().run(*args, **kwargs)
-        except KeyboardInterrupt:
-            print(f"\nKeyboardInterrupt !")
-            self.GUI_quit(False)
+        # try:
+        super().run(*args, **kwargs)
+        # except KeyboardInterrupt:
+        #     print(f"\nKeyboardInterrupt !")
+        #     self.GUI_quit(False)
 
-        except Exception as e:
-            print(f"\nException !!!\n{e}\nClose properly ...")
-            self.GUI_quit(False)
+        # except Exception as e:
+        #     print(f"\nException !!!\n{e}\nClose properly ...")
+        #     self.GUI_quit(False)
 
     def UIManager_exchanges(self):
 
