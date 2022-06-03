@@ -40,12 +40,17 @@ def find_reward_of_align(board, graph, p, sr, sc):
     print(board)
     print(board.shape, board.dtype)
 
-    p = np.array(
-        [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+    p = np.array([
+            [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+            [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+            [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+            [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+        ],
         dtype=np.float32
     )
     buf = np.zeros((4, 14), dtype=np.float32)
-    rewards = np.zeros(4, dtype=Typing.HeuristicGraphDtype)
+    align_ids = np.zeros(4, dtype=np.int32)
+    rewards = np.zeros(4, dtype=np.int32)
 
     for di in range(4):
 
@@ -57,9 +62,14 @@ def find_reward_of_align(board, graph, p, sr, sc):
             r += dr
             c += dc
 
-        align_id = np.int32(np.dot(buf[di], p))
-        rewards[di] = graph[align_id]
+    mul = buf * p
+    align_ids[:] = np.sum(mul, axis=-1)
 
+    for di in range(4):
+        rewards[di] = graph[align_ids[di]]
+
+    print(mul)
+    print(align_ids)
     print(buf)
     print(p)
     print(rewards)
