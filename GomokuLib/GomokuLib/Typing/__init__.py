@@ -8,7 +8,7 @@ BoardDtype = np.int8
 ActionDtype = np.int8
 GameZoneDtype = np.int8
 PruningDtype = np.int8
-HeuristicGraphDtype = np.int8
+HeuristicGraphDtype = np.float32
 
 TupleDtype = np.int32
 MCTSIntDtype = np.int32

@@ -95,14 +95,14 @@ def heuristics_comp(my_heuristic_graph, opp_heuristic_graph):
         board = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
         board[0, 0, 1] = 1
         board[0, 0, 2] = 1
-        # board[0, 0, 3] = 1
-        board[0, 0, 4] = 1
+        board[0, 0, 3] = 1
+        # board[0, 0, 4] = 1
 
         # board[1, 0, 1] = 1
         board[1, 1, 2] = 1
         board[1, 1, 3] = 1
         board[1, 1, 4] = 1
-        board[1, 1, 5] = 1
+        # board[1, 1, 5] = 1
         print(board)
 
         old_result = old_njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0)

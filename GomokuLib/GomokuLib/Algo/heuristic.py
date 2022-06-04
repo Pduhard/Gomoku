@@ -108,6 +108,12 @@ def init_my_heuristic_graph():
     _parse_align(my_graph, 0b10, coefs['my_win_possible'], "X_#_##_", 0, 0)
     _parse_align(my_graph, 0b10, coefs['my_win_possible'], "X_##_#_", 0, 0)
     _parse_align(my_graph, 0b10, coefs['my_win_possible'], "X_###__", 0, 0)
+    
+    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "X_####X", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "XX#_###", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "XX##_##", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "XX###_#", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "XX####_", 0, 0)
 
     _parse_align(my_graph, 0b10, coefs['my_win_1_turn'], "X_####_", 0, 0)
 

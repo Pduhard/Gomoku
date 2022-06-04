@@ -87,7 +87,7 @@ def duel():
         iter=5000,
         pruning=True,
         rollingout_turns=5,
-        with_new_heuristic=False
+        with_new_heuristic=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -96,7 +96,7 @@ def duel():
         iter=5000,
         pruning=True,
         rollingout_turns=5,
-        with_new_heuristic=True
+        with_new_heuristic=False
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
