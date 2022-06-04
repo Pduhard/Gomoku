@@ -29,7 +29,7 @@ def old_heuristic(board):
     return x
 
 
-# @njit()
+@njit()
 def find_reward_of_align(board, graph, sr, sc):
 
     dirs = [
@@ -60,23 +60,34 @@ def find_reward_of_align(board, graph, sr, sc):
             r += dr
             c += dc
 
+    # Compute each digit with its factor
     mul = buf * p
+
+    # Sum all digits to create indexes
     align_ids[:] = np.sum(mul, axis=-1)
 
     for di in range(4):
         rewards[di] = graph[align_ids[di]]
+        # if rewards[di]:
+        #     print(f"Rewards at {sr - 2} {sc - 2}: ", rewards[di])
 
     # print(mul)
     # print(align_ids)
     # print(buf)
     # print(p)
-    if np.any(rewards):
-       print(f"Rewards at {sr-2} {sc-2}: ", rewards)
     return np.sum(rewards)
 
 
-# @njit()
-def new_heuristic(board, my_graph, opp_graph):
+@njit()
+def compute_capture_coef(my_cap, opp_cap):
+    return 2 * (my_cap - opp_cap) / (6 - max(my_cap, opp_cap))
+
+@njit()
+def new_heuristic(board, my_graph, opp_graph, c0, c1):
+    """
+        Captures:
+            cap_coef = (my_cap - opp_cap) / (5 - my_cap)
+    """
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
 
@@ -94,35 +105,63 @@ def new_heuristic(board, my_graph, opp_graph):
                 rewards[y, x] = find_reward_of_align(board_pad, opp_graph, y, x)
     
     # print("All rewards ->" ,rewards)
-    return np.sum(rewards)
+    return np.sum(rewards) + compute_capture_coef(c0, c1)
+
+
+@njit()
+def generate_rd_board(mode):
+
+    if mode == 0:
+        board = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
+    elif mode == 1:
+        board = np.random.rand(2, 19, 19)
+        # board = np.round_(board, decimals=Typing.BoardDtype(0))
+        board = board.astype(Typing.BoardDtype)
+    elif mode == 2:
+        board = np.ones((2, 19, 19), dtype=Typing.BoardDtype)
+    # board = np.random.choice([0, 1], size=(2, 19, 19), p=[0.90, 0.10])
+
+    for y in range(19):
+        for x in range(19):
+            if board[0, y, x] and board[1, y, x]:
+                board[1, y, x] = Typing.BoardDtype(0)
+    return board.astype(Typing.BoardDtype)
 
 
 def time_benchmark():
 
+    @njit()
+    def old_loop(_loops, mode):
+        for i in range(_loops):
+            _board = generate_rd_board(mode)
+            old_heuristic(_board)
+
+    @njit()
+    def new_loop(_loops, _my_heuristic_graph, _opp_heuristic_graph, mode):
+        for i in range(_loops):
+            _board = generate_rd_board(mode)
+            new_heuristic(_board, _my_heuristic_graph, _opp_heuristic_graph, 0, 0)
+
     ### Time benchmark
     my_heuristic_graph = init_my_heuristic_graph()
     opp_heuristic_graph = init_opp_heuristic_graph()
-    loops = 1000
 
     # Compilation
-    board = np.random.randint(0, 2, size=(2, 19, 19), dtype=Typing.BoardDtype)
-    old_heuristic(board)
-    new_heuristic(board)
+    old_loop(1, 0)
+    new_loop(1, my_heuristic_graph, opp_heuristic_graph, 0)
 
-    p1 = perf_counter()
-    for i in range(loops):
-        board = np.random.randint(0, 2, size=(2, 19, 19), dtype=Typing.BoardDtype)
-        old_heuristic(board)
-    p2 = perf_counter()
-    print(f"Old heuristic perf: {p2 - p1} s")
+    for loops in range(1000, 10000, 2000):
+        for mode in range(3):
+            p1 = perf_counter()
+            old_loop(loops, mode)
+            p2 = perf_counter()
+            print(f"{loops} loops: Mode {mode}: Old heuristic perf: {p2 - p1} s")
 
-    p1 = perf_counter()
-    for i in range(loops):
-        board = np.random.randint(0, 2, size=(2, 19, 19))
-        new_heuristic(board)
-    p2 = perf_counter()
-    print(f"New heuristic perf: {p2 - p1}")
-
+            p1 = perf_counter()
+            new_loop(loops, my_heuristic_graph, opp_heuristic_graph, mode)
+            p2 = perf_counter()
+            print(f"{loops} loops: Mode {mode}: New heuristic perf: {p2 - p1} s")
+        print()
 
 def heuristics_comp():
 
@@ -133,13 +172,7 @@ def heuristics_comp():
     valids = 0
     loops = 20
     for i in range(loops):
-        
-        board = np.random.choice([0, 1], size=(2, 19, 19), p=[0.9, 0.1])
-        board = board.astype(Typing.BoardDtype)
-        for y in range(19):
-            for x in range(19):
-                if board[0, y, x] and board[1, y, x]:
-                    board[1, y, x] = 0
+        board = generate_rd_board()
 
         # board[0, 0, 0] = 0
         # board[0, 0, 1] = 0
@@ -153,7 +186,7 @@ def heuristics_comp():
         # board[1, 0, 4] = 1
 
         old_result = old_heuristic(board)
-        new_result = new_heuristic(board, my_heuristic_graph, opp_heuristic_graph)
+        new_result = new_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0)
         print(f"old_result={old_result}")
         print(f"new_result={new_result}")
 
@@ -172,10 +205,14 @@ def heuristics_comp():
 
 if __name__ == "__main__":
 
-    valid = heuristics_comp()
+    # for c1 in range(0, 6):
+    #     for c2 in range(0, 6):
+    #         print(c1, c2, " = ", compute_capture_coef(c1, c2))
+
+    # valid = heuristics_comp()
+    time_benchmark()
     # if valid:
     #     print(f"Heuristics returns same results ! :)")
-    #     time_benchmark()
-    
+
     # else:
     #     print(f"New heuristics sucks ! :(")

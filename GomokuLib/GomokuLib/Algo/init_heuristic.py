@@ -45,12 +45,12 @@ def get_heuristic_coefs():
         value_type=Typing.mcts_int_nb_dtype
     )
     heuristic_coefs_dict = {
-        'my_3': 1,
-        'opp_3': -2,
-        'my_4': 3,
-        'opp_4': -5,
-        'my_5': 7,
-        'opp_5': -9,
+        'my_win_possible': 2,
+        'opp_win_2_turn': -4,
+        'my_win_1_turn': 5,
+        'opp_win_1_turn': -5,
+        'my_win': 6,
+        'opp_win': -6,
     }
     return heuristic_coefs_dict
 
@@ -58,6 +58,9 @@ def get_heuristic_coefs():
 @njit()
 def create_idx(graph, player_mark, v, align, i, p):
     """
+        create_idx() calls need to be in ascending order according to the rewards.
+            Because some of them overwrite old registered alignments
+
         Compute index p of array graph using 14 bits
             2 bits per cell, representing empty cell    '_' = 0b00
                                     cell with my stone  '#' = 0b10
@@ -65,6 +68,8 @@ def create_idx(graph, player_mark, v, align, i, p):
     """
     # print(f"v, align, i, p = ", v, align, i, p)
     if i == 7:
+        if graph[p]:
+            print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
         # print(f"graph[p] = v / graph[{p}] = {v}")
         graph[p] = v
         return 
@@ -74,56 +79,73 @@ def create_idx(graph, player_mark, v, align, i, p):
     if align[i] == "#":
         return create_idx(graph, player_mark, v, align, i + 1, (p << 2) + player_mark)
 
-    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b00)
-    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b01)
-    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)
-    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b11)
+    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b00)    # Can be an empty cells
+    create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b11)    # Can be a map edge
+
+    # create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b01)  # Can be an opponent's stone
+    # create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)  # Can be an opponent's stone
+
+    if player_mark == 0b10: # Prevent double rewards from one alignment
+        create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b01)  # Can be an opponent's stone
+    else:
+        create_idx(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)  # Can be an opponent's stone
 
 
 @njit()
 def init_my_heuristic_graph():
+    """
+        create_idx() calls need to be in ascending order according to the rewards.
+            Because some of them overwrite old registered alignments
+    """
 
     my_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
     coefs = get_heuristic_coefs()
 
+    print("init_my_heuristic_graph", len(my_graph), my_graph)
     # Current player alignments
-    create_idx(my_graph, 0b10, coefs['my_5'], "XX#####", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_win_possible'], "__###_X", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_win_possible'], "X_#_##_", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_win_possible'], "X_##_#_", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_win_possible'], "X_###__", 0, 0)
 
-    create_idx(my_graph, 0b10, coefs['my_4'], "X_####_", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_win_1_turn'], "X_####_", 0, 0)
 
-    create_idx(my_graph, 0b10, coefs['my_3'], "__###_X", 0, 0)
-    # create_idx(my_graph, 0b10, coefs['my_3'], "X_#_##_", 0, 0)
-    # create_idx(my_graph, 0b10, coefs['my_3'], "X_##_#_", 0, 0)
-    create_idx(my_graph, 0b10, coefs['my_3'], "X_###__", 0, 0)
+    create_idx(my_graph, 0b10, coefs['my_win'], "XX#####", 0, 0)
 
     fill_graph = np.nonzero(my_graph)
     print(fill_graph)
-    print(my_graph)
+    print("Length: ", len(fill_graph[0]))
     return my_graph
+
 
 @njit()
 def init_opp_heuristic_graph():
+    """
+        create_idx() calls need to be in ascending order according to the rewards.
+            Because some of them overwrite old registered alignments
+    """
 
     opp_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
     coefs = get_heuristic_coefs()
 
+    print("init_opp_heuristic_graph", len(opp_graph), opp_graph)
     # Opponent alignments
-    create_idx(opp_graph, 0b01, coefs['opp_5'], "XX#####", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_2_turn'], "__###_X", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_2_turn'], "X_#_##_", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_2_turn'], "X_##_#_", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_2_turn'], "X_###__", 0, 0)
 
-    create_idx(opp_graph, 0b01, coefs['opp_4'], "X_####X", 0, 0)
-    # create_idx(opp_graph, 0b01, coefs['opp_4'], "XX#_###", 0, 0)
-    # create_idx(opp_graph, 0b01, coefs['opp_4'], "XX##_##", 0, 0)
-    # create_idx(opp_graph, 0b01, coefs['opp_4'], "XX###_#", 0, 0)
-    create_idx(opp_graph, 0b01, coefs['opp_4'], "XX####_", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_1_turn'], "X_####X", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_1_turn'], "XX#_###", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_1_turn'], "XX##_##", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_1_turn'], "XX###_#", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win_1_turn'], "XX####_", 0, 0)
 
-    create_idx(opp_graph, 0b01, coefs['opp_3'], "__###_X", 0, 0)
-    # create_idx(opp_graph, 0b01, coefs['opp_3'], "X_#_##_", 0, 0)
-    # create_idx(opp_graph, 0b01, coefs['opp_3'], "X_##_#_", 0, 0)
-    create_idx(opp_graph, 0b01, coefs['opp_3'], "X_###__", 0, 0)
+    create_idx(opp_graph, 0b01, coefs['opp_win'], "XX#####", 0, 0)
 
     fill_graph = np.nonzero(opp_graph)
     print(fill_graph)
-    print(opp_graph)
+    print("Length: ", len(fill_graph[0]))
     return opp_graph
 
 
