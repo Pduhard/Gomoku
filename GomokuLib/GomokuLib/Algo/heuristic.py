@@ -40,7 +40,7 @@ from numba import njit
     Initialization of heuristic's data
 """
 
-@njit()
+# @njit()
 def _get_heuristic_coefs():
 
     heuristic_coefs_dict = nb.typed.Dict.empty(
@@ -48,16 +48,16 @@ def _get_heuristic_coefs():
         value_type=Typing.mcts_int_nb_dtype
     )
     heuristic_coefs_dict = {
-        'my_win_possible': 2,
-        'opp_win_2_turn': -4,
-        'my_win_1_turn': 5,
-        'opp_win_1_turn': -5,
-        'my_win': 6,
+        'my_win_possible': 0.5,
+        'opp_win_2_turn': -1.5, # > 2 * my_win_possible
+        'my_win_1_turn': 2,     # > opp_win_2_turn
+        'opp_win_1_turn': -4,
+        'my_win': 5,
         'opp_win': -6,
     }
     return heuristic_coefs_dict
 
-@njit()
+# @njit()
 def _parse_align(graph, player_mark, v, align, i, p):
     """
         _parse_align() calls need to be in ascending order according to the rewards.
@@ -70,8 +70,8 @@ def _parse_align(graph, player_mark, v, align, i, p):
     """
     # print(f"v, align, i, p = ", v, align, i, p)
     if i == 7:
-        # if graph[p]:
-        #     print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
+        if graph[p]:
+            print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
         # print(f"graph[p] = v / graph[{p}] = {v}")
         graph[p] = v
         return 
@@ -92,7 +92,7 @@ def _parse_align(graph, player_mark, v, align, i, p):
     else:
         _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)  # Can be an opponent's stone
 
-@njit()
+# @njit()
 def init_my_heuristic_graph():
     """
         _parse_align() calls need to be in ascending order according to the rewards.
@@ -118,7 +118,7 @@ def init_my_heuristic_graph():
     print("My heuristic init parse ", len(fill_graph[0]), " alignments")
     return my_graph
 
-@njit()
+# @njit()
 def init_opp_heuristic_graph():
     """
         _parse_align() calls need to be in ascending order according to the rewards.
@@ -216,7 +216,7 @@ def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, g
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
-    return 1 / (1 + np.exp(-0.5 * x))
+    return 1 / (1 + np.exp(-0.4 * x))
 
 @njit()
 def old_njit_heuristic(board, my_graph, opp_graph, c0, c1):

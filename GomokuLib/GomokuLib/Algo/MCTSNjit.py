@@ -1,6 +1,6 @@
 import numpy as np
 
-from GomokuLib.Algo.heuristic import init_my_heuristic_graph, init_opp_heuristic_graph, njit_heuristic
+from GomokuLib.Algo import my_heuristic_graph, opp_heuristic_graph, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -70,13 +70,13 @@ class MCTSNjit:
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
 
-        self.my_heuristic_graph = init_my_heuristic_graph()
-        self.opp_heuristic_graph = init_opp_heuristic_graph()
+        # self.my_heuristic_graph = init_my_heuristic_graph()
+        # self.opp_heuristic_graph = init_opp_heuristic_graph()
 
-        print(f"{self.__str__()}: end __init__()\n")
+        print(f"{self.str()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
-    def __str__(self):
+    def str(self):
         return f"MCTSNjit ({self.mcts_iter} iter)"
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
@@ -298,7 +298,7 @@ class MCTSNjit:
         g3 = game_zone[3]
 
         if self.with_new_heuristic:
-            return njit_heuristic(board, self.my_heuristic_graph, self.opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
+            return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
 
         else:
             c_board = ffi.from_buffer(board)

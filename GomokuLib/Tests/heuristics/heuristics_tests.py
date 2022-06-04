@@ -91,7 +91,19 @@ def heuristics_comp(my_heuristic_graph, opp_heuristic_graph):
     valids = 0
     loops = 20
     for i in range(loops):
-        board = generate_rd_board(1)
+        # board = generate_rd_board(1)
+        board = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
+        board[0, 0, 1] = 1
+        board[0, 0, 2] = 1
+        # board[0, 0, 3] = 1
+        board[0, 0, 4] = 1
+
+        # board[1, 0, 1] = 1
+        board[1, 1, 2] = 1
+        board[1, 1, 3] = 1
+        board[1, 1, 4] = 1
+        board[1, 1, 5] = 1
+        print(board)
 
         old_result = old_njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0)
         new_result = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18)
@@ -99,7 +111,7 @@ def heuristics_comp(my_heuristic_graph, opp_heuristic_graph):
         # print(f"new_result={new_result}")
 
         if old_result != new_result:
-            print(f"Diff result ({i}/{loops})")
+            print(f"Diff result ({i}/{loops}): old_h={old_result} / new_h={new_result}")
             # print("board->\n", board)
             # return False
         else:
