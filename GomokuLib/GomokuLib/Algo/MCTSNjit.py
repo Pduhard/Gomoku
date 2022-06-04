@@ -1,8 +1,6 @@
-import GomokuLib
-
 import numpy as np
 
-from GomokuLib.Algo.init_heuristic import init_my_heuristic_graph, init_opp_heuristic_graph
+from GomokuLib.Algo.heuristic import init_my_heuristic_graph, init_opp_heuristic_graph, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -33,6 +31,7 @@ class MCTSNjit:
     mcts_iter: Typing.mcts_int_nb_dtype
     is_pruning: nb.boolean
     rollingout_turns: Typing.mcts_int_nb_dtype
+    with_new_heuristic: nb.boolean
 
     states: Typing.nbStateDict
     path: Typing.nbPath
@@ -49,13 +48,15 @@ class MCTSNjit:
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
                  pruning: nb.boolean = True,
-                 rollingout_turns: Typing.MCTSIntDtype = 10
+                 rollingout_turns: Typing.MCTSIntDtype = 10,
+                 with_new_heuristic: nb.boolean = True
                  ):
 
         self.engine = engine.clone()
         self.mcts_iter = iter
         self.is_pruning = pruning
         self.rollingout_turns = rollingout_turns
+        self.with_new_heuristic = with_new_heuristic
         self.c = np.sqrt(2)
 
         self.states = nb.typed.Dict.empty(
@@ -92,8 +93,13 @@ class MCTSNjit:
 
     def get_state_data_after_action(self, game_engine: Gomoku):
         statehash = self.tobytes(game_engine.board)
+        if statehash in self.states:
+            h = self.states[statehash][0]['heuristic']
+        else:
+            h = self.heuristic(game_engine)
+
         return {
-            'heuristic': self.states[statehash][0]['heuristic'] if statehash in self.states else -42
+            'heuristic': h
         }
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
@@ -274,27 +280,35 @@ class MCTSNjit:
         else:
             return h_leaf
 
-    def heuristic(self):
-        board = self.engine.board
+    def heuristic(self, engine: Gomoku = None):
 
-        c_board = ffi.from_buffer(board)
-        c_full_board = ffi.from_buffer(board[0] | board[1])
+        if engine is None:
+            engine = self.engine
 
-        cap = self.engine.get_captures()
+        board = engine.board
+
+        cap = engine.get_captures()
         c0 = cap[0]
         c1 = cap[1]
 
-        game_zone = self.engine.get_game_zone()
+        game_zone = engine.get_game_zone()
         g0 = game_zone[0]
         g1 = game_zone[1]
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        x = _algo.mcts_eval_heuristic(
-            c_board, c_full_board,
-            c0, c1, g0, g1, g2, g3
-        )
-        return x
+        if self.with_new_heuristic:
+            return njit_heuristic(board, self.my_heuristic_graph, self.opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
+
+        else:
+            c_board = ffi.from_buffer(board)
+            c_full_board = ffi.from_buffer(board[0] | board[1])
+
+            x = _algo.mcts_eval_heuristic(
+                c_board, c_full_board,
+                c0, c1, g0, g1, g2, g3
+            )
+            return x
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)

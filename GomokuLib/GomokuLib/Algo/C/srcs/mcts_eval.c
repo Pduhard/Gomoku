@@ -261,16 +261,16 @@ float mcts_eval_heuristic(char *board, char *full_board, int cap_1, int cap_2, i
             }
         }
 
-    float x = 1 * align_1[0] - 2 * align_2[0] + \
-        3 * align_1[1] - 5 * align_2[1] + \
-        7 * align_1[2] - 9 * align_2[2];
-    return x;
-//    float x = (cap_1 * cap_1 - cap_2 * cap_2) / 10. + \
-//        0.75 * align_1[0] - 1 * align_2[0] + \
-//        3 * align_1[1] - 4 * align_2[1] + \
-//        7 * align_1[2] - 9 * align_2[2];
+    // float x = 1 * align_1[0] - 2 * align_2[0] + 
+    //     3 * align_1[1] - 5 * align_2[1] + 
+    //     7 * align_1[2] - 9 * align_2[2];
+    // return x;
+   float x = (cap_1 * cap_1 - cap_2 * cap_2) / 10. + \
+       0.75 * align_1[0] - 1 * align_2[0] + \
+       3 * align_1[1] - 4 * align_2[1] + \
+       7 * align_1[2] - 9 * align_2[2];
 
-//    return 1 / (1 + exp(-0.5 * x));        // Weighted sigmoid (w=-0.4)
+   return 1 / (1 + exp(-0.5 * x));        // Weighted sigmoid (w=-0.4)
 }
 
 /*

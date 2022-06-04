@@ -14,6 +14,8 @@ from .MCTSParallel import MCTSParallel
 from .MCTSWorker import MCTSWorker
 from .MCTSUtils import MCTSUtils
 
+from .heuristic import init_my_heuristic_graph, init_opp_heuristic_graph, njit_heuristic
+
 __all__ = [
     'MCTS',
     'MCTSLazy',
@@ -26,5 +28,9 @@ __all__ = [
 
     'MCTSParallel',
     'MCTSWorker',
-    'MCTSUtils'
+    'MCTSUtils',
+
+    'init_my_heuristic_graph',
+    'init_opp_heuristic_graph',
+    'njit_heuristic'
 ]
