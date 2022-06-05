@@ -73,12 +73,16 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    # runner = GomokuLib.Game.GameEngine.GomokuRunner()
-    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
-        start_UI=False,
-        # host="192.168.1.6"
+    runner = GomokuLib.Game.GameEngine.GomokuRunner(
+        rules=['Capture', 'Game-Ending-Capture', 'no-double-threes']
+        # rules=[]
     )
-
+    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
+    #     start_UI=False,
+    #     rules=['Capture', 'Game-Ending-Capture', 'no-double-threes'],
+    #     # host="192.168.1.6"
+    # )
+    # breakpoint()
     # p1 = GomokuLib.Player.RandomPlayer()
     # p1 = GomokuLib.Player.Human(runner)
 
@@ -90,10 +94,10 @@ def duel():
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+    mcts_p2 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
-        iter=1000,
-        hard_pruning=True,
+        iter=3000,
+        pruning=True,
         rollingout_turns=10
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)

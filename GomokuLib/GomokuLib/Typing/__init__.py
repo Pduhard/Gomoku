@@ -14,7 +14,7 @@ MCTSFloatDtype = np.float32
 
 PathDtype = np.dtype([
     ('board', BoardDtype, (2, 19, 19)),
-    # ('statehash', np.chararray, 722),
+    # ('statehash', np.dtype(('U', 722))),
     ('player_idx', MCTSIntDtype),
     ('bestAction', MCTSIntDtype, (2,))
 ], align=True)

@@ -41,9 +41,33 @@ def _rollingout(n, mcts, boards, engine_ref):
         mcts.rollingout()
 
 @njit()
+def fake_tobytes(arr: Typing.BoardDtype):
+    # flat = arr.flatten()
+    # i = 0
+    # res = np.empty_like(flat) ('2' if arr[1, i / 19, i % 19] == 1 else '0'))
+
+    a = []
+    for i in range(19):
+        for j in range(19):
+            a.append('1' if arr[0, i, j] == 1 else ('2' if arr[1, i, j] == 1 else '0'))
+    return ''.join(a)
+    # return ''.join([
+    #     ('1' if arr[0, i // 19, i % 19] == 1 else ('2' if arr[1, i // 19, i % 19] == 1 else '0'))
+    #     for i in range(361)
+    # ])
+
+    return '0' * 361 + '1' * 361
+    return res
+
+@njit()
 def _tobytes(n, mcts, boards):
     for i in range(n):
-        mcts.tobytes(boards[i])
+        mcts.fast_tobytes(boards[i])
+
+@njit()
+def _faketobytes(n, mcts, boards):
+    for i in range(n):
+        fake_tobytes(boards[i])
 
 def _log(fname, times, ranges):
     print('######################')
@@ -108,6 +132,21 @@ def test_tobytes(mcts, boards):
     _log('tobytes', times, ranges)
 
 
+def test_faketobytes(mcts, boards):
+
+    _faketobytes(1, mcts, boards)
+
+    times = []
+    ranges = test_ranges
+
+    times.append(time.perf_counter())
+    for r in ranges:
+        _faketobytes(r, mcts, boards)
+        times.append(time.perf_counter())
+
+    _log('faketobytes', times, ranges)
+
+
 def test_prunning(mcts, boards):
 
     _prunning(1, mcts, boards)
@@ -133,6 +172,7 @@ if __name__ == "__main__":
         rollingout_turns=10
     )
     test_tobytes(mcts, boards)
+    test_faketobytes(mcts, boards)
     test_prunning(mcts, boards)
     test_get_neighbors_mask(mcts, boards)
     test_rollingout(mcts, boards, engine_ref)

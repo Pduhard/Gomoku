@@ -1,9 +1,11 @@
+from os import stat
 import GomokuLib
 
 import numpy as np
 
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
+# from .MCTSToBytes import tobytes
 
 import numba as nb
 from numba import njit
@@ -24,8 +26,8 @@ def _valid_policy_action(actions, policy):
     else:
         return 0
 
-unicodelike = 'rtrt'
-unitypr =  nb.typeof(unicodelike)
+# statehash_dtype = np.dtype(('U', 722))
+unitypr =  nb.typeof('str')
 @jitclass()
 class MCTSNjit:
 
@@ -58,8 +60,10 @@ class MCTSNjit:
         self.rollingout_turns = rollingout_turns
         self.c = np.sqrt(2)
 
+
+        self.current_statehash = '0' * 722
         self.states = nb.typed.Dict.empty(
-            key_type=nb.types.unicode_type,
+            key_type=unitypr,
             value_type=Typing.nbState
         )
         self.path = np.zeros(361, dtype=Typing.PathDtype)
@@ -68,7 +72,6 @@ class MCTSNjit:
         for i in range(19):
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
-        self.current_statehash = '0' * 722
         print(f"{self.__str__()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
@@ -78,29 +81,29 @@ class MCTSNjit:
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
         _state_data = nb.typed.Dict.empty(
-            key_type=nb.types.unicode_type,
+            key_type=unitypr,
             value_type=Typing.nbState
         )
-        _state_data['mcts_state_data'] = self.states[self.tobytes(game_engine.board)]
+        _state_data['mcts_state_data'] = self.states[self.fast_tobytes(game_engine.board)]
         return _state_data
         # return {
-        #     'mcts_state_data': self.states[self.tobytes(game_engine.board)][0],
+        #     'mcts_state_data': self.states[self.fast_tobytes(game_engine.board)][0],
         # }
 
     def get_state_data_after_action(self, game_engine: Gomoku):
-        statehash = self.tobytes(game_engine.board)
+        statehash = self.fast_tobytes(game_engine.board)
         return {
             'heuristic': self.states[statehash][0]['heuristic'] if statehash in self.states else -42
         }
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
-        self.gamestatehash = self.tobytes(game_engine.board)
+        self.gamestatehash = self.fast_tobytes(game_engine.board)
         print(f"\n[MCTSNjit __call__() for {self.mcts_iter} iter]\n")
         print('startloop')
         for mcts_iter in range(self.mcts_iter):
             self.current_statehash = self.gamestatehash
-            print('mctsiter', mcts_iter)
+            # print('mctsiter', mcts_iter, self.current_statehash)
             self.engine.update(game_engine)
             self.mcts(mcts_iter)
 
@@ -112,7 +115,7 @@ class MCTSNjit:
         # print(f"Qualities: {sa_r / sa_v}")
 
         # print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
-        return int(arg / 19), arg % 19
+        return arg // 19, arg % 19
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 
@@ -140,14 +143,16 @@ class MCTSNjit:
                     breakpoint()
 
             self.fill_path(self.current_statehash, best_action)
-            rawidx = best_action[0] * 19 + best_action[1]
-            self.current_statehash = self.current_statehash[:rawidx] + '1' + self.current_statehash[rawidx + 1:]
             self.engine.apply_action(best_action)
             self.engine.next_turn()
             self.depth += 1
 
             self.end_game = self.engine.isover()
-            # statehash = self.tobytes(self.engine.board)
+
+            # rawidx = best_action[0] * 19 + best_action[1]
+            # self.current_statehash = self.current_statehash[362:] + self.current_statehash[:rawidx] + '1' + self.current_statehash[rawidx + 1:361]
+            # print(len(self.current_statehash))
+            self.current_statehash = self.fast_tobytes(self.engine.board)
 
         # self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))
         self.expand(self.current_statehash)
@@ -375,23 +380,27 @@ class MCTSNjit:
 
     def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
         # print(f"Memory:\n{memory}")
+        stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         
         board = memory['board']
         r, c = memory['bestAction']
-        # statehash = memory['statehash']
+        statehash = self.fast_tobytes(board)
         # print(f"memory['bestAction']:\n{r} {c}")
 
         # if statehash not in self.states:
         #     print(f"statehash not in states !!! ->\n{statehash}")
-        #     breakpoint()
-        #     pass
-        state_data = self.states[self.tobytes(board)][0]
+        #     count = 0
+        #     for c in statehash:
+        #         if c != '0':
+        #             count+= 1
+        #     print('count: ', count)
+
+        state_data = self.states[statehash][0]
         # state_data = self.states[statehash][0]
 
         state_data['visits'] += 1                           # update n count
         state_data['rewards'] += reward                     # update state value / Use for ?...
 
-        stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         stateAction_update[1] = reward
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
 
@@ -399,6 +408,19 @@ class MCTSNjit:
         return ''.join(map(str, map(np.int8, np.nditer(arr)))) # Aled la ligne (nogil parallele mieux ?..)
         # return np.char.join('', map(np.unicode_, np.nditer(arr)))
 
+    # def test_rec(self, arr, idx):
+    #     if (arr[idx] == 1):
+    #         res = '1'
+    #     else:
+    #         res = '0'
+    #     if idx == 721:
+    #         return res
+    #     return res + self.test_rec(arr, idx + 1)
+
     def fast_tobytes(self, arr: Typing.BoardDtype):
-        return ''.join(map(str, map(np.int8, np.nditer(arr)))) # Aled la ligne (nogil parallele mieux ?..)
-        # return np.char.join('', map(np.unicode_, np.nditer(arr)))
+
+        byte_list = []
+        for i in range(19):
+            for j in range(19):
+                byte_list.append('1' if arr[0, i, j] == 1 else ('2' if arr[1, i, j] == 1 else '0'))
+        return ''.join(byte_list)
