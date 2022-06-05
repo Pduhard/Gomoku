@@ -1,6 +1,6 @@
-from . import AI
 from . import Algo
 from . import Game
+from . import AI
 from . import Player
 from . import Typing
 # from . import Media

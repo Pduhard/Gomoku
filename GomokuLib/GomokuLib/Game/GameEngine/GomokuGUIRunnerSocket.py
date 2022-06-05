@@ -93,6 +93,7 @@ class GomokuGUIRunnerSocket(GomokuRunner):
                 mode=mode,
                 p1=str(players[0]),
                 p2=str(players[1]),
+                human_turn=not is_bots[self.engine.player_idx ^ 1],
                 turn=self.engine.turn,
                 dtime=dtime_turn, 
                 board=self.engine.board,

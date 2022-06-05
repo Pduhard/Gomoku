@@ -23,7 +23,7 @@ class Display:
         screen = pygame.Rect(self.origin, self.size)
         pygame.draw.rect(self.win, (200, 200, 200), screen)
 
-    def draw(self, ss_data: dict, ss_i: int, ss_num: int, tottime: time.time):
+    def draw(self, ss_data: dict, ss_i: int, ss_num: int, tottime: time.time, **kwargs):
 
         pygame.draw.rect(self.win, (200, 200, 200), self.square)
 

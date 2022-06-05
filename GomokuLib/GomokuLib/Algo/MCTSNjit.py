@@ -81,12 +81,16 @@ class MCTSNjit:
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
-        _state_data = nb.typed.Dict.empty(
+        mcts_data = nb.typed.Dict.empty(
             key_type=nb.types.unicode_type,
             value_type=Typing.nbState
         )
-        _state_data['mcts_state_data'] = self.states[self.tobytes(game_engine.board)]
-        return _state_data
+        statehash = self.tobytes(game_engine.board)
+        if statehash in self.states:
+            mcts_data['mcts_state_data'] = self.states[statehash]
+        else:
+            mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
+        return mcts_data
         # return {
         #     'mcts_state_data': self.states[self.tobytes(game_engine.board)][0],
         # }
@@ -105,9 +109,7 @@ class MCTSNjit:
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
         print(f"\n[MCTSNjit __call__() for {self.mcts_iter} iter]\n")
-        for mcts_iter in range(self.mcts_iter):
-            self.engine.update(game_engine)
-            self.mcts(mcts_iter)
+        self.do_n_iter(game_engine, self.mcts_iter)
 
         gamestatehash = self.tobytes(game_engine.board)
         state_data = self.states[gamestatehash][0]
@@ -119,6 +121,11 @@ class MCTSNjit:
 
         # print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
         return int(arg / 19), arg % 19
+
+    def do_n_iter(self, game_engine: Gomoku, iter: int):
+        for i in range(iter):
+            self.engine.update(game_engine)
+            self.mcts(i)
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 

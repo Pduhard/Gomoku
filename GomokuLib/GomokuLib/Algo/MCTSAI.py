@@ -2,11 +2,11 @@ import torch.nn.functional
 import numpy as np
 
 from .MCTSEvalLazy import MCTSEvalLazy
-from .MCTSAMAFLazy import MCTSAMAFLazy
-from .MCTSLazy import MCTSLazy
-from .MCTS import MCTS
+# from .MCTSAMAFLazy import MCTSAMAFLazy
+# from .MCTSLazy import MCTSLazy
+# from .MCTS import MCTS
 
-from ..AI.Model.ModelInterface import ModelInterface
+# from GomokuLib.AI.Model.ModelInterface import ModelInterface
 from GomokuLib.Game.GameEngine.Gomoku import Gomoku
 
 # from GomokuLib.Game.Rules.Capture import Capture
@@ -33,7 +33,7 @@ class MCTSAI(MCTSEvalLazy):
 # class MCTSAI(MCTSAMAFLazy):
 
     def __init__(self, engine: Gomoku,
-                 model_interface: ModelInterface,
+                 model_interface,
                  model_confidence: float = 1,
                  # pruning=False, hard_pruning=False,
                  # model_boost=4, heuristic_boost=False,

@@ -14,3 +14,6 @@ class MCTSEvalLazy(MCTSLazy, MCTSEval):
     def __call__(self, game_engine: Gomoku) -> tuple:
         print(f"\n[MCTSEvalLazy __call__() for {self.mcts_iter} iter]\n")
         return super().__call__(game_engine)
+
+    def str(self):  # ALED
+        return str(self)

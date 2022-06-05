@@ -14,7 +14,7 @@ from .Button import Button
 from .Display import Display
 
 from GomokuLib.Sockets.UISocketClient import UISocketClient
-
+from GomokuLib.Game.UI.HumanHints import HumanHints
 
 class UIManagerSocket:
 
@@ -26,6 +26,7 @@ class UIManagerSocket:
 
         self.engine = Gomoku()
         self.board_size = self.engine.board_size
+        self.humanHints = HumanHints(self.engine)
 
     def __call__(self): # Thread function
 
@@ -72,7 +73,7 @@ class UIManagerSocket:
         self.win = pygame.display.set_mode(win_size)
         # self.win.convert_alpha()
 
-        self.main_board = Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size)
+        self.main_board = Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size, humanHints=self.humanHints)
         self.components = [
             self.main_board,
             Display(self.win, origin=(1000, 350), size=(450, 600)),
@@ -142,7 +143,7 @@ class UIManagerSocket:
             elif code == 'board-click':
                 x, y = input['data']
                 self.board_clicked_action = (x, y)
-                print(self.board_clicked_action, self.request_player_action)
+                print(f"Request Human: {self.request_player_action} | Receive action: {self.board_clicked_action}")
 
             elif code == 'pause-play':
                 self.pause = not self.pause
@@ -165,12 +166,13 @@ class UIManagerSocket:
 
     def update(self):
 
-
         if self.snapshot_idx_modified:
+            snapshot = self.game_snapshots[self.current_snapshot_idx]['snapshot']
             Snapshot.update_from_snapshot(
                 self.engine,
-                self.game_snapshots[self.current_snapshot_idx]['snapshot']
+                snapshot
             )  # Update local engine to draw
+            self.humanHints.update_from_snapshot(snapshot)
             self.snapshot_idx_modified = False
 
         if self.request_player_action and self.board_clicked_action and not self.pause:
@@ -194,6 +196,7 @@ class UIManagerSocket:
                     else:
                         return
 
+                self.humanHints.stop()
                 self.request_player_action = False
                 self.uisock.add_sending_queue({
                     'code': 'response-player-action',
@@ -207,12 +210,13 @@ class UIManagerSocket:
             tottime = ss.get('tottime', ss['time'] - self.init_time)
 
             for o in self.components:
-                o.draw(ss_data=ss_data, ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), tottime=tottime)
+                o.draw(ss_data=ss_data, snapshot=ss['snapshot'], ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), tottime=tottime)
 
         pygame.display.flip()
 
     def UI_quit(self):
         # pygame.quit()
+        self.humanHints.stop()
         self.uisock.add_sending_queue({
             'code': 'shutdown',
         })
