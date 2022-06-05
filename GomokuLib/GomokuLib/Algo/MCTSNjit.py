@@ -3,6 +3,7 @@ import GomokuLib
 
 import numpy as np
 
+from GomokuLib.Algo import my_heuristic_graph, opp_heuristic_graph, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 # from .MCTSToBytes import tobytes
@@ -35,11 +36,14 @@ class MCTSNjit:
     mcts_iter: Typing.mcts_int_nb_dtype
     is_pruning: nb.boolean
     rollingout_turns: Typing.mcts_int_nb_dtype
+    with_new_heuristic: nb.boolean
 
     states: Typing.nbStateDict
     path: Typing.nbPath
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
+    my_heuristic_graph: Typing.nbHeuristicGraph
+    opp_heuristic_graph: Typing.nbHeuristicGraph
 
     depth: Typing.mcts_int_nb_dtype
     end_game: nb.boolean
@@ -51,13 +55,15 @@ class MCTSNjit:
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
                  pruning: nb.boolean = True,
-                 rollingout_turns: Typing.MCTSIntDtype = 10
+                 rollingout_turns: Typing.MCTSIntDtype = 10,
+                 with_new_heuristic: nb.boolean = True
                  ):
 
         self.engine = engine.clone()
         self.mcts_iter = iter
         self.is_pruning = pruning
         self.rollingout_turns = rollingout_turns
+        self.with_new_heuristic = with_new_heuristic
         self.c = np.sqrt(2)
 
 
@@ -72,11 +78,15 @@ class MCTSNjit:
         for i in range(19):
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
-        print(f"{self.__str__()}: end __init__()\n")
+
+        # self.my_heuristic_graph = init_my_heuristic_graph()
+        # self.opp_heuristic_graph = init_opp_heuristic_graph()
+
+        print(f"{self.str()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
-    def __str__(self):
-        return f"MCTSNjit ({self.mcts_iter} iter)"
+    def str(self):
+        return f"MCTSNjit ({self.mcts_iter} iter) newh={1 if self.with_new_heuristic else 0}"
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
@@ -92,8 +102,13 @@ class MCTSNjit:
 
     def get_state_data_after_action(self, game_engine: Gomoku):
         statehash = self.fast_tobytes(game_engine.board)
+        if statehash in self.states:
+            h = self.states[statehash][0]['heuristic']
+        else:
+            h = self.heuristic(game_engine, debug=True)
+        
         return {
-            'heuristic': self.states[statehash][0]['heuristic'] if statehash in self.states else -42
+            'heuristic': h
         }
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
@@ -280,27 +295,44 @@ class MCTSNjit:
         else:
             return h_leaf
 
-    def heuristic(self):
-        board = self.engine.board
+    def heuristic(self, engine: Gomoku = None, debug=False):
 
-        c_board = ffi.from_buffer(board)
-        c_full_board = ffi.from_buffer(board[0] | board[1])
+        if engine is None:
+            engine = self.engine
 
-        cap = self.engine.get_captures()
+        board = engine.board
+
+        cap = engine.get_captures()
         c0 = cap[0]
         c1 = cap[1]
 
-        game_zone = self.engine.get_game_zone()
+        game_zone = engine.get_game_zone()
         g0 = game_zone[0]
         g1 = game_zone[1]
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        x = _algo.mcts_eval_heuristic(
-            c_board, c_full_board,
-            c0, c1, g0, g1, g2, g3
-        )
-        return x
+        if self.with_new_heuristic:
+            h = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
+
+        else:
+            c_board = ffi.from_buffer(board)
+            c_full_board = ffi.from_buffer(board[0] | board[1])
+
+            h = _algo.mcts_eval_heuristic(
+                c_board, c_full_board,
+                c0, c1, g0, g1, g2, g3
+            )
+
+        # if self.with_new_heuristic and debug:
+        #     print(board)
+        #     print(cap)
+        #     print(game_zone)
+        #     print(self.with_new_heuristic)
+        #     print(float(h))
+        #     # breakpoint()
+
+        return h
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)

@@ -73,7 +73,7 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    runner = GomokuLib.Game.GameEngine.GomokuRunner(
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
         rules=['Capture', 'Game-Ending-Capture', 'no-double-threes']
         # rules=[]
     )
@@ -88,19 +88,28 @@ def duel():
 
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
-        iter=3000,
+        iter=5000,
         pruning=True,
-        rollingout_turns=10
+        rollingout_turns=10,
+        with_new_heuristic=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     mcts_p2 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
-        iter=3000,
+        iter=5000,
         pruning=True,
-        rollingout_turns=10
+        rollingout_turns=10,
+        with_new_heuristic=True
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
+    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+    #     engine=runner.engine,
+    #     iter=3000,
+    #     hard_pruning=True,
+    #     rollingout_turns=10
+    # )
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p2 = GomokuLib.Player.Human(runner)
 
@@ -128,7 +137,7 @@ def duel():
 
     winners = []
     for i in range(1):
-        winner = runner.run([p1, p2])  # White: 0 / Black: 1
+        winner = runner.run([p1, p2], init_config=None)  # White: 0 / Black: 1
         winners.append(str(winner))
 
     # profiler.disable()

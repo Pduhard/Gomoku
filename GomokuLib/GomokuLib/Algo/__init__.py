@@ -1,3 +1,11 @@
+import numpy as np
+import GomokuLib.Typing as Typing
+
+from .heuristic import init_my_heuristic_graph, init_opp_heuristic_graph, njit_heuristic, old_njit_heuristic, _compute_capture_coef
+
+my_heuristic_graph = init_my_heuristic_graph()
+opp_heuristic_graph = init_opp_heuristic_graph()
+
 from .MCTS import MCTS
 from .MCTSLazy import MCTSLazy
 from .MCTSAMAF import MCTSAMAF
@@ -23,5 +31,11 @@ __all__ = [
 
     'MCTSParallel',
     'MCTSWorker',
-    'MCTSUtils'
+    'MCTSUtils',
+
+    'my_heuristic_graph',
+    'opp_heuristic_graph',
+    'njit_heuristic',
+    'old_njit_heuristic',
+    '_compute_capture_coef'
 ]

@@ -7,7 +7,7 @@ class Bot:
         self.play_turn = self._play_njit_turn if isinstance(self.algo, MCTSNjit) else self._play_turn
 
     def __str__(self):
-        return f"Bot -> {self.algo.__str__()}"
+        return f"Bot -> {self.algo.str()}"
 
     def _play_turn(self, runner) -> tuple[int]:
         return self.algo(runner.engine)[1]

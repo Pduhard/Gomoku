@@ -4,6 +4,29 @@ from typing import Union
 import time
 from .Gomoku import Gomoku
 
+from numba import njit
+
+
+@njit()
+def force_config1(engine):
+    # self.engine.init_game()
+
+    engine.apply_action((3, 3))
+    engine.next_turn()
+
+    engine.apply_action((4, 3))
+    engine.next_turn()
+
+    engine.apply_action((3, 4))
+    engine.next_turn()
+
+    engine.apply_action((4, 4))
+    engine.next_turn()
+
+    engine.apply_action((3, 5))
+    engine.next_turn()
+
+
 class GomokuRunner:
 
     def __init__(self, rules: list[str] = ['Capture', 'Game-Ending-Capture', 'no-double-threes'],
@@ -38,8 +61,11 @@ class GomokuRunner:
 
         print(f"Player {self.engine.winner} win.")
 
-    def run(self, players, *args, **kwargs):
+    def run(self, players, init_config: int = None, *args, **kwargs):
 
         self.engine.init_game()
+        if init_config == 1:
+            force_config1(self.engine)
+
         self._run(players, *args, **kwargs)
         return players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
