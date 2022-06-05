@@ -86,7 +86,7 @@ def duel():
         engine=runner.engine,
         iter=5000,
         pruning=True,
-        rollingout_turns=5,
+        rollingout_turns=10,
         with_new_heuristic=True
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
@@ -95,8 +95,8 @@ def duel():
         engine=runner.engine,
         iter=5000,
         pruning=True,
-        rollingout_turns=5,
-        with_new_heuristic=False
+        rollingout_turns=10,
+        with_new_heuristic=True
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
@@ -133,7 +133,7 @@ def duel():
 
     winners = []
     for i in range(1):
-        winner = runner.run([p1, p2])  # White: 0 / Black: 1
+        winner = runner.run([p1, p2], init_config=None)  # White: 0 / Black: 1
         winners.append(str(winner))
 
     # profiler.disable()

@@ -1,7 +1,7 @@
 import numpy as np
 import GomokuLib.Typing as Typing
 
-from .heuristic import init_my_heuristic_graph, init_opp_heuristic_graph, njit_heuristic
+from .heuristic import init_my_heuristic_graph, init_opp_heuristic_graph, njit_heuristic, old_njit_heuristic, _compute_capture_coef
 
 my_heuristic_graph = init_my_heuristic_graph()
 opp_heuristic_graph = init_opp_heuristic_graph()
@@ -35,5 +35,7 @@ __all__ = [
 
     'my_heuristic_graph',
     'opp_heuristic_graph',
-    'njit_heuristic'
+    'njit_heuristic',
+    'old_njit_heuristic',
+    '_compute_capture_coef'
 ]

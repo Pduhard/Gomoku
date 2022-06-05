@@ -40,7 +40,6 @@ from numba import njit
     Initialization of heuristic's data
 """
 
-# @njit()
 def _get_heuristic_coefs():
 
     heuristic_coefs_dict = nb.typed.Dict.empty(
@@ -57,7 +56,6 @@ def _get_heuristic_coefs():
     }
     return heuristic_coefs_dict
 
-# @njit()
 def _parse_align(graph, player_mark, v, align, i, p):
     """
         _parse_align() calls need to be in ascending order according to the rewards.
@@ -70,8 +68,8 @@ def _parse_align(graph, player_mark, v, align, i, p):
     """
     # print(f"v, align, i, p = ", v, align, i, p)
     if i == 7:
-        if graph[p]:
-            print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
+        # if graph[p]:
+        #     print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
         # print(f"graph[p] = v / graph[{p}] = {v}")
         graph[p] = v
         return 
@@ -92,7 +90,6 @@ def _parse_align(graph, player_mark, v, align, i, p):
     else:
         _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)  # Can be an opponent's stone
 
-# @njit()
 def init_my_heuristic_graph():
     """
         _parse_align() calls need to be in ascending order according to the rewards.
@@ -120,11 +117,10 @@ def init_my_heuristic_graph():
     _parse_align(my_graph, 0b10, coefs['my_win'], "XX#####", 0, 0)
 
     fill_graph = np.nonzero(my_graph)
-    print(fill_graph)
+    # print(fill_graph)
     print("My heuristic init parse ", len(fill_graph[0]), " alignments")
     return my_graph
 
-# @njit()
 def init_opp_heuristic_graph():
     """
         _parse_align() calls need to be in ascending order according to the rewards.
@@ -150,7 +146,7 @@ def init_opp_heuristic_graph():
     _parse_align(opp_graph, 0b01, coefs['opp_win'], "XX#####", 0, 0)
 
     fill_graph = np.nonzero(opp_graph)
-    print(fill_graph)
+    # print(fill_graph)
     print("Opponent heuristic init parse ", len(fill_graph[0]), " alignments")
     return opp_graph
 
@@ -160,6 +156,36 @@ def init_opp_heuristic_graph():
 """
 
 @njit()
+def _old_find_align_reward(board, graph, sr, sc):
+    dirs = [
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [1, 0]
+    ]
+
+    p = np.array(
+        [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+        dtype=np.float32    # np.dot handle by Numba require float
+    )
+    buf = np.zeros(14, dtype=np.float32)
+    rewards = np.zeros(4, dtype=np.int32)
+
+    for di in range(4):
+
+        dr, dc = dirs[di]
+        r, c = sr - 2 * dr, sc - 2 * dc
+        for i in range(0, 14, 2):
+            buf[i:i + 2] = board[:, r, c]
+            r += dr
+            c += dc
+
+        graph_id = np.dot(buf, p)
+        rewards[di] = graph[np.int32(graph_id)]
+
+    return np.sum(rewards)
+
+@njit()
 def _find_align_reward(board, graph, sr, sc):
     dirs = [
         [-1, 1],
@@ -167,16 +193,17 @@ def _find_align_reward(board, graph, sr, sc):
         [1, 1],
         [1, 0]
     ]
+
     p = np.array([
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
     ],
-        dtype=np.float32
+        dtype=np.int32
     )
-    buf = np.zeros((4, 14), dtype=np.float32)
     align_ids = np.zeros(4, dtype=np.int32)
+    buf = np.zeros((4, 14), dtype=np.int32)
     rewards = np.zeros(4, dtype=np.int32)
 
     for di in range(4):
@@ -201,7 +228,7 @@ def _find_align_reward(board, graph, sr, sc):
 
 @njit()
 def _compute_capture_coef(my_cap, opp_cap):
-    return 2 * (my_cap - opp_cap) / (6 - max(my_cap, opp_cap))
+    return 2 * (my_cap - opp_cap) / (5.5 - max(my_cap, opp_cap))
 
 @njit()
 def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
@@ -225,25 +252,26 @@ def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, g
     return 1 / (1 + np.exp(-0.4 * x))
 
 @njit()
-def old_njit_heuristic(board, my_graph, opp_graph, c0, c1):
+def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
 
     # Padding: 2 on the left and top / 5 on the right and bottom
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
 
     rewards = np.zeros((21, 21), dtype=np.int32)
-    for y in range(2, 21):
-        for x in range(2, 21):
+    for y in range(2 + gz_start_r, 2 + gz_end_r):
+        for x in range(2 + gz_start_c, 2 + gz_end_c):
 
             if board_pad[0, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, my_graph, y, x)
+                rewards[y, x] = _old_find_align_reward(board_pad, my_graph, y, x)
 
             elif board_pad[1, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, opp_graph, y, x)
+                rewards[y, x] = _old_find_align_reward(board_pad, opp_graph, y, x)
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
-    return 1 / (1 + np.exp(-0.5 * x))
+    return 1 / (1 + np.exp(-0.4 * x))
+
 
 
 if __name__ == "__main__":

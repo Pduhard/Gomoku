@@ -77,7 +77,7 @@ class MCTSNjit:
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
     def str(self):
-        return f"MCTSNjit ({self.mcts_iter} iter)"
+        return f"MCTSNjit ({self.mcts_iter} iter) newh={1 if self.with_new_heuristic else 0}"
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
@@ -96,8 +96,8 @@ class MCTSNjit:
         if statehash in self.states:
             h = self.states[statehash][0]['heuristic']
         else:
-            h = self.heuristic(game_engine)
-
+            h = self.heuristic(game_engine, debug=True)
+        
         return {
             'heuristic': h
         }
@@ -280,7 +280,7 @@ class MCTSNjit:
         else:
             return h_leaf
 
-    def heuristic(self, engine: Gomoku = None):
+    def heuristic(self, engine: Gomoku = None, debug=False):
 
         if engine is None:
             engine = self.engine
@@ -298,17 +298,26 @@ class MCTSNjit:
         g3 = game_zone[3]
 
         if self.with_new_heuristic:
-            return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
+            h = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
 
         else:
             c_board = ffi.from_buffer(board)
             c_full_board = ffi.from_buffer(board[0] | board[1])
 
-            x = _algo.mcts_eval_heuristic(
+            h = _algo.mcts_eval_heuristic(
                 c_board, c_full_board,
                 c0, c1, g0, g1, g2, g3
             )
-            return x
+
+        # if self.with_new_heuristic and debug:
+        #     print(board)
+        #     print(cap)
+        #     print(game_zone)
+        #     print(self.with_new_heuristic)
+        #     print(float(h))
+        #     # breakpoint()
+
+        return h
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
