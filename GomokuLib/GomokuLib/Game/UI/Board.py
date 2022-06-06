@@ -3,6 +3,9 @@ import pygame
 import numpy as np
 import torch
 
+from GomokuLib.Game.UI.HumanHints import HumanHints
+from GomokuLib.Game.GameEngine.Snapshot import Snapshot
+
 # from GomokuLib.Media import WoodBGBoard_img, WhiteStone_img, BlackStone_img
 
 class Board:
@@ -14,7 +17,8 @@ class Board:
 
     def __init__(self, win: pygame.Surface,
                  origin: tuple, size: tuple,
-                 board_size: tuple):
+                 board_size: tuple,
+                 humanHints: HumanHints):
                 #  win_size: tuple,
                 #  ox_prop: int, oy_prop: int,
                 #  wx_prop: int, wy_prop: int,
@@ -26,6 +30,7 @@ class Board:
         self.dx, self.dy = self.size
         # self.dx, self.dy = min(self.dx, self.dy), min(self.dx, self.dy)     # To square that thing
         self.board_size = board_size
+        self.humanHints = humanHints
 
         folder_name = os.path.basename(os.path.abspath("."))
         assert folder_name == "Gomoku"
@@ -110,8 +115,27 @@ class Board:
         player_idx = ss_data.get('player_idx', 0)
         self.win.blit(self.bg, (self.ox, self.oy))
 
+        if self.hint_type == 2 and ss_data.get('human_turn', False) and ss_data.get('winner', False) == -1:
+            ss_data = self.humanHints.fetch_hints()
+            # print(f"ss_data fetched.")
+
         if ss_data and 'mcts_state_data' in ss_data:
             self.draw_hints(ss_data)
+
+        self.draw_stones(board, player_idx)
+
+        if ss_data and 'mcts_state_data' in ss_data:
+            self.draw_stats(board, ss_data)
+
+    def switch_hint(self):
+        self.hint_type += 1
+        if self.hint_type == 3:
+            self.humanHints.stop()
+        elif self.hint_type == 4:
+            self.hint_type = 0
+        print(f"Swith hint_type to {self.hint_type}")
+
+    def draw_stones(self, board: np.ndarray, player_idx: int):
 
         stone_x, stone_y = self.cells_coord * board[player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
         empty_cells = stone_x != 0                               # Boolean array to remove empty cells
@@ -129,23 +153,13 @@ class Board:
         for x, y in stones:
             self.win.blit(self.blackstone, (self.ox + x - self.csx, self.oy + y - self.csy))
 
-        if ss_data and 'mcts_state_data' in ss_data:
-            self.draw_stats(board, ss_data)
 
-    def switch_hint(self):
-        self.hint_type += 1
-        if self.hint_type == 3:
-            self.hint_type = 0
+    def draw_hints(self, ss_data: dict):
 
-    def draw_hints(self, hints_data: dict):
-
-        # print(f"Board.draw() -> hints_data: {hints_data}")
-        # (sa_n, sa_v), actions = hints_data['mcts_state_data'][2:4]
-        
         try:
-            state_data = hints_data['mcts_state_data'][0]
+            state_data = ss_data['mcts_state_data'][0]
         except:
-            state_data = hints_data['mcts_state_data']
+            state_data = ss_data['mcts_state_data']
 
         try:
             (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
@@ -154,18 +168,23 @@ class Board:
 
         if self.hint_type == 0 and 'Policy' in state_data:
             self.draw_model_hints(state_data['Policy'])
+        
         elif self.hint_type == 1:
             self.draw_mcts_hints(sa_n, sa_v)
+
         elif self.hint_type == 2:
+            self.draw_mcts_hints(sa_n, sa_v)
+        
+        elif self.hint_type == 3:
             self.draw_actions(actions)
 
-    def draw_stats(self, board: np.ndarray, hints_data: dict):
+    def draw_stats(self, board: np.ndarray, ss_data: dict):
 
-        # s_n, s_v, (sa_n, sa_v) = hints_data['mcts_state_data'][:3]
+        # s_n, s_v, (sa_n, sa_v) = ss_data['mcts_state_data'][:3]
         try:
-            state_data = hints_data['mcts_state_data'][0]
+            state_data = ss_data['mcts_state_data'][0]
         except:
-            state_data = hints_data['mcts_state_data']
+            state_data = ss_data['mcts_state_data']
 
         try:
            s_n, s_v, (sa_n, sa_v) = state_data['Visits'], state_data['Rewards'], state_data['StateAction']
@@ -192,9 +211,9 @@ class Board:
         if i == self.board_size[0]:
             y = 0
 
-        if 'Value' in hints_data:
+        if 'Value' in ss_data:
             self.blit_text(
-                "P(s)[-1,1]= " + str(round(hints_data['Value'], 3)),
+                "P(s)[-1,1]= " + str(round(ss_data['Value'], 3)),
                 1,
                 y
             )

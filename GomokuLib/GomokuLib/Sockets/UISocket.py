@@ -72,7 +72,7 @@ class UISocket:
                 if not force:
                     break
 
-            time.sleep(0.1)
+            time.sleep(0.2) # Prevent packet loss
 
     """ Receive part """
 

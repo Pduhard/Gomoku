@@ -5,19 +5,19 @@ import torch
 from datetime import datetime
 import os
 import copy
-from tqdm import tqdm_notebook as tqdm
+# from tqdm import tqdm_notebook as tqdm
 from typing import Union
 
-from ..Model.GomokuModel import GomokuModel
+# from ..Model.GomokuModel import GomokuModel
 from ..Model.ModelInterface import ModelInterface
 from ..Dataset.GomokuDataset import GomokuDataset
 from ...Game.GameEngine.Gomoku import Gomoku
 
-from ..Dataset.DatasetTransforms import Compose, HorizontalTransform, VerticalTransform
+# from ..Dataset.DatasetTransforms import Compose, HorizontalTransform, VerticalTransform
 
 from  ...Player.Bot import Bot
-from  ...Algo.MCTSAI import MCTSAI
-from  ...Algo.AbstractAlgorithm import AbstractAlgorithm
+from GomokuLib.Algo.MCTSAI import MCTSAI
+# from  ...Algo.AbstractAlgorithm import AbstractAlgorithm
 
 
 class GomokuAgent(Bot):

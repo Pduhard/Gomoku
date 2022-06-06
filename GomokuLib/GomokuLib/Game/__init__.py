@@ -5,5 +5,5 @@ from . import UI
 __all__ = [
     'GameEngine',
     'Rules',
-    'UI'
+    'UI',
 ]

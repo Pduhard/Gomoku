@@ -79,9 +79,6 @@ class MCTSNjit:
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
 
-        # self.my_heuristic_graph = init_my_heuristic_graph()
-        # self.opp_heuristic_graph = init_opp_heuristic_graph()
-
         print(f"{self.str()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
@@ -90,15 +87,16 @@ class MCTSNjit:
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
-        _state_data = nb.typed.Dict.empty(
-            key_type=unitypr,
+        mcts_data = nb.typed.Dict.empty(
+            key_type=nb.types.unicode_type,
             value_type=Typing.nbState
         )
-        _state_data['mcts_state_data'] = self.states[self.fast_tobytes(game_engine.board)]
-        return _state_data
-        # return {
-        #     'mcts_state_data': self.states[self.fast_tobytes(game_engine.board)][0],
-        # }
+        statehash = self.fast_tobytes(game_engine.board)
+        if statehash in self.states:
+            mcts_data['mcts_state_data'] = self.states[statehash]
+        else:
+            mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
+        return mcts_data
 
     def get_state_data_after_action(self, game_engine: Gomoku):
         statehash = self.fast_tobytes(game_engine.board)
@@ -113,14 +111,8 @@ class MCTSNjit:
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
-        self.gamestatehash = self.fast_tobytes(game_engine.board)
         print(f"\n[MCTSNjit __call__() for {self.mcts_iter} iter]\n")
-        print('startloop')
-        for mcts_iter in range(self.mcts_iter):
-            self.current_statehash = self.gamestatehash
-            # print('mctsiter', mcts_iter, self.current_statehash)
-            self.engine.update(game_engine)
-            self.mcts(mcts_iter)
+        self.do_n_iter(game_engine, self.mcts_iter)
 
         state_data = self.states[self.gamestatehash][0]
         sa_v, sa_r = state_data['stateAction']
@@ -131,6 +123,13 @@ class MCTSNjit:
 
         # print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
         return arg // 19, arg % 19
+
+    def do_n_iter(self, game_engine: Gomoku, iter: int):
+        self.gamestatehash = self.fast_tobytes(game_engine.board)
+        for i in range(iter):
+            self.current_statehash = self.gamestatehash
+            self.engine.update(game_engine)
+            self.mcts(i)
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 
