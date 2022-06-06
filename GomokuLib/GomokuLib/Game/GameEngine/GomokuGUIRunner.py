@@ -14,18 +14,18 @@ import time
 from time import perf_counter
 
 
-class GomokuGUIRunnerSocket(GomokuRunner):
+class GomokuGUIRunner(GomokuRunner):
 
     def __init__(self, start_UI: bool = False, host: str = None, port: int = None,
                  *args, **kwargs) -> None:
 
         super().__init__(*args, **kwargs)
 
-        print(f"GomokuGUIRunnerSocket.__init__() start UISocketServer server, ")
+        print(f"GomokuGUIRunner.__init__() start UISocketServer server, ")
         self.uisock = UISocketServer(host=host, port=port, name="Runner")
 
         if start_UI:
-            print(f"GomokuGUIRunnerSocket.__init__() start UIManagerSocket client")
+            print(f"GomokuGUIRunner.__init__() start UIManagerSocket client")
             self.gui = UIManagerSocket(
                 engine=GomokuLib.Game.GameEngine.Gomoku(),
                 win_size=(1500, 1000),
@@ -38,7 +38,7 @@ class GomokuGUIRunnerSocket(GomokuRunner):
         self.player_action = None
         self.socket_queue = []
 
-        print("END __init__() GomokuGUIRunnerSocket\n")
+        print("END __init__() GomokuGUIRunner\n")
 
     def update_UI(self, **kwargs):
         """

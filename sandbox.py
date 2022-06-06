@@ -70,11 +70,11 @@ print(f"Device selected: {device}")
 
 def duel():
 
-    runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
+    runner = GomokuLib.Game.GameEngine.GomokuGUIRunner(
         rules=['Capture', 'Game-Ending-Capture', 'no-double-threes']
         # rules=[]
     )
-    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunnerSocket(
+    # runner = GomokuLib.Game.GameEngine.GomokuGUIRunner(
     #     start_UI=False,
     #     rules=['Capture', 'Game-Ending-Capture', 'no-double-threes'],
     #     # host="192.168.1.6"
