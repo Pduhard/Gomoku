@@ -137,8 +137,9 @@ class UIManagerSocket:
 
             elif code == 'end-game':
                 self.uisock.connected = False
+                self.humanHints.stop()
                 print(f"UIManager: Deconnection asked by GomokuGUIRunner.")
-                time.sleep(1)
+                time.sleep(1)   # Very important and we will never talk about why ... Please.
 
             elif code == 'board-click':
                 x, y = input['data']
@@ -171,7 +172,8 @@ class UIManagerSocket:
             Snapshot.update_from_snapshot(
                 self.engine,
                 snapshot
-            )  # Update local engine to draw
+            )  # Update local engine to test valid action
+
             self.humanHints.update_from_snapshot(snapshot)
             self.snapshot_idx_modified = False
 
@@ -184,6 +186,7 @@ class UIManagerSocket:
 
                     current_ss = self.game_snapshots[self.current_snapshot_idx]['snapshot']
                     lastest_ss = self.game_snapshots[-1]['snapshot']
+
                     print(f"current_ss['player_idx'] == lastest_ss['player_idx'] ? {current_ss['player_idx']} == {lastest_ss['player_idx']}")
                     if current_ss['player_idx'] == lastest_ss['player_idx']:    # Human can only play at its turns 
                         # breakpoint() # Need debug ?
@@ -203,6 +206,9 @@ class UIManagerSocket:
                     'data': self.board_clicked_action,
                 })
                 # print(f"-> UI Send response-player-action")
+            
+            else:
+                print(f"Not a valid action ! -> {self.board_clicked_action}")
 
         if len(self.game_snapshots):
             ss = self.game_snapshots[self.current_snapshot_idx]
@@ -215,7 +221,6 @@ class UIManagerSocket:
         pygame.display.flip()
 
     def UI_quit(self):
-        # pygame.quit()
         self.humanHints.stop()
         self.uisock.add_sending_queue({
             'code': 'shutdown',
@@ -224,3 +229,6 @@ class UIManagerSocket:
         self.uisock.disconnect()
         self.cross_shutdown = True
         print(f"UIManager: DISCONNECTION.\n")
+        pygame.quit()
+        exit(0)
+

@@ -25,7 +25,7 @@ from fastcore._algo import lib as fastcore_algo
 
         A faire:
             Pull main sur mctsjit
-            Clean les bails d'heuristic oublié
+            Clean les bails d'heuristic oublié + add la nouvelle sur mctsevallazy
             merge sur main
             PUSH MAIN
 
@@ -39,7 +39,7 @@ from fastcore._algo import lib as fastcore_algo
         UI THREADS :
             Peut pas rejouer apres avoir rollback
             Ne sarrete pas avc la croix
-            Desyncro de laffichage quand on va en arrire
+            Desyncro de laffichage quand on va en arrire ?
                 se melange avec ladversair ej e crois
 
 
@@ -97,7 +97,7 @@ def duel():
     )
 
     # p1 = GomokuLib.Player.RandomPlayer()
-    # p1 = GomokuLib.Player.Human(runner)
+    p1 = GomokuLib.Player.Human(runner)
 
     # mcts_p1 = GomokuLib.Algo.MCTSNjit(
     #     engine=runner.engine,
@@ -117,16 +117,13 @@ def duel():
     # )
     # p2 = GomokuLib.Player.Bot(mcts_p2)
 
-
-
-
-    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=runner.engine,
-        iter=3000,
-        hard_pruning=True,
-        rollingout_turns=10
-    )
-    p1 = GomokuLib.Player.Bot(mcts_p1)
+    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+    #     engine=runner.engine,
+    #     iter=3000,
+    #     hard_pruning=True,
+    #     rollingout_turns=10
+    # )
+    # p1 = GomokuLib.Player.Bot(mcts_p1)
 
     p2 = GomokuLib.Player.Human(runner)
 

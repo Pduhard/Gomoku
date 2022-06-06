@@ -9,18 +9,14 @@ from GomokuLib.Game.GameEngine.Snapshot import Snapshot
 from GomokuLib.Algo.MCTSNjit import MCTSNjit
 
 
-# @njit()
-# def do_n_iter(mcts, iter):
-#     for i in range(iter):
-#         mcts.do_n_iter()
-
-
 class HumanHints:
 
-    def __init__(self, game_engine: Gomoku, batch_iter: int = 100) -> None:
+    def __init__(self, game_engine: Gomoku,
+                 batch_iter: int = 500, max_iter: int = 20000) -> None:
         self.engine = game_engine.clone()
-        self.is_running = False
         self.batch_iter = batch_iter
+        self.max_iter = max_iter
+        self.is_running = False
 
         self.mcts = MCTSNjit(
             engine=self.engine,
@@ -37,8 +33,6 @@ class HumanHints:
         self.thread = threading.Thread(
             target=self.compute_hints
         )
-        self.lock = threading.Lock()
-        # print(f"threading.main_thread: {threading.main_thread()}")
 
     def update_from_snapshot(self, snapshot: Snapshot):
         Snapshot.update_from_snapshot(
@@ -46,40 +40,45 @@ class HumanHints:
             snapshot
         )
 
-    def fetch_hints(self) -> tuple[np.ndarray, np.ndarray]:
-        print(f"HumanHints: fetch_hints ...")
-        # print(f"Threads {threading.current_thread()}\tin\t{threading.enumerate()}")
-
+    def start(self):
         if not self.thread.is_alive():
             self.is_running = True
             self.thread.start()
-
-        print(f"HumanHints: Thread running ...")
-        self.lock.acquire()
-        mcts_data = self.mcts.get_state_data(self.engine)
-        self.lock.release()
-        print(f"HumanHints: Succesfully fetch data")
-        return mcts_data
+        # print(f"HumanHints: Thread running ...")
 
     def stop(self):
         if self.thread.is_alive():
-            print(f"HumanHints: Thread stop order\t{self.thread._target}")
+            print(f"HumanHints: Thread stop order")
             self.is_running = False
             self.thread.join()
             self.thread = threading.Thread(
                 target=self.compute_hints
             )
-            print(f"HumanHints: Thread joined\t{self.thread._target}")
+            print(f"HumanHints: Thread joined")
+
+    def fetch_hints(self) -> tuple[np.ndarray, np.ndarray]:
+
+        mcts_data = self.mcts.get_state_data(self.engine)
+
+        try:
+            if mcts_data['mcts_state_data'][0]['visits'] >= self.max_iter:
+                self.stop()
+            else:
+                self.start()
+        except:
+            print(f"HumanHints: Unable to control automatic stop of iterations")
+
+        # print(f"HumanHints: Succesfully fetch data")
+        return mcts_data
 
     def compute_hints(self):
         print(f"HumanHints: Start Thread for {self.batch_iter} mcts iterations")
-        # print(f"Threads {threading.current_thread()}\tin\t{threading.enumerate()}")
+
         while self.is_running:
-            self.lock.acquire()
-            print(f"HumanHints: do_n_iter: {self.batch_iter}")
+            # print(f"HumanHints: do_n_iter: {self.batch_iter}")
             self.mcts.do_n_iter(self.engine, self.batch_iter)
-            self.lock.release()
-            time.sleep(0.2)
+            time.sleep(0.1)
+
         print(f"HumanHints: Thread finish")
 
 

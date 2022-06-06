@@ -88,22 +88,25 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             if is_bot:
                 algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
 
-            # breakpoint()
-            self.update_UI(
-                mode=mode,
-                p1=str(players[0]),
-                p2=str(players[1]),
-                human_turn=not is_bots[self.engine.player_idx ^ 1],
-                turn=self.engine.turn,
-                dtime=dtime_turn, 
-                board=self.engine.board,
-                player_idx=self.engine.player_idx,
-                captures=self.engine.get_captures(),
-                winner=self.engine.winner,
-                **algo_data
-            )
+            game_data = {
+                'mode': mode,
+                'p1': str(players[0]),
+                'p2': str(players[1]),
+                'human_turn': not is_bots[self.engine.player_idx ^ 1],
+                'turn': self.engine.turn,
+                'dtime': dtime_turn, 
+                'board': self.engine.board,
+                'player_idx': self.engine.player_idx,
+                'captures': self.engine.get_captures(),
+                'winner': self.engine.winner,
+            }
 
             self.engine._shift_board()
+
+            self.update_UI( # Snapshot needs to be after next_turn
+                **game_data,
+                **algo_data
+            )
 
         print(f"Player {self.engine.winner} win.")
         self.GUI_quit(send_all_ss)
@@ -134,17 +137,18 @@ class GomokuGUIRunnerSocket(GomokuRunner):
                 exit(0)
 
             elif inpt['code'] == 'game-snapshot':
-                # breakpoint() # Need debug !
                 Snapshot.update_from_snapshot(self.engine, inpt['data'])
-                self.engine.next_turn()
 
     def wait_player_action(self):
-        self.uisock.add_sending_queue({
-            'code': 'request-player-action'
-        })
-        print(f"GUI send request-player-action ->")
-
+        ts = 0
         while True:
+            if time.time() > ts + 10:
+                self.uisock.add_sending_queue({
+                    'code': 'request-player-action'
+                })
+                print(f"GUI send request-player-action ->")
+                ts = time.time()
+                
             self.UIManager_exchanges()
 
             if self.player_action:

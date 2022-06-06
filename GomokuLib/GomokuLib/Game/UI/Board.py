@@ -115,7 +115,7 @@ class Board:
         player_idx = ss_data.get('player_idx', 0)
         self.win.blit(self.bg, (self.ox, self.oy))
 
-        if self.hint_type == 2 and ss_data['human_turn']:
+        if self.hint_type == 2 and ss_data.get('human_turn', False) and ss_data.get('winner', False) == -1:
             ss_data = self.humanHints.fetch_hints()
             # print(f"ss_data fetched.")
 
@@ -129,7 +129,9 @@ class Board:
 
     def switch_hint(self):
         self.hint_type += 1
-        if self.hint_type == 4:
+        if self.hint_type == 3:
+            self.humanHints.stop()
+        elif self.hint_type == 4:
             self.hint_type = 0
         print(f"Swith hint_type to {self.hint_type}")
 

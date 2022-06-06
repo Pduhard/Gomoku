@@ -41,4 +41,3 @@ class Snapshot:
         if engine.is_no_double_threes_active:
             engine.no_double_threes.update_from_snapshot(snapshot['no_double_threes_rules'])
 
-    
