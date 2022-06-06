@@ -36,17 +36,18 @@ class GomokuRunner:
         is_game_ending_capture_active = 'game-ending-capture' in self.rules
         is_no_double_threes_active = 'no-double-threes' in self.rules
 
+        self.players = [None, None]
         self.engine = Gomoku(
             is_capture_active,
             is_game_ending_capture_active,
             is_no_double_threes_active,
         )
 
-    def _run(self, players):
+    def _run(self):
 
         while not self.engine.isover():
 
-            p = players[self.engine.player_idx]
+            p = self.players[self.engine.player_idx]
             time_before_turn = perf_counter()
 
             player_action = p.play_turn(self)
@@ -63,9 +64,10 @@ class GomokuRunner:
 
     def run(self, players, init_config: int = None, *args, **kwargs):
 
+        self.players = players
         self.engine.init_game()
         if init_config == 1:
             force_config1(self.engine)
 
-        self._run(players, *args, **kwargs)
+        self._run(*args, **kwargs)
         return players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner

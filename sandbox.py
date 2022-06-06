@@ -23,26 +23,6 @@ from fastcore._algo import lib as fastcore_algo
 
 """
 
-        A faire:
-            Pull main sur mctsjit
-            Clean les bails d'heuristic oublié + add la nouvelle sur mctsevallazy
-            merge sur main
-            PUSH MAIN
-
-            continuer wipsocket
-            pull main sur wipsocket
-            merge sur mctsjit
-            tout bien verif
-            merge sur main
-            Attendre avant de push
-
-        UI THREADS :
-            Peut pas rejouer apres avoir rollback
-            Ne sarrete pas avc la croix
-            Desyncro de laffichage quand on va en arrire ?
-                se melange avec ladversair ej e crois
-
-
         Enlever les full_board = board0 | board1 qui sont de partout
         if pruning.any(): à enlever dans rollingout ?
 
@@ -105,27 +85,25 @@ def duel():
 
     mcts_p1 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
-        iter=10000,
+        iter=5000,
         pruning=True,
-        rollingout_turns=2,
-        with_new_heuristic=True
+        rollingout_turns=10
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     # mcts_p2 = GomokuLib.Algo.MCTSNjit(
     #     engine=runner.engine,
-    #     iter=10000,
+    #     iter=5000,
     #     pruning=True,
-    #     rollingout_turns=2,
-    #     with_new_heuristic=True
+    #     rollingout_turns=10
     # )
     # p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
-    #     iter=3000,
+    #     iter=5000,
     #     hard_pruning=True,
-    #     rollingout_turns=10
+    #     rollingout_turns=5
     # )
     # p1 = GomokuLib.Player.Bot(mcts_p1)
 

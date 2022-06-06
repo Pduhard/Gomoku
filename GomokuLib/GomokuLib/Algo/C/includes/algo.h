@@ -6,5 +6,3 @@ void    init_random();
 void    init_random_buffer(int *random_buffer, int size);
 
 int     mcts_lazy_selection(double *policy, int *best_actions);
-//float   mcts_eval_heuristic(char *board, int cap_1, int cap_2);
-float mcts_eval_heuristic(char *board, char *full_board, int cap_1, int cap_2, int gz_start_r, int gz_start_c, int gz_end_r, int gz_end_c);

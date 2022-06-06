@@ -45,7 +45,6 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             All kwargs information will be sent to UIManager with new snapshot
         """
         print(f"New snapshot add to socket queue")
-        # breakpoint()
 
         self.uisock.add_sending_queue({
             'code': 'game-snapshot',
@@ -55,21 +54,35 @@ class GomokuGUIRunnerSocket(GomokuRunner):
                 'ss_data': kwargs
             },
         })
-        # self.uisock.send()
-        # self.uisock.send_all()
 
-    def _run(self, players, mode: str = "GomokuGUIRunner.run()", send_all_ss: bool = True):
+    def get_game_data(self, mode: str, dtime_turn):
+        return {
+            'mode': mode,
+            'p1': str(self.players[0]),
+            'p2': str(self.players[1]),
+            'human_turn': not self.is_bots[self.engine.player_idx ^ 1],
+            'turn': self.engine.turn,
+            'dtime': dtime_turn, 
+            'board': self.engine.board,
+            'player_idx': self.engine.player_idx,
+            'captures': self.engine.get_captures(),
+            'winner': self.engine.winner,
+        }
 
-        self.update_UI(mode=mode)
+    def _run(self, mode: str = "GomokuGUIRunner.run()", send_all_ss: bool = True):
 
-        is_bots = [isinstance(p, GomokuLib.Player.Bot) for p in players]
+        self.is_bots = [isinstance(p, GomokuLib.Player.Bot) for p in self.players]
+        self.update_UI(
+            **self.get_game_data(mode, 0)
+        )
+
         while not self.engine.isover():
 
             print(f"\nTurn {self.engine.turn}. Player {self.engine.player_idx} to play ...")
             self.UIManager_exchanges()
 
-            p = players[self.engine.player_idx]
-            is_bot = is_bots[self.engine.player_idx]
+            p = self.players[self.engine.player_idx]
+            is_bot = self.is_bots[self.engine.player_idx]
             time_before_turn = perf_counter()
 
             player_action = p.play_turn(self)
@@ -88,22 +101,13 @@ class GomokuGUIRunnerSocket(GomokuRunner):
             if is_bot:
                 algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
 
-            game_data = {
-                'mode': mode,
-                'p1': str(players[0]),
-                'p2': str(players[1]),
-                'human_turn': not is_bots[self.engine.player_idx ^ 1],
-                'turn': self.engine.turn,
-                'dtime': dtime_turn, 
-                'board': self.engine.board,
-                'player_idx': self.engine.player_idx,
-                'captures': self.engine.get_captures(),
-                'winner': self.engine.winner,
-            }
+            # Game data fetching needs to be after apply_action/update_rules and before next_turn
+            game_data = self.get_game_data(mode, dtime_turn)
 
             self.engine._shift_board()
 
-            self.update_UI( # Snapshot needs to be after next_turn
+            # Snapshot creation needs to be after next_turn
+            self.update_UI(
                 **game_data,
                 **algo_data
             )

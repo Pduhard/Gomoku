@@ -3,7 +3,7 @@ import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import my_heuristic_graph, opp_heuristic_graph, njit_heuristic
+from GomokuLib.Algo import njit_heuristic, my_heuristic_graph, opp_heuristic_graph
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 # from .MCTSToBytes import tobytes
@@ -36,7 +36,6 @@ class MCTSNjit:
     mcts_iter: Typing.mcts_int_nb_dtype
     is_pruning: nb.boolean
     rollingout_turns: Typing.mcts_int_nb_dtype
-    with_new_heuristic: nb.boolean
 
     states: Typing.nbStateDict
     path: Typing.nbPath
@@ -55,17 +54,14 @@ class MCTSNjit:
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
                  pruning: nb.boolean = True,
-                 rollingout_turns: Typing.MCTSIntDtype = 10,
-                 with_new_heuristic: nb.boolean = True
+                 rollingout_turns: Typing.MCTSIntDtype = 10
                  ):
 
         self.engine = engine.clone()
         self.mcts_iter = iter
         self.is_pruning = pruning
         self.rollingout_turns = rollingout_turns
-        self.with_new_heuristic = with_new_heuristic
         self.c = np.sqrt(2)
-
 
         self.current_statehash = '0' * 722
         self.states = nb.typed.Dict.empty(
@@ -83,7 +79,7 @@ class MCTSNjit:
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
 
     def str(self):
-        return f"MCTSNjit ({self.mcts_iter} iter) newh={1 if self.with_new_heuristic else 0}"
+        return f"MCTSNjit ({self.mcts_iter} iter)"
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
@@ -311,27 +307,7 @@ class MCTSNjit:
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        if self.with_new_heuristic:
-            h = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
-
-        else:
-            c_board = ffi.from_buffer(board)
-            c_full_board = ffi.from_buffer(board[0] | board[1])
-
-            h = _algo.mcts_eval_heuristic(
-                c_board, c_full_board,
-                c0, c1, g0, g1, g2, g3
-            )
-
-        # if self.with_new_heuristic and debug:
-        #     print(board)
-        #     print(cap)
-        #     print(game_zone)
-        #     print(self.with_new_heuristic)
-        #     print(float(h))
-        #     # breakpoint()
-
-        return h
+        return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
@@ -389,12 +365,6 @@ class MCTSNjit:
 
         full_board = (self.engine.board[0] | self.engine.board[1]).astype(Typing.PruningDtype)
         non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
-
-        # if hard_pruning:
-        #     non_pruned = n1
-        # else:
-        #     n2 = self.get_neighbors_mask(n1)  # Get neightbors, depth=2
-        #     non_pruned = np.logical_or(n1, n2)
 
         xp = non_pruned ^ full_board
         non_pruned = xp & non_pruned  # Remove neighbors stones already placed

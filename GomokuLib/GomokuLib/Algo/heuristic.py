@@ -48,11 +48,11 @@ def _get_heuristic_coefs():
     )
     heuristic_coefs_dict = {
         'my_win_possible': 0.5,
-        'opp_win_2_turn': -1.5, # > 2 * my_win_possible
-        'my_win_1_turn': 2,     # > opp_win_2_turn
+        'opp_win_2_turn': -2, # > 2 * my_win_possible
+        'my_win_1_turn': 3,     # > opp_win_2_turn
         'opp_win_1_turn': -4,
-        'my_win': 5,
-        'opp_win': -6,
+        'my_win': 6,
+        'opp_win': -8,
     }
     return heuristic_coefs_dict
 
@@ -81,9 +81,6 @@ def _parse_align(graph, player_mark, v, align, i, p):
 
     _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b00)    # Can be an empty cells
     _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b11)    # Can be a map edge
-
-    # _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b01)  # Can be an opponent's stone
-    # _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)  # Can be an opponent's stone
 
     if player_mark == 0b10: # Prevent double rewards from one alignment
         _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b01)  # Can be an opponent's stone

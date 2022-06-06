@@ -15,21 +15,6 @@ ffi = _fastcore.ffi
 
 
 @njit()
-def old_heuristic(board):
-
-    c_board = ffi.from_buffer(board)
-    c_full_board = ffi.from_buffer(board[0] | board[1])
-
-    zero = np.int32(0)
-    eightteen = np.int32(18)
-    x = _algo.mcts_eval_heuristic(
-        c_board, c_full_board,
-        zero, zero, zero, zero, eightteen, eightteen
-    )
-    return x
-
-
-@njit()
 def generate_rd_boards(n, mode):
 
     if mode == 0:
@@ -53,7 +38,6 @@ def time_benchmark():
     @njit()
     def old_loop(boards, _loops, mode):
         for i in range(_loops):
-            # old_heuristic(_board)
             old_njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18)
 
     @njit()
