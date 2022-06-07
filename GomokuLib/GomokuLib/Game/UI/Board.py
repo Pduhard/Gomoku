@@ -51,11 +51,12 @@ class Board:
             or mouse_pos[1] < self.oy or mouse_pos[1] > self.oy + self.dy):
             return None
         # mouse_pos -= np.ndarray(self.ox, self.oy)
-        x, y = (np.array(mouse_pos[::-1]) // np.array(self.cell_size)).astype(np.int32)
+        y, x = (np.array(mouse_pos) // np.array(self.cell_size)).astype(np.int32)
         if x >= self.board_size[0]:
             x = self.board_size[0] - 1
         if y >= self.board_size[1]:
             y = self.board_size[1] - 1
+        print('mouse_click :', mouse_pos, "in ", self.ox, self.oy, self.dx, self.dy, " = coords", x, y, " for cell size ", self.cell_size)
         return x, y
 
     def mouse_click(self, event):
@@ -67,7 +68,6 @@ class Board:
             'code': 'board-click',
             'data': action_pos
         }
-        # print('mouse_click return ', res)
         return res
 
     def mouse_move(self, event):

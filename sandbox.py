@@ -108,7 +108,7 @@ def duel():
     # p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p1 = GomokuLib.Player.Human(runner)
-    # p2 = GomokuLib.Player.Human(runner)
+    p2 = GomokuLib.Player.Human(runner)
 
     if 'p1' not in locals():
         print("new p1")

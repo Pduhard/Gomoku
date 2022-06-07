@@ -114,7 +114,10 @@ class GomokuGUIRunner(GomokuRunner):
                 **algo_data
             )
 
-        print(f"Player {self.engine.winner} win.")
+        # while True:
+        #     print(f"Player {self.engine.winner} win.")
+        #     self.UIManager_exchanges()
+        #     time.sleep(1)
         self.GUI_quit(send_all_ss)
 
     def run(self, *args, **kwargs):
