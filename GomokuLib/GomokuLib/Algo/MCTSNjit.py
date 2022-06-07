@@ -64,11 +64,8 @@ class MCTSNjit:
         self.rollingout_turns = rollingout_turns
         self.c = np.sqrt(2)
 
+        self.init()
         self.current_statehash = '0' * 722
-        self.states = nb.typed.Dict.empty(
-            key_type=unitypr,
-            value_type=Typing.nbState
-        )
         self.path = np.zeros(361, dtype=Typing.PathDtype)
 
         self.all_actions = np.empty((361, 2), dtype=Typing.ActionDtype)
@@ -78,6 +75,12 @@ class MCTSNjit:
 
         print(f"{self.str()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
+
+    def init(self):
+        self.states = nb.typed.Dict.empty(
+            key_type=unitypr,
+            value_type=Typing.nbState
+        )
 
     def str(self):
         return f"MCTSNjit ({self.mcts_iter} iter)"

@@ -65,6 +65,12 @@ class MCTS(AbstractAlgorithm):
     def __str__(self):
         return f"Classic MCTS ({self.mcts_iter} iter)"
 
+    def init(self):
+        self.reset()
+
+    def reset(self):
+        self.states = {}
+
     def __call__(self, game_engine: Gomoku) -> tuple:
         """
             Reward in range [0, 1]
@@ -101,9 +107,6 @@ class MCTS(AbstractAlgorithm):
 
     def get_state_data_after_action(self, game_engine):
         return {}
-
-    def reset(self):
-        self.states = {}
 
     def mcts(self, mcts_iter: int):
 

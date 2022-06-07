@@ -9,6 +9,9 @@ class Bot:
     def __str__(self):
         return f"Bot -> {self.algo.str()}"
 
+    def init(self):
+        self.algo.init()
+
     def _play_turn(self, runner) -> tuple[int]:
         return self.algo(runner.engine)[1]
 

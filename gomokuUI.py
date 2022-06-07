@@ -10,7 +10,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     gui = GomokuLib.Game.UI.UIManager(
-        win_size=(700, 900),
+        win_size=(1500, 1000),
         host=args.host[0] if args.host else None,
         port=args.port[0] if args.port else None
     )

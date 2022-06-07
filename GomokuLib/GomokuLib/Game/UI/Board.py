@@ -56,7 +56,7 @@ class Board:
             x = self.board_size[0] - 1
         if y >= self.board_size[1]:
             y = self.board_size[1] - 1
-        print('mouse_click :', mouse_pos, "in ", self.ox, self.oy, self.dx, self.dy, " = coords", x, y, " for cell size ", self.cell_size)
+        # print('mouse_click :', mouse_pos, "in ", self.ox, self.oy, self.dx, self.dy, " = coords", x, y, " for cell size ", self.cell_size)
         return x, y
 
     def mouse_click(self, event):

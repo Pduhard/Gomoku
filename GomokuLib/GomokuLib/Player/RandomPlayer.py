@@ -9,6 +9,9 @@ class RandomPlayer:
     def __str__(self):
         return f"Random player"
 
+    def init(self):
+        pass
+
     def play_turn(self, runner) -> tuple[int]:
 
         engine = runner.engine

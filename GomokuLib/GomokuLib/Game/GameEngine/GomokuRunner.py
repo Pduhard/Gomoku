@@ -58,16 +58,25 @@ class GomokuRunner:
 
             self.engine.apply_action(player_action)
             self.engine.next_turn()
-            print(f"self.engine.board:\n{self.engine.board}\n")
+            print(f"Game board ([0] -> p1 / [1] -> p2):\n{self.engine.board}\n")
 
         print(f"Player {self.engine.winner} win.")
 
-    def run(self, players, init_config: int = None, *args, **kwargs):
+    def run(self, players: list, init_config: int = None, n_games: int = 1):
 
         self.players = players
-        self.engine.init_game()
-        if init_config == 1:
-            force_config1(self.engine)
+        winners = []
+        for i in range(n_games):
 
-        self._run(*args, **kwargs)
-        return players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
+            for p in self.players:
+                p.init()
+
+            self.engine.init_game()
+            if init_config == 1:
+                force_config1(self.engine)
+
+            self._run()
+            winner = players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
+            winners.append(str(winner))
+
+        return winners

@@ -55,9 +55,9 @@ class GomokuGUIRunner(GomokuRunner):
             },
         })
 
-    def get_game_data(self, mode: str, dtime_turn):
+    def get_game_data(self, dtime_turn):
         return {
-            'mode': mode,
+            'mode': "GomokuGUIRunner.run()",
             'p1': str(self.players[0]),
             'p2': str(self.players[1]),
             'human_turn': not self.is_bots[self.engine.player_idx ^ 1],
@@ -69,14 +69,12 @@ class GomokuGUIRunner(GomokuRunner):
             'winner': self.engine.winner,
         }
 
-    def _run(self, mode: str = "GomokuGUIRunner.run()", send_all_ss: bool = True):
+    def _run(self):
 
         self.is_bots = [isinstance(p, GomokuLib.Player.Bot) for p in self.players]
         self.update_UI(
-            **self.get_game_data(mode, 0)
+            **self.get_game_data(0)
         )
-
-        # while ui_shutdown_order ....
 
         while not self.engine.isover():
 
@@ -104,7 +102,7 @@ class GomokuGUIRunner(GomokuRunner):
                 algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
 
             # Game data fetching needs to be after apply_action/update_rules and before next_turn
-            game_data = self.get_game_data(mode, dtime_turn)
+            game_data = self.get_game_data(dtime_turn)
 
             self.engine._shift_board()
 
@@ -114,26 +112,32 @@ class GomokuGUIRunner(GomokuRunner):
                 **algo_data
             )
 
-        # while True:
-        #     print(f"Player {self.engine.winner} win.")
-        #     self.UIManager_exchanges()
-        #     time.sleep(1)
-        self.GUI_quit(send_all_ss)
+        print(f"Player {self.engine.winner} win.")
 
     def run(self, *args, **kwargs):
+
+        winners = []
+        self.play = True
         try:
-            super().run(*args, **kwargs)
+            while True:
+
+                if self.play:
+                    w = super().run(*args, **kwargs)
+                    winners.extend(w)
+                    self.play = False
+
+                self.UIManager_exchanges()
+                print(f"Waiting for a new game ...")
+                time.sleep(1)
+
         except KeyboardInterrupt:
             print(f"\nKeyboardInterrupt !")
-            self.GUI_quit(False)
-
-        # except UIManagerNewGame:
-        #     print(f"\nUIManagerNewGame !")
-        #     pass
 
         except Exception as e:
-            print(f"\nException !!!\n{e}\nClose properly ...")
-            self.GUI_quit(False)
+            print(f"\nException:\n\t{e}\n")
+            
+        self.GUI_quit(False)
+        return winners
 
     def UIManager_exchanges(self):
 
@@ -141,33 +145,35 @@ class GomokuGUIRunner(GomokuRunner):
         inpt = self.uisock.recv()
         if inpt:
             if inpt['code'] == 'response-player-action':
-                ar, ac = inpt['data']
-                self.player_action = (ar, ac)
+                self.player_action = inpt['data']
 
             elif inpt['code'] == 'shutdown':
-                print(f"Shutdown by UIManager.")
-                self.GUI_quit(False)
-                exit(0)
+                raise Exception(f"Shutdown by UIManager.")
 
             elif inpt['code'] == 'game-snapshot':
                 Snapshot.update_from_snapshot(self.engine, inpt['data'])
 
+            elif inpt['code'] == 'new-game':
+                self.play = True
+
     def wait_player_action(self):
         ts = 0
         while True:
-            if time.time() > ts + 10:
-                self.uisock.add_sending_queue({
-                    'code': 'request-player-action'
-                })
-                print(f"GUI send request-player-action ->")
-                ts = time.time()
-                
+
             self.UIManager_exchanges()
 
             if self.player_action:
                 action = self.player_action
                 self.player_action = None
                 return action
+
+            # Make sure UIManager receive the request
+            elif time.time() > ts + 10:
+                self.uisock.add_sending_queue({
+                    'code': 'request-player-action'
+                })
+                print(f"GUI send request-player-action ->")
+                ts = time.time()
 
     def GUI_quit(self, send_all_ss):
         print(f"\nGomokuGUIRunner: Send disconnection order to UIManager.")

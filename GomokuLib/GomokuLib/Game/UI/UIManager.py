@@ -89,10 +89,11 @@ class UIManager:
             'y': [self.oy + p * self.dy for p in prop_y]
         }
 
+        board_square_size = min(self.rules['x'][1], self.rules['y'][-1])
         self.main_board = Board(
             self.win,
             origin=(self.rules['x'][0], self.rules['y'][0]),
-            size=(self.rules['x'][1], self.rules['y'][-1]),
+            size=(board_square_size, board_square_size),
             board_size=self.board_size,
             humanHints=self.humanHints
         )
@@ -123,13 +124,13 @@ class UIManager:
             Button(**button_data[1], event_code='pause-play', color=(50, 200, 50), num_states=2),
             Button(**button_data[2], event_code='step-front', color=(0, 255, 255)),
 
-            Button(**button_data[3], event_code='Nothing yet', color=(50, 200, 200)),
-            Button(**button_data[4], event_code='switch-hint', color=(100, 100, 200), num_states=4),
+            Button(**button_data[3], event_code='switch-hint', color=(100, 100, 200), num_states=4),
+            Button(**button_data[4], event_code='human-hints', color=(100, 100, 200), num_states=2),
             Button(**button_data[5], event_code='step-uptodate', color=(0, 255, 255)),
 
             Button(**button_data[6], event_code='new-game', color=(50, 200, 50)),
-            Button(**button_data[7], event_code='human-hints', color=(100, 100, 200), num_states=2),
-            Button(**button_data[8], event_code='Nothing yet', color=(50, 200, 200)),
+            Button(**button_data[7], event_code='debug-mode', color=(50, 200, 200), num_states=2),
+            Button(**button_data[8], event_code='send-snapshot', color=(50, 200, 200)),
         ]
 
         for c in self.components:
@@ -175,7 +176,7 @@ class UIManager:
             code = input['code']
 
             if code == 'request-player-action':
-                # print(f"-> UI Recv request-player-action")
+                print(f"-> UI Recv request-player-action")
                 self.request_player_action = True
 
             elif code == 'game-snapshot':
@@ -185,12 +186,6 @@ class UIManager:
 
                 if not self.pause and self.current_snapshot_idx < len(self.game_snapshots) - 1:
                     self.current_snapshot_idx += 1
-
-            elif code == 'end-game':
-                self.uisock.connected = False
-                self.humanHints.stop()
-                print(f"UIManager: Deconnection asked by GomokuGUIRunner.")
-                time.sleep(1)   # Very important and we will never talk about why ... Please.
 
             elif code == 'board-click':
                 x, y = input['data']
@@ -212,6 +207,17 @@ class UIManager:
 
             elif code == 'switch-hint':
                 self.main_board.switch_hint(input['state'])
+
+            elif code == 'end-game':
+                self.uisock.connected = False
+                self.humanHints.stop()
+                print(f"UIManager: Deconnection asked by GomokuGUIRunner.")
+                time.sleep(1)   # Very important and we will never talk about why ... Please.
+
+            elif code == 'new-game':
+                self.uisock.add_sending_queue({
+                    'code': 'new-game'
+                })
 
         if tmp_idx_snapshot != self.current_snapshot_idx:
             self.snapshot_idx_modified = True
