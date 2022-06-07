@@ -115,10 +115,6 @@ class Board:
         player_idx = ss_data.get('player_idx', 0)
         self.win.blit(self.bg, (self.ox, self.oy))
 
-        if self.hint_type == 2 and ss_data.get('human_turn', False) and ss_data.get('winner', False) == -1:
-            ss_data = self.humanHints.fetch_hints()
-            # print(f"ss_data fetched.")
-
         if ss_data and 'mcts_state_data' in ss_data:
             self.draw_hints(ss_data)
 
@@ -129,10 +125,6 @@ class Board:
 
     def switch_hint(self, state):
         self.hint_type = state
-
-        if self.hint_type == 3:
-            self.humanHints.stop()
-
         print(f"Swith hint_type to {self.hint_type}")
 
     def draw_stones(self, board: np.ndarray, player_idx: int):
@@ -173,9 +165,6 @@ class Board:
             self.draw_mcts_hints(sa_n, sa_v)
 
         elif self.hint_type == 2:
-            self.draw_mcts_hints(sa_n, sa_v)
-        
-        elif self.hint_type == 3:
             self.draw_actions(actions)
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):

@@ -30,29 +30,10 @@ class UIManager:
         self.board_size = self.engine.board_size
         self.humanHints = HumanHints(self.engine)
 
-    def __call__(self): # Thread function
-
-        print("UIManager __call__()\n")
-        self.init()
-
-        self.cross_shutdown = False
-        while not self.cross_shutdown:
-
-            self.fetch_input()
-            self.process_events()
-            self.process_inputs()
-
-            self.update_engines()
-            self.update_components()
-            self.handle_human_click()
-
-            self.uisock.send_all()
-
     def init(self):
 
         self.callbacks = {}
         self.current_snapshot_idx = -1
-        self.snapshot_idx_modified = False
         self.pause = False
         self.game_data = {}
         self.init_time = time.time()
@@ -62,7 +43,10 @@ class UIManager:
         self.board_clicked_action = None
         self.inputs = []
         self.game_snapshots = []
-        self.snapshot_idx_modified = False
+        self.runner_snapshots_queue = []
+        self.last_snapshot_idx_updated = 0
+        self.is_debug_mode = False
+        self.human_hints_active = False
 
         self.initUI()
         
@@ -124,8 +108,8 @@ class UIManager:
             Button(**button_data[1], event_code='pause-play', color=(50, 200, 50), num_states=2),
             Button(**button_data[2], event_code='step-front', color=(0, 255, 255)),
 
-            Button(**button_data[3], event_code='switch-hint', color=(100, 100, 200), num_states=4),
-            Button(**button_data[4], event_code='human-hints', color=(100, 100, 200), num_states=2),
+            Button(**button_data[3], event_code='debug-data', color=(100, 100, 200), num_states=3),
+            Button(**button_data[4], event_code='human-hint', color=(100, 100, 200), num_states=2),
             Button(**button_data[5], event_code='step-uptodate', color=(0, 255, 255)),
 
             Button(**button_data[6], event_code='new-game', color=(50, 200, 50)),
@@ -135,6 +119,32 @@ class UIManager:
 
         for c in self.components:
             c.init_event(self)
+
+    def __call__(self): # Thread function
+
+        print("UIManager __call__()\n")
+        self.init()
+
+        self.cross_shutdown = False
+        while not self.cross_shutdown:
+
+            self.fetch_input()
+            self.process_events()
+            self.process_inputs()
+
+            if self.last_snapshot_idx_updated != self.current_snapshot_idx:
+                self.update_engines()
+
+            self.update_components()
+
+            if self.board_clicked_action:
+                if self.is_debug_mode:
+                    self.debug_mode()
+                else:
+                    self.handle_human_click()
+
+            pygame.display.flip()
+            self.uisock.send_all()
 
     def register(self, event_type, callback):
         if str(event_type) in self.callbacks:
@@ -167,7 +177,6 @@ class UIManager:
 
     def process_inputs(self):
 
-        tmp_idx_snapshot = self.current_snapshot_idx
         self.board_clicked_action = None
 
         for input in self.inputs:
@@ -181,19 +190,27 @@ class UIManager:
 
             elif code == 'game-snapshot':
 
-                self.game_snapshots.append(input['data'])
+                self.runner_snapshots_queue.append(input['data'])
                 print(f"New snapshot receive, pause={self.pause}\t, dtime={input['data']['ss_data'].get('dtime', '_')}")
 
-                if not self.pause and self.current_snapshot_idx < len(self.game_snapshots) - 1:
+                if not self.pause:
+                    # if not self.current_snapshot_idx < len(self.game_snapshots) - 1:
+                    #     breakpoint()
+                    self.game_snapshots.extend(self.runner_snapshots_queue)
+                    self.runner_snapshots_queue = []
                     self.current_snapshot_idx += 1
+
+                print(f"UIManager: self.current_snapshot_idx={self.current_snapshot_idx}")
+                print(f"UIManager: len(game_snapshots)={len(self.game_snapshots)}")
+                print(f"UIManager: len(runner_snapshots_queue)={len(self.runner_snapshots_queue)}")
 
             elif code == 'board-click':
                 x, y = input['data']
                 self.board_clicked_action = (x, y)
-                print(f"Request Human: {self.request_player_action} | Receive action: {self.board_clicked_action}")
+                print(f"Request Human={self.request_player_action} | Receive action: {self.board_clicked_action}")
 
             elif code == 'pause-play':
-                self.pause = not self.pause
+                self.pause = input['state']
                 print(f"Pause={self.pause}")
 
             elif code == 'step-back' and self.current_snapshot_idx > 0:
@@ -205,8 +222,15 @@ class UIManager:
             elif code == 'step-uptodate':
                 self.current_snapshot_idx = len(self.game_snapshots) - 1
 
-            elif code == 'switch-hint':
+            elif code == 'debug-data':
                 self.main_board.switch_hint(input['state'])
+            
+            elif code == "human-hint":
+                self.human_hints_active = input['state']
+                if self.human_hints_active:
+                    self.humanHints.start()
+                else:
+                    self.humanHints.stop()
 
             elif code == 'end-game':
                 self.uisock.connected = False
@@ -219,36 +243,61 @@ class UIManager:
                     'code': 'new-game'
                 })
 
-        if tmp_idx_snapshot != self.current_snapshot_idx:
-            self.snapshot_idx_modified = True
+            elif code == 'debug-mode':
+                self.is_debug_mode = input['state']
+                self.pause = input['state']
+                print(f"Debug mode={self.is_debug_mode}")
+
+            elif code == 'send-snapshot':
+                if self.is_debug_mode:
+                    self.send_snapshot(self.current_snapshot_idx)
 
     def update_engines(self):
 
-        if self.snapshot_idx_modified:
+        if len(self.game_snapshots):
+            print(f"Update engines with ss: {self.current_snapshot_idx}")
             snapshot = self.game_snapshots[self.current_snapshot_idx]['snapshot']
             Snapshot.update_from_snapshot(
                 self.engine,
                 snapshot
             )  # Update local engine to test valid action
-
             self.humanHints.update_from_snapshot(snapshot)
-            self.snapshot_idx_modified = False
+
+            self.last_snapshot_idx_updated = self.current_snapshot_idx
 
     def update_components(self):
 
+
         if len(self.game_snapshots):
             ss = self.game_snapshots[self.current_snapshot_idx]
-            ss_data = ss['ss_data']
-            tottime = ss.get('tottime', ss['time'] - self.init_time)
+        else:
+            ss = {}
 
-            for o in self.components:
-                o.draw(ss_data=ss_data, snapshot=ss['snapshot'], ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), tottime=tottime)
+        ss_data = ss.get('ss_data', {})
+        snapshot = ss.get('snapshot', None)
+        tottime = round(time.time() - self.init_time, 0)
+        
+        if self.human_hints_active:
+            ss_data.update(self.humanHints.fetch_hints())
 
-        pygame.display.flip()
+        for o in self.components:
+            o.draw(
+                ss_data=ss_data,
+                snapshot=snapshot,
+                ss_i=self.current_snapshot_idx,
+                ss_num=len(self.game_snapshots),
+                tottime=tottime
+            )
+
+    def send_snapshot(self, ss_i):
+        self.uisock.add_sending_queue({  # Update GUI engine to re-continue with new state
+            'code': 'game-snapshot',
+            'data': self.game_snapshots[ss_i]['snapshot']
+        })
 
     def handle_human_click(self):
 
-        if self.request_player_action and self.board_clicked_action and not self.pause:
+        if self.request_player_action and not self.pause:
             print(f"Player action catch")
             if self.engine.is_valid_action(self.board_clicked_action):
                 print(f"Player action valid !")
@@ -257,14 +306,10 @@ class UIManager:
 
                     current_ss = self.game_snapshots[self.current_snapshot_idx]['snapshot']
                     lastest_ss = self.game_snapshots[-1]['snapshot']
-
                     print(f"current_ss['player_idx'] == lastest_ss['player_idx'] ? {current_ss['player_idx']} == {lastest_ss['player_idx']}")
+
                     if current_ss['player_idx'] == lastest_ss['player_idx']:    # Human can only play at its turns 
-                        # breakpoint() # Need debug ?
-                        self.uisock.add_sending_queue({  # Update GUI engine to re-continue with new state
-                            'code': 'game-snapshot',
-                            'data': current_ss
-                        })
+                        self.send_snapshot(self.current_snapshot_idx)
                         del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
 
                     else:
@@ -281,7 +326,18 @@ class UIManager:
             else:
                 print(f"Not a valid action ! -> {self.board_clicked_action}")
 
-    def debug_mode():
+    def get_debug_data(self):
+        return {
+            'mode': "Debug (Just-in-time heuristic)",
+            'turn': self.engine.turn,
+            'board': self.engine.board,
+            'player_idx': self.engine.player_idx,
+            'captures': self.engine.get_captures(),
+            'winner': self.engine.winner,
+            'heuristic': self.humanHints.mcts.heuristic(self.engine)
+        }
+
+    def debug_mode(self):
         """
             while on larrete pas:
                 Poser ou enlever une stone
@@ -289,7 +345,22 @@ class UIManager:
                 Utiliser Humanhints
             update le GomokuGUIRunner
         """
-        pass
+        if self.engine.is_valid_action(self.board_clicked_action):
+            self.engine.apply_action(self.board_clicked_action)
+            self.engine._next_turn_rules()
+            debug_data = self.get_debug_data()
+            self.engine._shift_board()
+
+            if self.current_snapshot_idx != len(self.game_snapshots) - 1: # New state never seen
+                del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
+
+            self.game_snapshots.append({
+                'time': time.time(),
+                'snapshot': Snapshot.create_snapshot(self.engine),
+                'ss_data': debug_data
+            })
+            self.current_snapshot_idx += 1
+            print(f"New snapshot: {self.current_snapshot_idx}")
 
     def UI_quit(self):
         self.humanHints.stop()

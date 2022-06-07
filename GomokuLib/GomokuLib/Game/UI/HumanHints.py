@@ -26,7 +26,7 @@ class HumanHints:
         )
         print(f"HumanHints: Numba compilation of MCTSNjit start ...")
         ts = time.time()
-        self.mcts.do_n_iter(self.engine, 1)
+        # self.mcts.do_n_iter(self.engine, 1)
         print(f"HumanHints: Numba compilation of MCTSNjit is finished.\tdtime: {time.time() - ts}")
 
         self.thread = threading.Thread(
@@ -57,7 +57,7 @@ class HumanHints:
 
     def fetch_hints(self) -> tuple[np.ndarray, np.ndarray]:
 
-        mcts_data = self.mcts.get_state_data(self.engine)
+        mcts_data = dict(self.mcts.get_state_data(self.engine))
 
         try:
             if mcts_data['mcts_state_data'][0]['visits'] >= self.max_iter:
