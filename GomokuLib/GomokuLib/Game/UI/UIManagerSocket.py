@@ -37,10 +37,12 @@ class UIManagerSocket:
         while not self.cross_shutdown:
 
             self.fetch_input()
-
             self.process_events()
             self.process_inputs()
-            self.update()
+
+            self.update_engines()
+            self.update_components()
+            self.handle_human_click()
 
             self.uisock.send_all()
 
@@ -165,7 +167,7 @@ class UIManagerSocket:
         if tmp_idx_snapshot != self.current_snapshot_idx:
             self.snapshot_idx_modified = True
 
-    def update(self):
+    def update_engines(self):
 
         if self.snapshot_idx_modified:
             snapshot = self.game_snapshots[self.current_snapshot_idx]['snapshot']
@@ -176,6 +178,20 @@ class UIManagerSocket:
 
             self.humanHints.update_from_snapshot(snapshot)
             self.snapshot_idx_modified = False
+
+    def update_components(self):
+
+        if len(self.game_snapshots):
+            ss = self.game_snapshots[self.current_snapshot_idx]
+            ss_data = ss['ss_data']
+            tottime = ss.get('tottime', ss['time'] - self.init_time)
+
+            for o in self.components:
+                o.draw(ss_data=ss_data, snapshot=ss['snapshot'], ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), tottime=tottime)
+
+        pygame.display.flip()
+
+    def handle_human_click(self):
 
         if self.request_player_action and self.board_clicked_action and not self.pause:
             print(f"Player action catch")
@@ -210,15 +226,15 @@ class UIManagerSocket:
             else:
                 print(f"Not a valid action ! -> {self.board_clicked_action}")
 
-        if len(self.game_snapshots):
-            ss = self.game_snapshots[self.current_snapshot_idx]
-            ss_data = ss['ss_data']
-            tottime = ss.get('tottime', ss['time'] - self.init_time)
-
-            for o in self.components:
-                o.draw(ss_data=ss_data, snapshot=ss['snapshot'], ss_i=self.current_snapshot_idx, ss_num=len(self.game_snapshots), tottime=tottime)
-
-        pygame.display.flip()
+    def debug_mode():
+        """
+            while on larrete pas:
+                Poser ou enlever une stone
+                update les autres composents de l'UI
+                Utiliser Humanhints
+            update le GomokuGUIRunner
+        """
+        pass
 
     def UI_quit(self):
         self.humanHints.stop()
