@@ -22,7 +22,7 @@ class HumanHints:
             engine=self.engine,
             iter=self.batch_iter,
             pruning=True,
-            rollingout_turns=5,
+            rollingout_turns=10,
         )
         print(f"HumanHints: Numba compilation of MCTSNjit start ...")
         ts = time.time()

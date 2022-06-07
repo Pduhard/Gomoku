@@ -45,6 +45,7 @@ class MCTSNjit:
     opp_heuristic_graph: Typing.nbHeuristicGraph
 
     depth: Typing.mcts_int_nb_dtype
+    max_depth: Typing.mcts_int_nb_dtype
     end_game: nb.boolean
     reward: Typing.mcts_float_nb_dtype
     current_statehash: unitypr
@@ -95,15 +96,25 @@ class MCTSNjit:
         return mcts_data
 
     def get_state_data_after_action(self, game_engine: Gomoku):
+
+        mcts_data = nb.typed.Dict.empty(
+            key_type=nb.types.unicode_type,
+            value_type=Typing.MCTSFloatDtype
+        )
         statehash = self.fast_tobytes(game_engine.board)
         if statehash in self.states:
-            h = self.states[statehash][0]['heuristic']
+            # h = self.states[statehash][0]['heuristic']
+            mcts_data['heuristic'] = self.states[statehash][0]['heuristic']
+            mcts_data['max_depth'] = self.states[statehash][0]['max_depth']
         else:
-            h = self.heuristic(game_engine, debug=True)
-        
-        return {
-            'heuristic': h
-        }
+            # h = self.heuristic(game_engine, debug=True)
+            mcts_data['heuristic'] = self.heuristic(game_engine, debug=True)
+            mcts_data['max_depth'] = Typing.MCTSFloatDtype(self.max_depth)
+
+        # return {
+        #     'heuristic': h
+        # }
+        return mcts_data
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
@@ -111,6 +122,10 @@ class MCTSNjit:
         self.do_n_iter(game_engine, self.mcts_iter)
 
         state_data = self.states[self.gamestatehash][0]
+        
+        # state_data['max_depth'] = self.max_depth
+        # print(state_data['max_depth'], self.max_depth)
+
         sa_v, sa_r = state_data['stateAction']
         arg = np.argmax(sa_r / (sa_v + 1))
         # print(f"StateAction visits: {sa_v}")
@@ -121,11 +136,18 @@ class MCTSNjit:
         return arg // 19, arg % 19
 
     def do_n_iter(self, game_engine: Gomoku, iter: int):
+
+        self.max_depth = 0
         self.gamestatehash = self.fast_tobytes(game_engine.board)
+
         for i in range(iter):
             self.current_statehash = self.gamestatehash
             self.engine.update(game_engine)
+
             self.mcts(i)
+
+            if self.depth + 1 > self.max_depth:
+                self.max_depth = self.depth + 1
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 
@@ -247,7 +269,7 @@ class MCTSNjit:
         pruning = self.pruning()
         self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
 
-        self.states[statehash][0]['depth'] = self.depth
+        self.states[statehash][0]['max_depth'] = self.depth
         self.states[statehash][0]['visits'] = 1
         self.states[statehash][0]['rewards'] = self.reward
         self.states[statehash][0]['stateAction'][...] = 0.

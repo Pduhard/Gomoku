@@ -30,22 +30,23 @@ class Display:
         if ss_data:
             winner = ss_data.get('winner', -1)
             if winner != -1:
-                winner = 'Black' if winner else 'White'
+                winner = ss_data.get('p2', 'Black') if winner else ss_data.get('p1', 'White')
             else:
                 winner = '_'
 
             all_fields = {
                 'Total time': f"{round(tottime / 60, 2)} min",
+                'Snapshot': f"{ss_i + 1}/{ss_num}",
                 'Mode': ss_data.get('mode', '_'),
                 'Winner': winner,
                 'White': ss_data.get('p1', '_'),
                 'Black': ss_data.get('p2', '_'),
                 'Turn': ss_data.get('turn', '_'),
                 'dtime (ms)': ss_data.get('dtime', '_'),
-                'Snapshot': f"{ss_i + 1}/{ss_num}",
                 'Waiting': 'White' if ss_data.get('player_idx', '_') else 'Black',
                 'Captures': ss_data.get('captures', '_'),
                 'Heuristic': ss_data.get('heuristic', '_'),
+                'Tree depth': int(ss_data.get('max_depth', -1)),
                 'Award': ss_data.get('award', '_'),
                 'Model confidence': ss_data.get('model_confidence', '_'),
                 'Best models': ss_data.get('nbr_best_models', '_'),

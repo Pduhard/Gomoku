@@ -72,9 +72,14 @@ class MCTS(AbstractAlgorithm):
         """
         print(f"\n[MCTS Object __call__()] -> {self.mcts_iter}\n")
 
+        self.max_depth = 0
         for i in range(self.mcts_iter):
             self.engine.update(game_engine)
+
             self.mcts(i)
+
+            if self.depth + 1 > self.max_depth:
+                self.max_depth = self.depth + 1
 
         state_data = self.states[game_engine.board.tobytes()]
         sa_n, sa_v = state_data['StateAction']
@@ -88,12 +93,13 @@ class MCTS(AbstractAlgorithm):
 
         return self.mcts_policy, self.gAction
 
-    def get_state_data(self, engine):
+    def get_state_data(self, game_engine):
         return {
-            'mcts_state_data': self.states[engine.board.tobytes()],
+            'mcts_state_data': self.states[game_engine.board.tobytes()],
+            'max_depth': self.max_depth
         }
 
-    def get_state_data_after_action(self, engine):
+    def get_state_data_after_action(self, game_engine):
         return {}
 
     def reset(self):
@@ -103,6 +109,7 @@ class MCTS(AbstractAlgorithm):
 
         # print(f"\n[MCTS function {mcts_iter}]\n")
 
+        self.depth = 0
         path = []
         # self.mcts_idx = self.engine.player_idx
         self.current_board = self.engine.board
@@ -120,6 +127,7 @@ class MCTS(AbstractAlgorithm):
             path.append(self.new_memory(statehash))
             self.engine.apply_action(self.bestGAction)
             self.engine.next_turn()
+            self.depth += 1
 
             self.current_board = self.engine.board
             statehash = self.current_board.tobytes()
