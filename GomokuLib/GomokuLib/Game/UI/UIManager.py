@@ -108,7 +108,7 @@ class UIManager:
             Button(**button_data[1], event_code='pause-play', color=(50, 200, 50), num_states=2),
             Button(**button_data[2], event_code='step-front', color=(0, 255, 255)),
 
-            Button(**button_data[3], event_code='debug-data', color=(100, 100, 200), num_states=3),
+            Button(**button_data[3], event_code='data-display', color=(100, 100, 200), num_states=3),
             Button(**button_data[4], event_code='human-hint', color=(100, 100, 200), num_states=2),
             Button(**button_data[5], event_code='step-uptodate', color=(0, 255, 255)),
 
@@ -222,7 +222,7 @@ class UIManager:
             elif code == 'step-uptodate':
                 self.current_snapshot_idx = len(self.game_snapshots) - 1
 
-            elif code == 'debug-data':
+            elif code == 'data-display':
                 self.main_board.switch_hint(input['state'])
             
             elif code == "human-hint":
@@ -249,8 +249,7 @@ class UIManager:
                 print(f"Debug mode={self.is_debug_mode}")
 
             elif code == 'send-snapshot':
-                if self.is_debug_mode:
-                    self.send_snapshot(self.current_snapshot_idx)
+                self.send_snapshot(self.current_snapshot_idx)
 
     def update_engines(self):
 

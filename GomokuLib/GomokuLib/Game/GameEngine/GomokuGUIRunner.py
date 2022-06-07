@@ -37,6 +37,7 @@ class GomokuGUIRunner(GomokuRunner):
 
         self.player_action = None
         self.socket_queue = []
+        self.init_snapshot = False
 
         print("END __init__() GomokuGUIRunner\n")
 
@@ -122,9 +123,10 @@ class GomokuGUIRunner(GomokuRunner):
             while True:
 
                 if self.play:
-                    w = super().run(*args, **kwargs)
+                    w = super().run(init_snapshot=self.init_snapshot, *args, **kwargs)
                     winners.extend(w)
                     self.play = False
+                    self.init_snapshot = None
 
                 self.UIManager_exchanges()
                 print(f"Waiting for a new game ...")
@@ -135,7 +137,7 @@ class GomokuGUIRunner(GomokuRunner):
 
         except Exception as e:
             print(f"\nException:\n\t{e}\n")
-            
+
         self.GUI_quit(False)
         return winners
 
@@ -151,7 +153,11 @@ class GomokuGUIRunner(GomokuRunner):
                 raise Exception(f"Shutdown by UIManager.")
 
             elif inpt['code'] == 'game-snapshot':
-                Snapshot.update_from_snapshot(self.engine, inpt['data'])
+                if self.play:
+                    Snapshot.update_from_snapshot(self.engine, inpt['data'])
+                else:
+                    self.init_snapshot = inpt['data']
+                self.play = True
 
             elif inpt['code'] == 'new-game':
                 self.play = True

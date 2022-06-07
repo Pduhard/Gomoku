@@ -2,29 +2,9 @@
 from time import perf_counter
 from typing import Union
 import time
+
+from GomokuLib.Game.GameEngine.Snapshot import Snapshot
 from .Gomoku import Gomoku
-
-from numba import njit
-
-
-@njit()
-def force_config1(engine):
-    # self.engine.init_game()
-
-    engine.apply_action((3, 3))
-    engine.next_turn()
-
-    engine.apply_action((4, 3))
-    engine.next_turn()
-
-    engine.apply_action((3, 4))
-    engine.next_turn()
-
-    engine.apply_action((4, 4))
-    engine.next_turn()
-
-    engine.apply_action((3, 5))
-    engine.next_turn()
 
 
 class GomokuRunner:
@@ -62,7 +42,7 @@ class GomokuRunner:
 
         print(f"Player {self.engine.winner} win.")
 
-    def run(self, players: list, init_config: int = None, n_games: int = 1):
+    def run(self, players: list, init_snapshot: int = None, n_games: int = 1):
 
         self.players = players
         winners = []
@@ -72,8 +52,8 @@ class GomokuRunner:
                 p.init()
 
             self.engine.init_game()
-            if init_config == 1:
-                force_config1(self.engine)
+            if init_snapshot:
+                Snapshot.update_from_snapshot(self.engine, init_snapshot)
 
             self._run()
             winner = players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
