@@ -99,14 +99,13 @@ def duel():
     )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    mcts_p2 = GomokuLib.Algo.MCTSNjit(
-        engine=runner.engine,
-        iter=5000,
-        pruning=True,
-        rollingout_turns=10
-    )
-    p2 = GomokuLib.Player.Bot(mcts_p2)
-
+    # mcts_p2 = GomokuLib.Algo.MCTSNjit(
+    #     engine=runner.engine,
+    #     iter=5000,
+    #     pruning=True,
+    #     rollingout_turns=10
+    # )
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p1 = GomokuLib.Player.Human(runner)
     # p2 = GomokuLib.Player.Human(runner)

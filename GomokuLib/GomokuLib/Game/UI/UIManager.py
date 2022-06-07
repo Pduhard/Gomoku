@@ -16,11 +16,13 @@ from .Display import Display
 from GomokuLib.Sockets.UISocketClient import UISocketClient
 from GomokuLib.Game.UI.HumanHints import HumanHints
 
-class UIManagerSocket:
+class UIManager:
 
     def __init__(self, win_size: tuple, host: str = None, port: int = None):
 
-        self.win_size = win_size
+        assert len(win_size) == 2
+        self.ox, self.oy = 0, 0
+        self.dx, self.dy = win_size
         self.host = host
         self.port = port
 
@@ -62,29 +64,74 @@ class UIManagerSocket:
         self.game_snapshots = []
         self.snapshot_idx_modified = False
 
-        self.initUI(self.win_size)
+        self.initUI()
         
-    def initUI(self, win_size: Union[list[int], tuple[int]]):
+    def initUI(self):
 
         print(f"board_size: {self.board_size}")
-        assert len(win_size) == 2
 
         print("init GUI")
         pygame.init()
 
-        self.win = pygame.display.set_mode(win_size)
+        # self.win = pygame.display.set_mode((self.dx, self.dy), pygame.RESIZABLE)
+        self.win = pygame.display.set_mode((self.dx, self.dy))
         # self.win.convert_alpha()
 
-        self.main_board = Board(self.win, origin=(0, 0), size=(950, 950), board_size=self.board_size, humanHints=self.humanHints)
+        button_prop = 0.1       # Proportion size of buttons
+        bgrid_begin_x = 0.68    # Start x of button grid
+        bgrid_begin_y = 0.05    # Start y of button grid
+
+        # Reperes/Rules in the windows to create all components
+        prop_x = [0.0, 0.66, bgrid_begin_x, bgrid_begin_x + button_prop, bgrid_begin_x + 2 * button_prop, 1.0]
+        prop_y = [0.0, bgrid_begin_y, bgrid_begin_y + button_prop, bgrid_begin_y + 2 * button_prop, 0.40, 1.0]
+        self.rules = {
+            'x': [self.ox + p * self.dx for p in prop_x],
+            'y': [self.oy + p * self.dy for p in prop_y]
+        }
+
+        self.main_board = Board(
+            self.win,
+            origin=(self.rules['x'][0], self.rules['y'][0]),
+            size=(self.rules['x'][1], self.rules['y'][-1]),
+            board_size=self.board_size,
+            humanHints=self.humanHints
+        )
+        self.display = Display(
+            self.win,
+            origin=(self.rules['x'][2], self.rules['y'][-2]),
+            size=(
+                self.rules['x'][-1] - self.rules['x'][2],
+                self.rules['y'][-1] - self.rules['y'][-2]
+            )
+        )
+
+        button_size = button_prop * self.dx, button_prop * self.dy
+        button_data = []
+        for pyi in range(1, 4):
+            for pxi in range(2, 5):
+                button_data.append({
+                    'win': self.win,
+                    'origin': (self.rules['x'][pxi], self.rules['y'][pyi]),
+                    'size': button_size
+                })
+
         self.components = [
             self.main_board,
-            Display(self.win, origin=(1000, 350), size=(450, 600)),
-            Button(self.win, origin=(1050, 100), size=(100, 100), event_code='step-back', color=(0, 255, 255)),
-            Button(self.win, origin=(1200, 100), size=(100, 100), event_code='pause-play', color=(0, 255, 0)),
-            Button(self.win, origin=(1350, 100), size=(100, 100), event_code='step-front', color=(0, 255, 255)),
-            Button(self.win, origin=(1050, 225), size=(100, 100), event_code='switch-hint', color=(50, 50, 200)),
-            Button(self.win, origin=(1350, 225), size=(100, 100), event_code='step-uptodate', color=(50, 200, 200)),
+            self.display,
+
+            Button(**button_data[0], event_code='step-back', color=(0, 255, 255)),
+            Button(**button_data[1], event_code='pause-play', color=(50, 200, 50), num_states=2),
+            Button(**button_data[2], event_code='step-front', color=(0, 255, 255)),
+
+            Button(**button_data[3], event_code='Nothing yet', color=(50, 200, 200)),
+            Button(**button_data[4], event_code='switch-hint', color=(100, 100, 200), num_states=4),
+            Button(**button_data[5], event_code='step-uptodate', color=(0, 255, 255)),
+
+            Button(**button_data[6], event_code='new-game', color=(50, 200, 50)),
+            Button(**button_data[7], event_code='human-hints', color=(100, 100, 200), num_states=2),
+            Button(**button_data[8], event_code='Nothing yet', color=(50, 200, 200)),
         ]
+
         for c in self.components:
             c.init_event(self)
 
@@ -108,12 +155,14 @@ class UIManagerSocket:
             if event.type == pygame.QUIT:
                 self.UI_quit()
 
-            if str(event.type) not in self.callbacks:
-                continue
-            for callback in self.callbacks[str(event.type)]:
-                response = callback(event)
-                if response:
-                    self.inputs.append(response)
+            # elif event.type == pygame.VIDEORESIZE:    # Need to update all components with new size ...
+            #     self.dx, self.dy = event.w, event.h
+
+            elif str(event.type) in self.callbacks:
+                for callback in self.callbacks[str(event.type)]:
+                    response = callback(event)
+                    if response:
+                        self.inputs.append(response)
 
     def process_inputs(self):
 
@@ -162,7 +211,7 @@ class UIManagerSocket:
                 self.current_snapshot_idx = len(self.game_snapshots) - 1
 
             elif code == 'switch-hint':
-                self.main_board.switch_hint()
+                self.main_board.switch_hint(input['state'])
 
         if tmp_idx_snapshot != self.current_snapshot_idx:
             self.snapshot_idx_modified = True

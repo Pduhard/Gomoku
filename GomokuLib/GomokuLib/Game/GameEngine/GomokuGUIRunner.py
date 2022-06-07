@@ -6,7 +6,7 @@ from multiprocessing.dummy import Process
 
 import GomokuLib
 from GomokuLib.Sockets.UISocketServer import UISocketServer
-from GomokuLib.Game.UI.UIManagerSocket import UIManagerSocket
+from GomokuLib.Game.UI.UIManager import UIManager
 from GomokuLib.Game.GameEngine.Snapshot import Snapshot
 from GomokuLib.Game.GameEngine.GomokuRunner import GomokuRunner
 
@@ -25,8 +25,8 @@ class GomokuGUIRunner(GomokuRunner):
         self.uisock = UISocketServer(host=host, port=port, name="Runner")
 
         if start_UI:
-            print(f"GomokuGUIRunner.__init__() start UIManagerSocket client")
-            self.gui = UIManagerSocket(
+            print(f"GomokuGUIRunner.__init__() start UIManager client")
+            self.gui = UIManager(
                 engine=GomokuLib.Game.GameEngine.Gomoku(),
                 win_size=(1500, 1000),
                 host=host,
@@ -76,6 +76,8 @@ class GomokuGUIRunner(GomokuRunner):
             **self.get_game_data(mode, 0)
         )
 
+        # while ui_shutdown_order ....
+
         while not self.engine.isover():
 
             print(f"\nTurn {self.engine.turn}. Player {self.engine.player_idx} to play ...")
@@ -121,6 +123,10 @@ class GomokuGUIRunner(GomokuRunner):
         except KeyboardInterrupt:
             print(f"\nKeyboardInterrupt !")
             self.GUI_quit(False)
+
+        # except UIManagerNewGame:
+        #     print(f"\nUIManagerNewGame !")
+        #     pass
 
         except Exception as e:
             print(f"\nException !!!\n{e}\nClose properly ...")

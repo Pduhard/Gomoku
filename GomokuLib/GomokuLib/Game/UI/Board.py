@@ -127,12 +127,12 @@ class Board:
         if ss_data and 'mcts_state_data' in ss_data:
             self.draw_stats(board, ss_data)
 
-    def switch_hint(self):
-        self.hint_type += 1
+    def switch_hint(self, state):
+        self.hint_type = state
+
         if self.hint_type == 3:
             self.humanHints.stop()
-        elif self.hint_type == 4:
-            self.hint_type = 0
+
         print(f"Swith hint_type to {self.hint_type}")
 
     def draw_stones(self, board: np.ndarray, player_idx: int):
