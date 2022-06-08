@@ -63,6 +63,8 @@ class UIManager:
         self.win = pygame.display.set_mode((self.dx, self.dy))
         # self.win.convert_alpha()
 
+        self.graph = Graph()
+
         button_prop = 0.1       # Proportion size of buttons
         bgrid_begin_x = 0.68    # Start x of button grid
         bgrid_begin_y = 0.05    # Start y of button grid
@@ -105,7 +107,7 @@ class UIManager:
         self.components = [
             self.main_board,
             self.display,
-            Graph(),
+            self.graph,
 
             Button(**button_data[0], event_code='step-back', color=(0, 255, 255)),
             Button(**button_data[1], event_code='pause-play', color=(50, 200, 50), num_states=2),
@@ -297,6 +299,10 @@ class UIManager:
             'data': self.game_snapshots[ss_i]['snapshot']
         })
 
+    def del_futures_snapshots(self, ss_i):
+        del self.game_snapshots[ss_i + 1:]  # Remove future snapshots
+        self.graph.del_mem(ss_i)
+
     def handle_human_click(self):
 
         if self.request_player_action and not self.pause:
@@ -312,8 +318,7 @@ class UIManager:
 
                     if current_ss['player_idx'] == lastest_ss['player_idx']:    # Human can only play at its turns 
                         self.send_snapshot(self.current_snapshot_idx)
-                        del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
-
+                        self.del_futures_snapshots(self.current_snapshot_idx)
                     else:
                         return
 
@@ -354,7 +359,7 @@ class UIManager:
             self.engine._shift_board()
 
             if self.current_snapshot_idx != len(self.game_snapshots) - 1: # New state never seen
-                del self.game_snapshots[self.current_snapshot_idx + 1:]  # Remove future snapshots
+                self.del_futures_snapshots(self.current_snapshot_idx)
 
             self.game_snapshots.append({
                 'time': time.time(),

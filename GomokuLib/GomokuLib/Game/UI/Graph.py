@@ -29,36 +29,33 @@ class Graph:
 
         self.graphs = {
             0: {
-                'plot': None,
-                'stateQualities': [0.5],
-                'heuristics': [0.5]
+                'axe': None,
+                'stateQualities': [],
+                'heuristics': []
             },
             1: {
-                'plot': None,
-                'stateQualities': [0.5],
-                'heuristics': [0.5]
+                'axe': None,
+                'stateQualities': [],
+                'heuristics': []
             }
         }
-        self.graph_uptodate = True
         self.show = False
         if self.show:
             self.init_graphs()
     
     def init_graphs(self):
-        # self.fig, ((p0, p1), (_, _)) = plt.subplots(2, 2, sharey='row')
-        self.fig, ((p0, p1), (_, _)) = plt.subplots(2, 2)
+        self.fig, ((a0, a1), (_, _)) = plt.subplots(2, 2, sharey='row')
+        # self.fig, ((a0, a1), (_, _)) = plt.subplots(2, 2)
 
-        p0.set(title='Player 0 data', xlabel='Turns', ylabel='Qualities', ylim=(0, 1))
-        p1.set(title='Player 1 data', xlabel='Turns', ylabel='Qualities', ylim=(0, 1))
-        p0.legend()
-        p1.legend()
+        a0.set(title='Player 0 data', xlabel='Turns', ylabel='Qualities')
+        a1.set(title='Player 1 data', xlabel='Turns', ylabel='Qualities')
+        a0.legend()
+        a1.legend()
 
-        self.graphs[0]['plot'] = p0
-        self.graphs[1]['plot'] = p1
+        self.graphs[0]['axe'] = a0
+        self.graphs[1]['axe'] = a1
 
-        self.display_graphs()
-        plt.ion()
-        # plt.show()
+        plt.ion()   # Interactive mode, draw is now in non blocking mode
         plt.draw()
 
     def keyboard_handler(self, event):
@@ -77,11 +74,13 @@ class Graph:
     def draw(self, **kwargs):
 
         self.save_datas(**kwargs)
-        
         if self.show:
             self.display_graphs()
 
-            plt.pause(0.01)
+    def del_mem(self, ss_i: int):
+        for _, p_mem in self.graphs.items():
+            del p_mem['stateQualities'][ss_i + 1:]
+            del p_mem['heuristics'][ss_i + 1:]
 
     def save_datas(self, ss_data: dict, ss_i: int, **kwargs):
         player_idx = ss_data.get('player_idx', 0)
@@ -97,7 +96,6 @@ class Graph:
             except:
                 s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
 
-            # print(f"Graph: new data", ss_i)
             arr = [
                 (self.graphs[player_idx]['stateQualities'], s_v / s_n),
                 (self.graphs[player_idx]['heuristics'], ss_data.get('heuristic', -42))
@@ -107,30 +105,26 @@ class Graph:
                     mem.append(data)
                 else:
                     mem[ss_i] = data
-                    del mem[ss_i + 1:]
-                    self.graph_uptodate = False
-
-        # else:
-        #     print(f"No state_data:\n{ss_data}")
 
     def display_graphs(self):
 
-        if not self.graph_uptodate:
-            plt.close()
-            self.init_graphs()
-
         for player_idx, graph in self.graphs.items():
 
-            graph['plot'].plot(
+            graph['axe'].clear()
+            graph['axe'].plot(
                 np.arange(len(graph['stateQualities'])),
                 graph['stateQualities'],
                 color='b',
                 label=f'StateQuality player {player_idx}'
             )
 
-            graph['plot'].plot(
+            graph['axe'].plot(
                 np.arange(len(graph['heuristics'])),
                 graph['heuristics'],
                 color='g',
                 label=f'Heuristic player {player_idx}'
             )
+            graph['axe'].set_ylim(0, 1)
+            graph['axe'].legend()
+
+        plt.pause(0.005)
