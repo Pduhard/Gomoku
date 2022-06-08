@@ -42,7 +42,7 @@ class Board:
         self.whitestone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WhiteStone.png").convert_alpha()
         self.blackstone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/BlackStone.png").convert_alpha()
 
-        self.hint_type = 1
+        self.hint_type = 0
         self.hint_mouse = None
         self.init_ui()
 

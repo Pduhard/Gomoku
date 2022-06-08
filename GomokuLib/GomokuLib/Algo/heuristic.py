@@ -50,6 +50,8 @@ def _get_heuristic_coefs():
         value_type=Typing.mcts_int_nb_dtype
     )
     heuristic_coefs_dict = {
+        'capture': 1,           # Just non-zero value
+
         'my_win_possible': 0.5,
         'opp_win_2_turn': -2, # > 2 * my_win_possible
         'my_win_1_turn': 3,     # > opp_win_2_turn
@@ -61,6 +63,8 @@ def _get_heuristic_coefs():
 
 def _parse_align(graph, player_mark, v, align, i, p):
     """
+        '#' needs to be at index 2. Because that's how the heuristic test
+
         _parse_align() calls need to be in ascending order according to the rewards.
             Because some of them overwrite old registered alignments
 
@@ -89,6 +93,7 @@ def _parse_align(graph, player_mark, v, align, i, p):
         _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b01)  # Can be an opponent's stone
     else:
         _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)  # Can be an opponent's stone
+
 
 def init_my_heuristic_graph():
     """
@@ -150,6 +155,20 @@ def init_opp_heuristic_graph():
     print("Opponent heuristic init parse ", len(fill_graph[0]), " alignments")
     return opp_graph
 
+def init_captures_graph():
+    """
+        Envoyer a lheursitic in param pour pouvoir tester les 8 dir ...
+    """
+
+    cap_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
+    coefs = _get_heuristic_coefs()
+
+    # Alignments
+    _parse_align(cap_graph, 0b01, coefs['capture'], "XX#$$_X", 0, 0)
+
+    fill_graph = np.nonzero(cap_graph)
+    print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
+    return cap_graph
 
 """
     Heuristic computation
@@ -226,13 +245,12 @@ def _find_align_reward(board, graph, sr, sc):
 
     return np.sum(rewards)
 
-@njit()
-def _compute_capture_coef(my_cap, opp_cap):
-    return 2 * (my_cap - opp_cap) / (5.5 - max(my_cap, opp_cap))
 
 @njit()
 def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
-
+    """
+        Prendre en compte gameEndingCapture
+    """
     # Padding: 2 on the left and top / 5 on the right and bottom
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
@@ -249,7 +267,7 @@ def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, g
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
-    return 1 / (1 + np.exp(-0.4 * x))
+    return 1 / (1 + np.exp(-0.5 * x))
 
 @njit()
 def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
@@ -271,6 +289,24 @@ def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.4 * x))
+
+
+@njit()
+def _compute_capture_coef(my_cap, opp_cap):
+    """
+        Meme chose mais avec un 3eme graph pour les captures possible
+            Récupérer le nbr
+
+            Current player:
+                Si 5 captures                        return 1
+                Si 4 captures + 1 capture possible = return 0   (Faut la prendre)
+            Opponent player:
+                Si 5 captures                        return 0
+                Si 4 captures + 1 capture possible = return 0
+
+            Sinon des maths
+    """
+    return 1.5 * (my_cap - opp_cap) / (5.5 - max(my_cap, opp_cap))
 
 
 

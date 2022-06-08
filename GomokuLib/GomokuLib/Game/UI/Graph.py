@@ -10,13 +10,12 @@ class Graph:
         2 graph type:
             - Graphs over the game/turns. Use all snapshots data
                 Save a snapshot id representing the beginning of graphs/game
-            - Graphs about one turn/snapshot data
+            - Graphs about one turn/snapshot data (not yet)
                 Always use the last snapshot
 
         Graphs:
             - Player 0: StateQuality + heuristic
             - Player 1: StateQuality + heuristic
-
 
         'G' pressed modify internal state. ON/OFF
         
