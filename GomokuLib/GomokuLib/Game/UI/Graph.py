@@ -27,26 +27,36 @@ class Graph:
     """
     def __init__(self):
 
-        self.show = True
-        self.init_graphs()
+        self.graphs = {
+            'p0': {
+                'plot': None,
+                'stateQualities': [0],
+                'heuristics': [0.5]
+            }
+        }
+        self.show = False
+        if self.show:
+            self.init_graphs()
     
     def init_graphs(self):
         self.fig, ((p0, _), (_, _)) = plt.subplots(2, 2)
 
         p0.set(title='Player 0 data', xlabel='Turn', ylabel='Quality')
+        self.graphs['p0']['plot'] = p0
 
-        self.graphs = {
-            'p0': {
-                'plot': p0,
-                'stateQualities': [],
-                'heuristics': []
-            }
-        }
         plt.legend()
+        plt.ion()
+        plt.show()
+        plt.draw()
 
     def keyboard_handler(self, event):
         if event.key == pygame.K_g:
             self.show = not self.show
+            if self.show:
+                self.init_graphs()
+            else:
+                plt.close()
+
             print(f"You press G key, show={self.show}")
 
     def init_event(self, manager):
@@ -58,9 +68,9 @@ class Graph:
         
         if self.show:
             self.display_graphs()
-        
-        plt.show(block=False)
-        # plt.show()
+
+            plt.pause(0.05)
+
         print(f"MATHPLTLIB SHOW ?")
 
     def save_datas(self, ss_data: dict, ss_i: int, **kwargs):
