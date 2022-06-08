@@ -169,7 +169,6 @@ class Board:
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):
 
-        # s_n, s_v, (sa_n, sa_v) = ss_data['mcts_state_data'][:3]
         try:
             state_data = ss_data['mcts_state_data'][0]
         except:
@@ -203,6 +202,12 @@ class Board:
         if 'Value' in ss_data:
             self.blit_text(
                 "P(s)[-1,1]= " + str(round(ss_data['Value'], 3)),
+                1,
+                y
+            )
+        else:
+            self.blit_text(
+                "Mouse pos= " + str(self.hint_mouse),
                 1,
                 y
             )
@@ -249,6 +254,20 @@ class Board:
                         (self.ox + self.cells_coord[0, y, x] - self.csx,
                          self.oy + self.cells_coord[1, y, x] - self.csy)
                     )
+
+            args = np.argwhere(policy == policy.max())
+            for y, x in args:
+                pygame.draw.ellipse(
+                    surface=self.win,
+                    color=(100, 50, 50),
+                    rect=pygame.Rect((
+                            self.ox + self.cells_coord[0, y, x] - self.csx,
+                            self.oy + self.cells_coord[1, y, x] - self.csy
+                        ),
+                        (self.csx, self.csy)
+                    ),
+                    width=4
+            )
 
     def draw_model_hints(self, policy: np.ndarray):
         """

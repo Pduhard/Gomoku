@@ -6,6 +6,10 @@ from . import Typing
 # from . import Media
 from . import Sockets
 
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 __all__ = [
     'AI',
     'Algo',

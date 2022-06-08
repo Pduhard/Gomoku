@@ -41,6 +41,9 @@ from numba import njit
 """
 
 def _get_heuristic_coefs():
+    """
+        Baisser l'importance des captures ?
+    """
 
     heuristic_coefs_dict = nb.typed.Dict.empty(
         key_type=nb.types.unicode_type,

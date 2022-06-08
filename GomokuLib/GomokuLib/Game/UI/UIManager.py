@@ -12,9 +12,11 @@ from ..GameEngine.Snapshot import Snapshot
 from .Board import Board
 from .Button import Button
 from .Display import Display
+from .Graph import Graph
 
 from GomokuLib.Sockets.UISocketClient import UISocketClient
 from GomokuLib.Game.UI.HumanHints import HumanHints
+
 
 class UIManager:
 
@@ -103,6 +105,7 @@ class UIManager:
         self.components = [
             self.main_board,
             self.display,
+            Graph(),
 
             Button(**button_data[0], event_code='step-back', color=(0, 255, 255)),
             Button(**button_data[1], event_code='pause-play', color=(50, 200, 50), num_states=2),
@@ -200,9 +203,9 @@ class UIManager:
                     self.runner_snapshots_queue = []
                     self.current_snapshot_idx += 1
 
-                print(f"UIManager: self.current_snapshot_idx={self.current_snapshot_idx}")
-                print(f"UIManager: len(game_snapshots)={len(self.game_snapshots)}")
-                print(f"UIManager: len(runner_snapshots_queue)={len(self.runner_snapshots_queue)}")
+                # print(f"UIManager: self.current_snapshot_idx={self.current_snapshot_idx}")
+                # print(f"UIManager: len(game_snapshots)={len(self.game_snapshots)}")
+                # print(f"UIManager: len(runner_snapshots_queue)={len(self.runner_snapshots_queue)}")
 
             elif code == 'board-click':
                 x, y = input['data']

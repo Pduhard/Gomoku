@@ -23,9 +23,11 @@ from fastcore._algo import lib as fastcore_algo
 
 """
 
+        Pourquoi des fois le server casse la connectino immediatement
+            quand le client se connecte en route ...
+            BrokenPipeError
+
         Gerer les tours en fonction d'un temps egalement
-        cercle dans la meilleure case
-        Tout les graph possibles
 
         Enlever les full_board = board0 | board1 qui sont de partout
         if pruning.any(): à enlever dans rollingout ?
@@ -84,29 +86,29 @@ def duel():
     # p1 = GomokuLib.Player.RandomPlayer()
     # p1 = GomokuLib.Player.Human(runner)
 
-    mcts_p1 = GomokuLib.Algo.MCTSNjit(
-        engine=runner.engine,
-        iter=5000,
-        pruning=True,
-        rollingout_turns=10
-    )
-    p1 = GomokuLib.Player.Bot(mcts_p1)
-
-    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+    # mcts_p1 = GomokuLib.Algo.MCTSNjit(
     #     engine=runner.engine,
-    #     iter=1000,
-    #     hard_pruning=True,
+    #     iter=5000,
+    #     pruning=True,
     #     rollingout_turns=10
     # )
     # p1 = GomokuLib.Player.Bot(mcts_p1)
 
-    mcts_p2 = GomokuLib.Algo.MCTSNjit(
+    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
         engine=runner.engine,
-        iter=5000,
-        pruning=True,
+        iter=3000,
+        hard_pruning=True,
         rollingout_turns=10
     )
-    p2 = GomokuLib.Player.Bot(mcts_p2)
+    p1 = GomokuLib.Player.Bot(mcts_p1)
+
+    # mcts_p2 = GomokuLib.Algo.MCTSNjit(
+    #     engine=runner.engine,
+    #     iter=5000,
+    #     pruning=True,
+    #     rollingout_turns=10
+    # )
+    # p2 = GomokuLib.Player.Bot(mcts_p2)
 
     # p1 = GomokuLib.Player.Human(runner)
     # p2 = GomokuLib.Player.Human(runner)
