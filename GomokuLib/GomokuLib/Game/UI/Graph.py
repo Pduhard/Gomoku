@@ -28,25 +28,37 @@ class Graph:
     def __init__(self):
 
         self.graphs = {
-            'p0': {
+            0: {
                 'plot': None,
-                'stateQualities': [0],
+                'stateQualities': [0.5],
+                'heuristics': [0.5]
+            },
+            1: {
+                'plot': None,
+                'stateQualities': [0.5],
                 'heuristics': [0.5]
             }
         }
+        self.graph_uptodate = True
         self.show = False
         if self.show:
             self.init_graphs()
     
     def init_graphs(self):
-        self.fig, ((p0, _), (_, _)) = plt.subplots(2, 2)
+        # self.fig, ((p0, p1), (_, _)) = plt.subplots(2, 2, sharey='row')
+        self.fig, ((p0, p1), (_, _)) = plt.subplots(2, 2)
 
-        p0.set(title='Player 0 data', xlabel='Turn', ylabel='Quality')
-        self.graphs['p0']['plot'] = p0
+        p0.set(title='Player 0 data', xlabel='Turns', ylabel='Qualities', ylim=(0, 1))
+        p1.set(title='Player 1 data', xlabel='Turns', ylabel='Qualities', ylim=(0, 1))
+        p0.legend()
+        p1.legend()
 
-        plt.legend()
+        self.graphs[0]['plot'] = p0
+        self.graphs[1]['plot'] = p1
+
+        self.display_graphs()
         plt.ion()
-        plt.show()
+        # plt.show()
         plt.draw()
 
     def keyboard_handler(self, event):
@@ -69,11 +81,11 @@ class Graph:
         if self.show:
             self.display_graphs()
 
-            plt.pause(0.05)
-
-        print(f"MATHPLTLIB SHOW ?")
+            plt.pause(0.01)
 
     def save_datas(self, ss_data: dict, ss_i: int, **kwargs):
+        player_idx = ss_data.get('player_idx', 0)
+
         try:
             state_data = ss_data['mcts_state_data'][0]
         except:
@@ -85,25 +97,40 @@ class Graph:
             except:
                 s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
 
-            p0_stateQuality = s_v / s_n
-            if ss_i >= len(self.graphs['p0']['stateQualities']):
-                self.graphs['p0']['stateQualities'].append(p0_stateQuality)
-            else:
-                self.graphs['p0']['stateQualities'][ss_i] = p0_stateQuality
+            # print(f"Graph: new data", ss_i)
+            arr = [
+                (self.graphs[player_idx]['stateQualities'], s_v / s_n),
+                (self.graphs[player_idx]['heuristics'], ss_data.get('heuristic', -42))
+            ]
+            for mem, data in arr:
+                if ss_i >= len(mem):
+                    mem.append(data)
+                else:
+                    mem[ss_i] = data
+                    del mem[ss_i + 1:]
+                    self.graph_uptodate = False
 
         # else:
         #     print(f"No state_data:\n{ss_data}")
 
     def display_graphs(self):
 
-        p0_plot = self.graphs['p0']['plot']
-        p0_stateQualities = self.graphs['p0']['stateQualities']
+        if not self.graph_uptodate:
+            plt.close()
+            self.init_graphs()
 
-        X = np.arange(len(p0_stateQualities))
+        for player_idx, graph in self.graphs.items():
 
-        p0_plot.plot(
-            X,
-            p0_stateQualities,
-            color='b',
-            label='State qualities'
-        )
+            graph['plot'].plot(
+                np.arange(len(graph['stateQualities'])),
+                graph['stateQualities'],
+                color='b',
+                label=f'StateQuality player {player_idx}'
+            )
+
+            graph['plot'].plot(
+                np.arange(len(graph['heuristics'])),
+                graph['heuristics'],
+                color='g',
+                label=f'Heuristic player {player_idx}'
+            )

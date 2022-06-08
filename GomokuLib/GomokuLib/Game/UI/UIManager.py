@@ -269,7 +269,7 @@ class UIManager:
 
     def update_components(self):
 
-
+        # print(f"UIManager: Update: self.current_snapshot_idx: {self.current_snapshot_idx}")
         if len(self.game_snapshots):
             ss = self.game_snapshots[self.current_snapshot_idx]
         else:
