@@ -5,7 +5,7 @@ import numba as nb
 from GomokuLib.Algo import _compute_capture_coef, njit_heuristic, old_njit_heuristic
 import GomokuLib.Typing as Typing
 
-from numba import jit, njit
+from numba import njit
 from numba.core.typing import cffi_utils
 import fastcore._algo as _fastcore
 

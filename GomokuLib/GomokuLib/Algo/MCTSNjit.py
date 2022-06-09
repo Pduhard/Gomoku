@@ -3,7 +3,7 @@ import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import njit_heuristic, old_njit_heuristic
+from GomokuLib.Algo import njit_hpruning, njit_heuristic, old_njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 # from .MCTSToBytes import tobytes
@@ -17,7 +17,6 @@ import fastcore._algo as _fastcore
 cffi_utils.register_module(_fastcore)
 _algo = _fastcore.lib
 ffi = _fastcore.ffi
-
 
 
 @nb.vectorize('float64(int8, float64)')
@@ -112,7 +111,7 @@ class MCTSNjit:
             mcts_data['max_depth'] = self.states[statehash][0]['max_depth']
         else:
             # h = self.heuristic(game_engine, debug=True)
-            mcts_data['heuristic'] = self.heuristic(game_engine, debug=True)
+            mcts_data['heuristic'] = Typing.MCTSFloatDtype(self.heuristic(game_engine, debug=True))
             mcts_data['max_depth'] = Typing.MCTSFloatDtype(self.max_depth)
 
         # return {
@@ -395,8 +394,20 @@ class MCTSNjit:
 
     def pruning(self):
 
-        if not self.is_pruning:
-            return np.ones((19, 19), dtype=Typing.PruningDtype)
+        # game_zone = self.engine.get_game_zone()
+        # # print(f"game_zone:", game_zone)
+        # g0 = game_zone[0]
+        # g1 = game_zone[1]
+        # g2 = game_zone[2]
+        # g3 = game_zone[3]
+        # hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3)
+        # # print("hpruning: ", hpruning)
+
+        # if np.any(hpruning):
+        #     return hpruning
+
+        # if not self.is_pruning:
+        #     return np.ones((19, 19), dtype=Typing.PruningDtype)
 
         full_board = (self.engine.board[0] | self.engine.board[1]).astype(Typing.PruningDtype)
         non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1

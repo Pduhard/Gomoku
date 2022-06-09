@@ -1,4 +1,6 @@
+# from .aligns_graphs import my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph
 from .heuristic import njit_heuristic, old_njit_heuristic, _compute_capture_coef
+from .hpruning import njit_hpruning
 
 from .MCTS import MCTS
 from .MCTSLazy import MCTSLazy
@@ -23,5 +25,12 @@ __all__ = [
 
     'njit_heuristic',
     'old_njit_heuristic',
-    '_compute_capture_coef'
+    '_compute_capture_coef',
+
+    'njit_hpruning',
+
+    # 'my_h_graph',
+    # 'opp_h_graph',
+    # 'my_cap_graph',
+    # 'opp_cap_graph',
 ]

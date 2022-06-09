@@ -113,7 +113,7 @@ class UIManager:
             Button(**button_data[1], event_code='pause-play', color=(50, 200, 50), num_states=2),
             Button(**button_data[2], event_code='step-front', color=(0, 255, 255)),
 
-            Button(**button_data[3], event_code='data-display', color=(100, 100, 200), num_states=3),
+            Button(**button_data[3], event_code='data-display', color=(100, 100, 200), num_states=4),
             Button(**button_data[4], event_code='human-hint', color=(100, 100, 200), num_states=2),
             Button(**button_data[5], event_code='step-uptodate', color=(0, 255, 255)),
 

@@ -154,9 +154,9 @@ class Board:
             state_data = ss_data['mcts_state_data']
 
         try:
-            (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
+            (sa_n, sa_v), actions, pruning = state_data['StateAction'], state_data['Actions'], None
         except:
-            (sa_n, sa_v), actions = state_data['stateAction'], state_data['actions']
+            (sa_n, sa_v), actions, pruning = state_data['stateAction'], state_data['actions'], state_data['pruning']
 
         if self.hint_type == 0 and 'Policy' in state_data:
             self.draw_model_hints(state_data['Policy'])
@@ -166,6 +166,9 @@ class Board:
 
         elif self.hint_type == 2:
             self.draw_actions(actions)
+
+        elif self.hint_type == 3:
+            self.draw_actions(pruning)
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):
 
@@ -296,15 +299,16 @@ class Board:
 
     def draw_actions(self, actions: np.array):
 
-        color = pygame.Color(200, 50, 50, 100)
-        for y in range(self.board_size[1]):
-            for x in range(self.board_size[0]):
-                if not actions[y, x]:
-                    self.hint_surface.fill(color)
-                    self.win.blit(self.hint_surface, (
-                        self.ox + self.cells_coord[0, y, x] - self.csx,
-                        self.oy + self.cells_coord[1, y, x] - self.csy
-                    ))
+        if actions:
+            color = pygame.Color(200, 50, 50, 100)
+            for y in range(self.board_size[1]):
+                for x in range(self.board_size[0]):
+                    if not actions[y, x]:
+                        self.hint_surface.fill(color)
+                        self.win.blit(self.hint_surface, (
+                            self.ox + self.cells_coord[0, y, x] - self.csx,
+                            self.oy + self.cells_coord[1, y, x] - self.csy
+                        ))
 
     def blit_text(self, text, x, y, size=20):
 
