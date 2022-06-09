@@ -75,16 +75,18 @@ def _parse_align(graph, player_mark, v, align, i, p):
     """
     # print(f"v, align, i, p = ", v, align, i, p)
     if i == 7:
-        # if graph[p]:
-        #     print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
+        if graph[p]:
+            print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
         # print(f"graph[p] = v / graph[{p}] = {v}")
         graph[p] = v
-        return 
+        return
 
     if align[i] == "_":
         return _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b00)
     if align[i] == "#":
         return _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + player_mark)
+    if align[i] == "$":
+        return _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + (~player_mark & 0b11)) # 0b01 becomes 0b10 | 0b10 becomes 0b01
 
     _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b00)    # Can be an empty cells
     _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b11)    # Can be a map edge
@@ -155,20 +157,31 @@ def init_opp_heuristic_graph():
     print("Opponent heuristic init parse ", len(fill_graph[0]), " alignments")
     return opp_graph
 
-def init_captures_graph():
-    """
-        Envoyer a lheursitic in param pour pouvoir tester les 8 dir ...
-    """
+def init_my_captures_graph():
 
-    cap_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
+    my_cap_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
     coefs = _get_heuristic_coefs()
 
     # Alignments
-    _parse_align(cap_graph, 0b01, coefs['capture'], "XX#$$_X", 0, 0)
+    _parse_align(my_cap_graph, 0b10, coefs['capture'], "X$##_XX", 0, 0)
+    _parse_align(my_cap_graph, 0b10, coefs['capture'], "X_##$XX", 0, 0)
 
-    fill_graph = np.nonzero(cap_graph)
+    fill_graph = np.nonzero(my_cap_graph)
     print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
-    return cap_graph
+    return my_cap_graph
+
+def init_opp_captures_graph():
+
+    opp_cap_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
+    coefs = _get_heuristic_coefs()
+
+    # Alignments
+    _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X#$$_XX", 0, 0)
+    _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X_$$#XX", 0, 0)
+
+    fill_graph = np.nonzero(opp_cap_graph)
+    print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
+    return opp_cap_graph
 
 """
     Heuristic computation
@@ -247,9 +260,11 @@ def _find_align_reward(board, graph, sr, sc):
 
 
 @njit()
-def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
+def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
     """
-        Prendre en compte gameEndingCapture
+        Prendre en compte gameEndingCapture ?
+        Somme des patern mauvaise idée ?
+            Rewards forte ou faible si jamais plusieurs patern sont présent jjsp
     """
     # Padding: 2 on the left and top / 5 on the right and bottom
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
@@ -260,17 +275,17 @@ def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, g
         for x in range(2 + gz_start_c, 2 + gz_end_c):
 
             if board_pad[0, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, my_graph, y, x)
+                rewards[y, x] = _find_align_reward(board_pad, my_h_graph, y, x)
 
             elif board_pad[1, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, opp_graph, y, x)
+                rewards[y, x] = _find_align_reward(board_pad, opp_h_graph, y, x)
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.5 * x))
 
 @njit()
-def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
+def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
 
     # Padding: 2 on the left and top / 5 on the right and bottom
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
@@ -281,14 +296,14 @@ def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_
         for x in range(2 + gz_start_c, 2 + gz_end_c):
 
             if board_pad[0, y, x]:
-                rewards[y, x] = _old_find_align_reward(board_pad, my_graph, y, x)
+                rewards[y, x] = _find_align_reward(board_pad, my_h_graph, y, x)
 
             elif board_pad[1, y, x]:
-                rewards[y, x] = _old_find_align_reward(board_pad, opp_graph, y, x)
+                rewards[y, x] = _find_align_reward(board_pad, opp_h_graph, y, x)
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
-    return 1 / (1 + np.exp(-0.4 * x))
+    return 1 / (1 + np.exp(-0.5 * x))
 
 
 @njit()
@@ -306,10 +321,13 @@ def _compute_capture_coef(my_cap, opp_cap):
 
             Sinon des maths
     """
+
     return 1.5 * (my_cap - opp_cap) / (5.5 - max(my_cap, opp_cap))
 
 
+## Init graphs
 
-if __name__ == "__main__":
-    print(init_my_heuristic_graph())
-    print(init_opp_heuristic_graph())
+my_h_graph = init_my_heuristic_graph()
+opp_h_graph = init_opp_heuristic_graph()
+my_cap_graph = init_my_captures_graph()
+opp_cap_graph = init_opp_captures_graph()

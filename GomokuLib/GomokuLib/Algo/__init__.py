@@ -1,10 +1,4 @@
-import numpy as np
-import GomokuLib.Typing as Typing
-
-from .heuristic import init_my_heuristic_graph, init_opp_heuristic_graph, njit_heuristic, old_njit_heuristic, _compute_capture_coef
-
-my_heuristic_graph = init_my_heuristic_graph()
-opp_heuristic_graph = init_opp_heuristic_graph()
+from .heuristic import njit_heuristic, old_njit_heuristic, _compute_capture_coef
 
 from .MCTS import MCTS
 from .MCTSLazy import MCTSLazy
@@ -14,10 +8,7 @@ from .MCTSEval import MCTSEval
 from .MCTSEvalLazy import MCTSEvalLazy
 from .MCTSAI import MCTSAI
 from .MCTSNjit import MCTSNjit
-
 from .MCTSParallel import MCTSParallel
-from .MCTSWorker import MCTSWorker
-from .MCTSUtils import MCTSUtils
 
 __all__ = [
     'MCTS',
@@ -28,13 +19,8 @@ __all__ = [
     'MCTSEvalLazy',
     'MCTSAI',
     'MCTSNjit',
-
     'MCTSParallel',
-    'MCTSWorker',
-    'MCTSUtils',
 
-    'my_heuristic_graph',
-    'opp_heuristic_graph',
     'njit_heuristic',
     'old_njit_heuristic',
     '_compute_capture_coef'

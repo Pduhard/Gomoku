@@ -84,32 +84,32 @@ def duel():
     # )
 
     # p1 = GomokuLib.Player.Human(runner)
-    mcts_p1 = GomokuLib.Algo.MCTSNjit(
-        engine=runner.engine,
-        iter=10000,
-        pruning=True,
-        rollingout_turns=3
-    )
-    p1 = GomokuLib.Player.Bot(mcts_p1)
-    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+    # mcts_p1 = GomokuLib.Algo.MCTSNjit(
     #     engine=runner.engine,
-    #     iter=3000,
-    #     hard_pruning=True,
-    #     rollingout_turns=5
+    #     iter=10000,
+    #     pruning=True,
+    #     rollingout_turns=3
     # )
     # p1 = GomokuLib.Player.Bot(mcts_p1)
+    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=runner.engine,
+        iter=10000,
+        hard_pruning=True,
+        rollingout_turns=5
+    )
+    p1 = GomokuLib.Player.Bot(mcts_p1)
 
     # p2 = GomokuLib.Player.Human(runner)
     mcts_p2 = GomokuLib.Algo.MCTSNjit(
         engine=runner.engine,
         iter=10000,
         pruning=True,
-        rollingout_turns=3
+        rollingout_turns=5
     )
     p2 = GomokuLib.Player.Bot(mcts_p2)
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
-    #     iter=3000,
+    #     iter=5000,
     #     hard_pruning=True,
     #     rollingout_turns=5
     # )

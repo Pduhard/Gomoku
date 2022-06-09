@@ -3,7 +3,7 @@ import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import njit_heuristic, my_heuristic_graph, opp_heuristic_graph
+from GomokuLib.Algo import njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 # from .MCTSToBytes import tobytes
@@ -332,7 +332,7 @@ class MCTSNjit:
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
+        return njit_heuristic(board, c0, c1, g0, g1, g2, g3)
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
