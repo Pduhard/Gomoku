@@ -2,7 +2,7 @@ from time import perf_counter
 import numpy as np
 import numba as nb
 
-from GomokuLib.Algo import _compute_capture_coef, njit_heuristic, old_njit_heuristic, my_heuristic_graph, opp_heuristic_graph
+from GomokuLib.Algo import _compute_capture_coef, njit_heuristic, old_njit_heuristic
 import GomokuLib.Typing as Typing
 
 from numba import jit, njit
@@ -38,12 +38,12 @@ def time_benchmark():
     @njit()
     def old_loop(boards, _loops, mode):
         for i in range(_loops):
-            old_njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18)
+            old_njit_heuristic(boards[i], 0, 0, 0, 0, 18, 18)
 
     @njit()
     def new_loop(boards, _loops, mode):
         for i in range(_loops):
-            njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18)
+            njit_heuristic(boards[i], 0, 0, 0, 0, 18, 18)
 
     ### Time benchmark
 
@@ -81,7 +81,7 @@ def time_benchmark():
         
         print()
 
-def heuristics_comp(my_heuristic_graph, opp_heuristic_graph):
+def heuristics_comp():
 
     np.set_printoptions(threshold=np.inf)
 
@@ -102,8 +102,8 @@ def heuristics_comp(my_heuristic_graph, opp_heuristic_graph):
         # board[1, 1, 5] = 1
         print(board)
 
-        old_result = old_njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0)
-        new_result = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18)
+        old_result = old_njit_heuristic(board, 0, 0)
+        new_result = njit_heuristic(board, 0, 0, 0, 0, 18, 18)
         # print(f"old_result={old_result}")
         # print(f"new_result={new_result}")
 
@@ -122,15 +122,14 @@ def heuristics_comp(my_heuristic_graph, opp_heuristic_graph):
 
 if __name__ == "__main__":
 
-    # my_heuristic_graph = init_my_heuristic_graph()
-    # opp_heuristic_graph = init_opp_heuristic_graph()
 
-    # for c1 in range(0, 6):
-    #     for c2 in range(0, 6):
-    #         print(c1, c2, " = ", _compute_capture_coef(c1, c2))
+    for c1 in range(0, 5):
+        for c2 in range(0, 5):
+            print(c1, c2, " = ", _compute_capture_coef(c1, c2))
+        print()
 
-    # valid = heuristics_comp(my_heuristic_graph, opp_heuristic_graph)
-    time_benchmark()
+    # valid = heuristics_com)
+    # time_benchmark()
     # if valid:
     #     print(f"Heuristics returns same results ! :)")
 

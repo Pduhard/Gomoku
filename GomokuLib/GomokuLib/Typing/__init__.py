@@ -72,7 +72,7 @@ nbStateDict = nb.typeof(state_dict)
 
 heuristic_coefs_dict = nb.typed.Dict.empty(
     key_type=nb.types.unicode_type,
-    value_type=mcts_int_nb_dtype
+    value_type=heuristic_graph_nb_dtype
 )
 nbHeuristicCoefsDict = nb.typeof(heuristic_coefs_dict)
 

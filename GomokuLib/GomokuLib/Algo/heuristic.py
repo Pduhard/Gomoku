@@ -44,14 +44,12 @@ def _get_heuristic_coefs():
     """
         Baisser l'importance des captures ?
     """
-
     heuristic_coefs_dict = nb.typed.Dict.empty(
         key_type=nb.types.unicode_type,
-        value_type=Typing.mcts_int_nb_dtype
+        value_type=Typing.heuristic_graph_nb_dtype
     )
     heuristic_coefs_dict = {
-        'capture': 1,           # Just non-zero value
-
+        'capture': 0.25,
         'my_win_possible': 0.5,
         'opp_win_2_turn': -2, # > 2 * my_win_possible
         'my_win_1_turn': 3,     # > opp_win_2_turn
@@ -75,8 +73,8 @@ def _parse_align(graph, player_mark, v, align, i, p):
     """
     # print(f"v, align, i, p = ", v, align, i, p)
     if i == 7:
-        if graph[p]:
-            print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
+        # if graph[p]:
+        #     print(f"Already a reward here !!", align, p, v, " overwrite ", graph[p])
         # print(f"graph[p] = v / graph[{p}] = {v}")
         graph[p] = v
         return
@@ -158,6 +156,9 @@ def init_opp_heuristic_graph():
     return opp_graph
 
 def init_my_captures_graph():
+    """
+        When I will be captured
+    """
 
     my_cap_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
     coefs = _get_heuristic_coefs()
@@ -171,13 +172,15 @@ def init_my_captures_graph():
     return my_cap_graph
 
 def init_opp_captures_graph():
-
+    """
+        When opponent will be captured
+    """
     opp_cap_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
     coefs = _get_heuristic_coefs()
 
     # Alignments
-    _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X#$$_XX", 0, 0)
-    _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X_$$#XX", 0, 0)
+    _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X$##_XX", 0, 0)
+    _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X_##$XX", 0, 0)
 
     fill_graph = np.nonzero(opp_cap_graph)
     print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
@@ -236,7 +239,7 @@ def _find_align_reward(board, graph, sr, sc):
     )
     align_ids = np.zeros(4, dtype=np.int32)
     buf = np.zeros((4, 14), dtype=np.int32)
-    rewards = np.zeros(4, dtype=np.int32)
+    rewards = np.zeros(4, dtype=Typing.heuristic_graph_nb_dtype)
 
     for di in range(4):
 
@@ -247,7 +250,7 @@ def _find_align_reward(board, graph, sr, sc):
             r += dr
             c += dc
 
-    # Compute each digit with its factor
+    # Compute each digit/cells_state with its factor
     mul = buf * p
 
     # Sum all digits to create indexes
@@ -260,29 +263,44 @@ def _find_align_reward(board, graph, sr, sc):
 
 
 @njit()
+def _compute_capture_coef(my_cap, opp_cap):
+    return 1.5 * (my_cap - opp_cap) / (5.5 - max(my_cap, opp_cap))
+
+
+@njit()
 def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
     """
-        Prendre en compte gameEndingCapture ?
-        Somme des patern mauvaise idée ?
-            Rewards forte ou faible si jamais plusieurs patern sont présent jjsp
+        More opponent has cap, the greater the possibilities where he can cap me 
+        Sum rewards of paterns init 
     """
     # Padding: 2 on the left and top / 5 on the right and bottom
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
 
-    rewards = np.zeros((21, 21), dtype=np.int32)
+    # if c0 == 5 or c1 == 5:
+    #     with nb.objmode():
+    #         print("Heuristic: WTF capture = 5 and no end game here ???")
+    #         breakpoint()
+
+    # More opponent has cap, the greater the possibilities where he can cap me 
+    my_cap_coef = -7 if c1 == 4 else -c1
+    opp_cap_coef = c0
+
+    rewards = np.zeros((21, 21), dtype=Typing.heuristic_graph_nb_dtype)
     for y in range(2 + gz_start_r, 2 + gz_end_r):
         for x in range(2 + gz_start_c, 2 + gz_end_c):
 
             if board_pad[0, y, x]:
                 rewards[y, x] = _find_align_reward(board_pad, my_h_graph, y, x)
+                rewards[y, x] += my_cap_coef * _find_align_reward(board_pad, my_cap_graph, y, x)
 
             elif board_pad[1, y, x]:
                 rewards[y, x] = _find_align_reward(board_pad, opp_h_graph, y, x)
+                rewards[y, x] += opp_cap_coef * _find_align_reward(board_pad, opp_cap_graph, y, x)
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
-    return 1 / (1 + np.exp(-0.5 * x))
+    return 1 / (1 + np.exp(-0.6 * x))
 
 @njit()
 def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
@@ -291,7 +309,7 @@ def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
 
-    rewards = np.zeros((21, 21), dtype=np.int32)
+    rewards = np.zeros((21, 21), dtype=Typing.heuristic_graph_nb_dtype)
     for y in range(2 + gz_start_r, 2 + gz_end_r):
         for x in range(2 + gz_start_c, 2 + gz_end_c):
 
@@ -303,26 +321,7 @@ def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
-    return 1 / (1 + np.exp(-0.5 * x))
-
-
-@njit()
-def _compute_capture_coef(my_cap, opp_cap):
-    """
-        Meme chose mais avec un 3eme graph pour les captures possible
-            Récupérer le nbr
-
-            Current player:
-                Si 5 captures                        return 1
-                Si 4 captures + 1 capture possible = return 0   (Faut la prendre)
-            Opponent player:
-                Si 5 captures                        return 0
-                Si 4 captures + 1 capture possible = return 0
-
-            Sinon des maths
-    """
-
-    return 1.5 * (my_cap - opp_cap) / (5.5 - max(my_cap, opp_cap))
+    return 1 / (1 + np.exp(-0.6 * x))
 
 
 ## Init graphs

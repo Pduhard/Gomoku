@@ -28,9 +28,10 @@ class Display:
         pygame.draw.rect(self.win, (200, 200, 200), self.square)
 
         if ss_data:
-            winner = ss_data.get('winner', -1)
-            if winner != -1:
-                winner = ss_data.get('p2', 'Black') if winner else ss_data.get('p1', 'White')
+            winner_id = ss_data.get('winner', -1)
+            if winner_id != -1:
+                winner = ss_data.get('p2', 'Black') if winner_id else ss_data.get('p1', 'White')
+                winner = f"P{winner_id}: {str(winner)}"
             else:
                 winner = '_'
 
@@ -39,8 +40,8 @@ class Display:
                 'Snapshot': f"{ss_i + 1}/{ss_num}",
                 'Mode': ss_data.get('mode', '_'),
                 'Winner': winner,
-                'White': ss_data.get('p1', '_'),
-                'Black': ss_data.get('p2', '_'),
+                'P0: White': ss_data.get('p1', '_'),
+                'P1: Black': ss_data.get('p2', '_'),
                 'Turn': ss_data.get('turn', '_'),
                 'dtime (ms)': ss_data.get('dtime', '_'),
                 'Waiting': 'White' if ss_data.get('player_idx', '_') else 'Black',

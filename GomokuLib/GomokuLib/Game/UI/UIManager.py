@@ -216,6 +216,9 @@ class UIManager:
 
             elif code == 'pause-play':
                 self.pause = input['state']
+                if not self.pause:
+                    self.game_snapshots.extend(self.runner_snapshots_queue)
+                    self.runner_snapshots_queue = []
                 print(f"Pause={self.pause}")
 
             elif code == 'step-back' and self.current_snapshot_idx > 0:

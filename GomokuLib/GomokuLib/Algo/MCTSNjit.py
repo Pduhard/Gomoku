@@ -3,7 +3,7 @@ import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import njit_heuristic
+from GomokuLib.Algo import njit_heuristic, old_njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 # from .MCTSToBytes import tobytes
@@ -41,8 +41,7 @@ class MCTSNjit:
     path: Typing.nbPath
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
-    my_heuristic_graph: Typing.nbHeuristicGraph
-    opp_heuristic_graph: Typing.nbHeuristicGraph
+    new_heuristic: nb.boolean
 
     depth: Typing.mcts_int_nb_dtype
     max_depth: Typing.mcts_int_nb_dtype
@@ -55,7 +54,8 @@ class MCTSNjit:
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
                  pruning: nb.boolean = True,
-                 rollingout_turns: Typing.MCTSIntDtype = 10
+                 rollingout_turns: Typing.MCTSIntDtype = 10,
+                 new_heuristic: nb.boolean = True
                  ):
 
         self.engine = engine.clone()
@@ -63,6 +63,7 @@ class MCTSNjit:
         self.is_pruning = pruning
         self.rollingout_turns = rollingout_turns
         self.c = np.sqrt(2)
+        self.new_heuristic = new_heuristic
 
         self.init()
         self.current_statehash = '0' * 722
@@ -188,6 +189,11 @@ class MCTSNjit:
             # self.current_statehash = self.current_statehash[362:] + self.current_statehash[:rawidx] + '1' + self.current_statehash[rawidx + 1:361]
             # print(len(self.current_statehash))
             self.current_statehash = self.fast_tobytes(self.engine.board)
+
+        if np.any(self.engine.get_captures() >= 5) and not self.end_game:
+            with nb.objmode():
+                print("MCTSNjit: WTF capture = 5 and no end game here ???")
+                breakpoint()
 
         # self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))
         self.expand(self.current_statehash)
@@ -333,6 +339,10 @@ class MCTSNjit:
         g3 = game_zone[3]
 
         return njit_heuristic(board, c0, c1, g0, g1, g2, g3)
+        # if self.new_heuristic:
+        #     return njit_heuristic(board, c0, c1, g0, g1, g2, g3)
+        # else:
+        #     return old_njit_heuristic(board, c0, c1, g0, g1, g2, g3)
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
@@ -403,6 +413,7 @@ class MCTSNjit:
             # print(f"Backprop path index {i}")
             self.backprop_memory(self.path[i], reward)
             reward = 1 - reward
+            # reward = 1 - (0.90 * reward)
 
     def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
         # print(f"Memory:\n{memory}")

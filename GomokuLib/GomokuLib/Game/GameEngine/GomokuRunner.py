@@ -57,6 +57,6 @@ class GomokuRunner:
 
             self._run()
             winner = players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
-            winners.append(str(winner))
+            winners.append(f"P{self.engine.winner}: {str(winner)}")
 
         return winners
