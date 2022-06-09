@@ -20,12 +20,9 @@ from .MCTS import MCTS
 def heuristic(engine):
     board = engine.board
 
-    c_board = ffi.from_buffer(board)
-    c_full_board = ffi.from_buffer(board[0] | board[1])
-
     cap = engine.get_captures()
-    c0 = cap[0]
-    c1 = cap[1]
+    c0 = cap[engine.player_idx]
+    c1 = cap[engine.player_idx ^ 1]
 
     game_zone = engine.get_game_zone()
     g0 = game_zone[0]
@@ -33,7 +30,7 @@ def heuristic(engine):
     g2 = game_zone[2]
     g3 = game_zone[3]
 
-    return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
+    return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3, engine.player_idx)
 
 
 @njit()

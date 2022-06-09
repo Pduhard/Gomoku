@@ -79,7 +79,7 @@ class Gomoku:
         # full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         is_valid = self.basic_rules.is_valid(full_board, ar, ac)
         if self.is_no_double_threes_active:
-            is_valid &= self.no_double_threes.is_valid(full_board, ar, ac)
+            is_valid &= self.no_double_threes.is_valid(full_board, ar, ac, self.player_idx)
         return is_valid
 
     def apply_action(self, action: np.ndarray):
@@ -89,14 +89,14 @@ class Gomoku:
         #     breakpoint()
         #     raise Exception
 
-        self.board[0, ar, ac] = 1
+        self.board[self.player_idx, ar, ac] = 1
         self.update_game_zone(ar, ac)
         self.last_action[0] = action[0]
         self.last_action[1] = action[1]
 
     def get_captures(self) -> list:
         if self.is_capture_active:
-            return self.capture.get_current_player_captures(self.player_idx)
+            return self.capture.get_captures()
         return np.array([0, 0], dtype=Typing.TupleDtype)
 
     # def get_history(self) -> np.ndarray:
@@ -128,25 +128,23 @@ class Gomoku:
             if self.capture.winning(self.player_idx):
                 self._isover = True
                 self.winner = self.player_idx
-                return 0
+                return
 
         if self.is_game_ending_capture_active:
             if self.game_ending_capture.winning(self.player_idx, ar, ac, gz0, gz1, gz2, gz3):
                 self._isover = True
                 self.winner = self.player_idx ^ 1
-                return 0
+                return
             self.game_ending_capture.endturn(self.player_idx, ar, ac)
         elif self.basic_rules.winning(self.player_idx, ar, ac, gz0, gz1, gz2, gz3):
             self._isover = True
             self.winner = self.player_idx
-        return 0
+        return
 
     def _shift_board(self):
 
         self.turn += 1
         self.player_idx ^= 1
-        self.board = np.copy(self.board[::-1, :, :])
-        self.update_board_ptr()
     
     def update_board_ptr(self):
         self.basic_rules.update_board_ptr(self.board)
@@ -156,7 +154,6 @@ class Gomoku:
             self.game_ending_capture.update_board_ptr(self.board)
         if self.is_no_double_threes_active:
             self.no_double_threes.update_board_ptr(self.board)
-
 
     def next_turn(self):
         self._next_turn_rules()
@@ -175,7 +172,6 @@ class Gomoku:
             self.no_double_threes.update(engine.no_double_threes)
 
     def update(self, engine: Gomoku):
-        # self.history = engine.history.copy()
         self.last_action = np.copy(engine.last_action)
         self.board = np.copy(engine.board)
         self.update_board_ptr()

@@ -156,14 +156,14 @@ def init_opp_heuristic_graph():
 """
 
 @njit()
-def _old_find_align_reward(board, graph, sr, sc):
+def _old_find_align_reward(board, graph, sr, sc, player_idx):
     dirs = [
         [-1, 1],
         [0, 1],
         [1, 1],
         [1, 0]
     ]
-
+    way = -1 if player_idx == 1 else 1
     p = np.array(
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
         dtype=np.float32    # np.dot handle by Numba require float
@@ -176,7 +176,7 @@ def _old_find_align_reward(board, graph, sr, sc):
         dr, dc = dirs[di]
         r, c = sr - 2 * dr, sc - 2 * dc
         for i in range(0, 14, 2):
-            buf[i:i + 2] = board[:, r, c]
+            buf[i:i + 2] = board[::way, r, c]
             r += dr
             c += dc
 
@@ -186,14 +186,14 @@ def _old_find_align_reward(board, graph, sr, sc):
     return np.sum(rewards)
 
 @njit()
-def _find_align_reward(board, graph, sr, sc):
+def _find_align_reward(board, graph, sr, sc, player_idx):
     dirs = [
         [-1, 1],
         [0, 1],
         [1, 1],
         [1, 0]
     ]
-
+    way = -1 if player_idx == 1 else 1
     p = np.array([
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
@@ -211,7 +211,7 @@ def _find_align_reward(board, graph, sr, sc):
         dr, dc = dirs[di]
         r, c = sr - 2 * dr, sc - 2 * dc
         for i in range(0, 14, 2):
-            buf[di, i:i + 2] = board[:, r, c]
+            buf[di, i:i + 2] = board[::way, r, c]
             r += dr
             c += dc
 
@@ -231,7 +231,7 @@ def _compute_capture_coef(my_cap, opp_cap):
     return 2 * (my_cap - opp_cap) / (5.5 - max(my_cap, opp_cap))
 
 @njit()
-def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
+def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
 
     # Padding: 2 on the left and top / 5 on the right and bottom
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
@@ -241,18 +241,18 @@ def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, g
     for y in range(2 + gz_start_r, 2 + gz_end_r):
         for x in range(2 + gz_start_c, 2 + gz_end_c):
 
-            if board_pad[0, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, my_graph, y, x)
+            if board_pad[player_idx, y, x]:
+                rewards[y, x] = _find_align_reward(board_pad, my_graph, y, x, player_idx)
 
-            elif board_pad[1, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, opp_graph, y, x)
+            elif board_pad[player_idx ^ 1, y, x]:
+                rewards[y, x] = _find_align_reward(board_pad, opp_graph, y, x, player_idx)
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.4 * x))
 
 @njit()
-def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
+def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
 
     # Padding: 2 on the left and top / 5 on the right and bottom
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
@@ -262,11 +262,11 @@ def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_
     for y in range(2 + gz_start_r, 2 + gz_end_r):
         for x in range(2 + gz_start_c, 2 + gz_end_c):
 
-            if board_pad[0, y, x]:
-                rewards[y, x] = _old_find_align_reward(board_pad, my_graph, y, x)
+            if board_pad[player_idx, y, x]:
+                rewards[y, x] = _old_find_align_reward(board_pad, my_graph, y, x, player_idx)
 
-            elif board_pad[1, y, x]:
-                rewards[y, x] = _old_find_align_reward(board_pad, opp_graph, y, x)
+            elif board_pad[player_idx ^ 1, y, x]:
+                rewards[y, x] = _old_find_align_reward(board_pad, opp_graph, y, x, player_idx)
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)

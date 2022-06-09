@@ -24,7 +24,7 @@
          |
 */
 
-static int is_threes(char *board, char *full_board, long ar, long ac, long dr, long dc)
+static int is_threes(char *board, char *full_board, long ar, long ac, long dr, long dc, int player_idx)
 {
     static long rmax = 19, cmax = 19;
     int  lineidx[8];   // Idx of each cell on the line (Implicite action on the middle between index 3 and 4)
@@ -42,8 +42,8 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
         nc += dc;
         map_edges[4 - i] = pr < 0 || rmax <= pr || pc < 0 || cmax <= pc;
         map_edges[3 + i] = nr < 0 || rmax <= nr || nc < 0 || cmax <= nc;
-        lineidx[4 - i] = map_edges[4 - i] ? -1 : pr * cmax + pc;
-        lineidx[3 + i] = map_edges[3 + i] ? -1 : nr * cmax + nc;
+        lineidx[4 - i] = map_edges[4 - i] ? -1 : player_idx + pr * cmax + pc;
+        lineidx[3 + i] = map_edges[3 + i] ? -1 : player_idx + nr * cmax + nc;
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 4-i, lineidx[4 - i] / cmax, lineidx[4 - i] % cmax, map_edges[4 - i], map_edges[4 - i] ? -1 : board[lineidx[4 - i]]);
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 3+i, lineidx[3 + i] / cmax, lineidx[3 + i] % cmax, map_edges[3 + i], map_edges[3 + i] ? -1 : board[lineidx[3 + i]]);
     }
@@ -133,36 +133,36 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
     return 0;
 }
 
-static char count_threes(char *board, char *full_board, long ar, long ac)
+static char count_threes(char *board, char *full_board, long ar, long ac, int player_idx)
 {
-    int count = is_threes(board, full_board, ar, ac, -1, 1);
+    int count = is_threes(board, full_board, ar, ac, -1, 1, player_idx);
     // fprintf(stderr, "count0=%d\n", count);
 
-    count += is_threes(board, full_board, ar, ac, 0, 1);
+    count += is_threes(board, full_board, ar, ac, 0, 1, player_idx);
     // fprintf(stderr, "count1=%d\n", count);
     if (count == 2)
         return 2;
-    count += is_threes(board, full_board, ar, ac, 1, 1);
+    count += is_threes(board, full_board, ar, ac, 1, 1, player_idx);
     // fprintf(stderr, "count2=%d\n", count);
     if (count == 0)
         return 0;
     if (count == 2)
         return 2;
-    count += is_threes(board, full_board, ar, ac, 1, 0);
+    count += is_threes(board, full_board, ar, ac, 1, 0, player_idx);
     // fprintf(stderr, "count3=%d\n", count);
     return count;
 }
 
-int is_double_threes(char *board, char *full_board, long ar, long ac)
+int is_double_threes(char *board, char *full_board, long ar, long ac, int player_idx)
 {
     int old_value = 1;
-    long  cell_i = ar * 19 + ac;
+    long  cell_i = player_idx + ar * 19 + ac;
 
     old_value ^= board[cell_i]; // Place a stone and save old value
     board[cell_i] ^= old_value;
     old_value ^= board[cell_i];
 
-    int count = count_threes(board, full_board, ar, ac);
+    int count = count_threes(board, full_board, ar, ac, player_idx * 361);
 
     old_value ^= board[cell_i]; // Replace old value
     board[cell_i] ^= old_value;

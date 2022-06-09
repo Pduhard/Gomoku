@@ -30,7 +30,7 @@ class Capture():
 	
 	def endturn(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
 
-		count1 = self.count_captures_cfunc(self._board_ptr, ar, ac, gz0, gz1, gz2, gz3)
+		count1 = self.count_captures_cfunc(self._board_ptr, ar, ac, gz0, gz1, gz2, gz3, player_idx)
 		self.player_count_capture[player_idx] += count1
 
 	def winning(self, player_idx: int, *args):
@@ -38,8 +38,8 @@ class Capture():
 			return 2
 		return 0
 
-	def get_current_player_captures(self, player_idx: int):
-		return np.copy(self.player_count_capture[::-1]) if player_idx else self.player_count_capture
+	def get_captures(self):
+		return self.player_count_capture
 
 	def create_snapshot(self):
 		return self.player_count_capture

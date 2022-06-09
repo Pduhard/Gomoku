@@ -129,7 +129,7 @@ class Board:
 
     def draw_stones(self, board: np.ndarray, player_idx: int):
 
-        stone_x, stone_y = self.cells_coord * board[player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
+        stone_x, stone_y = self.cells_coord * board[0][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
         empty_cells = stone_x != 0                               # Boolean array to remove empty cells
         stone_x = stone_x[empty_cells]
         stone_y = stone_y[empty_cells]
@@ -137,7 +137,7 @@ class Board:
         for x, y in stones:
             self.win.blit(self.whitestone, (self.ox + x - self.csx, self.oy + y - self.csy))
 
-        stone_x, stone_y = self.cells_coord * board[player_idx ^ 1][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
+        stone_x, stone_y = self.cells_coord * board[1][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
         empty_cells = stone_x != 0                                          # Boolean array to remove empty cells
         stone_x = stone_x[empty_cells]
         stone_y = stone_y[empty_cells]

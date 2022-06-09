@@ -38,12 +38,12 @@ def time_benchmark():
     @njit()
     def old_loop(boards, _loops, mode):
         for i in range(_loops):
-            old_njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18)
+            old_njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18, i % 2)
 
     @njit()
     def new_loop(boards, _loops, mode):
         for i in range(_loops):
-            njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18)
+            njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18,  i % 2)
 
     ### Time benchmark
 
@@ -102,8 +102,8 @@ def heuristics_comp(my_heuristic_graph, opp_heuristic_graph):
         # board[1, 1, 5] = 1
         print(board)
 
-        old_result = old_njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0)
-        new_result = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18)
+        old_result = old_njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0,  i % 2)
+        new_result = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18,  i % 2)
         # print(f"old_result={old_result}")
         # print(f"new_result={new_result}")
 

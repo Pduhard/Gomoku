@@ -323,6 +323,9 @@ class MCTSNjit:
         board = engine.board
 
         cap = engine.get_captures()
+        # c0 = cap[engine.player_idx]
+        # c1 = cap[engine.player_idx ^ 1]
+        
         c0 = cap[0]
         c1 = cap[1]
 
@@ -332,7 +335,7 @@ class MCTSNjit:
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3)
+        return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3, engine.player_idx)
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
@@ -402,7 +405,7 @@ class MCTSNjit:
         for i in range(self.depth - 1, -1, -1):
             # print(f"Backprop path index {i}")
             self.backprop_memory(self.path[i], reward)
-            reward = 1 - reward
+            reward = 1 - reward * 0.95
 
     def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
         # print(f"Memory:\n{memory}")
