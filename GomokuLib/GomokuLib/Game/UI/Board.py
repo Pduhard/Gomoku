@@ -299,7 +299,7 @@ class Board:
 
     def draw_actions(self, actions: np.array):
 
-        if actions:
+        if actions is not None:
             color = pygame.Color(200, 50, 50, 100)
             for y in range(self.board_size[1]):
                 for x in range(self.board_size[0]):

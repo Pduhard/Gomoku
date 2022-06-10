@@ -91,7 +91,7 @@ class MCTSNjit:
             key_type=nb.types.unicode_type,
             value_type=Typing.nbState
         )
-        statehash = self.fast_tobytes(game_engine.board)
+        statehash = self.fast_tobytes(game_engine.board, game_engine.player_idx)
         if statehash in self.states:
             mcts_data['mcts_state_data'] = self.states[statehash]
         else:
@@ -104,7 +104,7 @@ class MCTSNjit:
             key_type=nb.types.unicode_type,
             value_type=Typing.MCTSFloatDtype
         )
-        statehash = self.fast_tobytes(game_engine.board)
+        statehash = self.fast_tobytes(game_engine.board, game_engine.player_idx)
         if statehash in self.states:
             # h = self.states[statehash][0]['heuristic']
             mcts_data['heuristic'] = self.states[statehash][0]['heuristic']
@@ -141,7 +141,7 @@ class MCTSNjit:
     def do_n_iter(self, game_engine: Gomoku, iter: int):
 
         self.max_depth = 0
-        self.gamestatehash = self.fast_tobytes(game_engine.board)
+        self.gamestatehash = self.fast_tobytes(game_engine.board, game_engine.player_idx)
 
         for i in range(iter):
             self.current_statehash = self.gamestatehash
@@ -187,7 +187,7 @@ class MCTSNjit:
             # rawidx = best_action[0] * 19 + best_action[1]
             # self.current_statehash = self.current_statehash[362:] + self.current_statehash[:rawidx] + '1' + self.current_statehash[rawidx + 1:361]
             # print(len(self.current_statehash))
-            self.current_statehash = self.fast_tobytes(self.engine.board)
+            self.current_statehash = self.fast_tobytes(self.engine.board, self.engine.player_idx)
 
         if np.any(self.engine.get_captures() >= 5) and not self.end_game:
             with nb.objmode():
@@ -431,8 +431,9 @@ class MCTSNjit:
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         
         board = memory['board']
+        player_idx = memory['player_idx']
         r, c = memory['bestAction']
-        statehash = self.fast_tobytes(board)
+        statehash = self.fast_tobytes(board, player_idx)
         # print(f"memory['bestAction']:\n{r} {c}")
 
         # if statehash not in self.states:
@@ -465,10 +466,15 @@ class MCTSNjit:
     #         return res
     #     return res + self.test_rec(arr, idx + 1)
 
-    def fast_tobytes(self, arr: Typing.BoardDtype):
+    def fast_tobytes(self, arr: Typing.BoardDtype, player_idx: int):
 
         byte_list = []
         for i in range(19):
             for j in range(19):
-                byte_list.append('1' if arr[0, i, j] == 1 else ('2' if arr[1, i, j] == 1 else '0'))
+                byte_list.append('1' if arr[player_idx, i, j] == 1 else ('2' if arr[player_idx ^ 1, i, j] == 1 else '0'))
         return ''.join(byte_list)
+
+"""
+    le dernier maillon du path nest pas en accord
+    avec player_idx
+"""
