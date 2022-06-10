@@ -472,8 +472,3 @@ class MCTSNjit:
             for j in range(19):
                 byte_list.append('1' if arr[player_idx, i, j] == 1 else ('2' if arr[player_idx ^ 1, i, j] == 1 else '0'))
         return ''.join(byte_list)
-
-"""
-    le dernier maillon du path nest pas en accord
-    avec player_idx
-"""

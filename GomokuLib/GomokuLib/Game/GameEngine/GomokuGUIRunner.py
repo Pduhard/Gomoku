@@ -135,8 +135,8 @@ class GomokuGUIRunner(GomokuRunner):
         except KeyboardInterrupt:
             print(f"\nKeyboardInterrupt !")
 
-        # except Exception as e:
-        #     print(f"\nException:\n\t{e}\n")
+        except Exception as e:
+            print(f"\nException:\n\t{e}\n")
 
         self.GUI_quit(False)
         return winners
