@@ -323,11 +323,11 @@ class MCTSNjit:
         board = engine.board
 
         cap = engine.get_captures()
-        # c0 = cap[engine.player_idx]
-        # c1 = cap[engine.player_idx ^ 1]
+        c0 = cap[engine.player_idx]
+        c1 = cap[engine.player_idx ^ 1]
         
-        c0 = cap[0]
-        c1 = cap[1]
+        # c0 = cap[0]
+        # c1 = cap[1]
 
         game_zone = engine.get_game_zone()
         g0 = game_zone[0]
@@ -405,7 +405,7 @@ class MCTSNjit:
         for i in range(self.depth - 1, -1, -1):
             # print(f"Backprop path index {i}")
             self.backprop_memory(self.path[i], reward)
-            reward = 1 - reward * 0.95
+            reward = 1 - reward
 
     def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
         # print(f"Memory:\n{memory}")

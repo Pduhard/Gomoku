@@ -84,8 +84,10 @@ class Gomoku:
 
     def apply_action(self, action: np.ndarray):
         ar, ac = action
+
         # if not self.is_valid_action(action):
-        #     print(f"Not a fucking valid action: {ar} {ac}")
+        #     print("Not a fucking valid action:")
+            # exit(0)
         #     breakpoint()
         #     raise Exception
 
