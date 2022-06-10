@@ -106,9 +106,9 @@ class MCTSNjit:
         )
         statehash = self.fast_tobytes(game_engine.board, game_engine.player_idx)
         if statehash in self.states:
-            # h = self.states[statehash][0]['heuristic']
-            mcts_data['heuristic'] = self.states[statehash][0]['heuristic']
-            mcts_data['max_depth'] = self.states[statehash][0]['max_depth']
+            statedata = self.states[statehash]
+            mcts_data['heuristic'] = statedata[0]['heuristic']
+            mcts_data['max_depth'] = statedata[0]['max_depth']
         else:
             # h = self.heuristic(game_engine, debug=True)
             mcts_data['heuristic'] = Typing.MCTSFloatDtype(self.heuristic(game_engine, debug=True))
@@ -349,7 +349,8 @@ class MCTSNjit:
         while not self.engine.isover() and turn < self.rollingout_turns:
         # while not self.engine.isover():
 
-            pruning = self.pruning().flatten().astype(np.bool8)
+            pruning = self.pruning(heuristic_pruning=False)
+            pruning = pruning.flatten().astype(np.bool8)
 
             # Create actions from pruning
             if pruning.any():
@@ -392,29 +393,27 @@ class MCTSNjit:
 
         return neigh
 
-    def pruning(self):
+    def pruning(self, heuristic_pruning: nb.boolean = True):
 
-        # game_zone = self.engine.get_game_zone()
-        # # print(f"game_zone:", game_zone)
-        # g0 = game_zone[0]
-        # g1 = game_zone[1]
-        # g2 = game_zone[2]
-        # g3 = game_zone[3]
-        # hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3)
-        # # print("hpruning: ", hpruning)
+        if heuristic_pruning:
+            game_zone = self.engine.get_game_zone()
+            # print(f"game_zone:", game_zone)
+            g0 = game_zone[0]
+            g1 = game_zone[1]
+            g2 = game_zone[2]
+            g3 = game_zone[3]
+            hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3)
 
-        # if np.any(hpruning):
-        #     return hpruning
-
-        # if not self.is_pruning:
-        #     return np.ones((19, 19), dtype=Typing.PruningDtype)
+        else:
+            hpruning = np.zeros((19, 19), dtype=Typing.PruningDtype)
 
         full_board = (self.engine.board[0] | self.engine.board[1]).astype(Typing.PruningDtype)
         non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
 
         xp = non_pruned ^ full_board
         non_pruned = xp & non_pruned  # Remove neighbors stones already placed
-        return non_pruned
+        # print("Choose normal pruning")
+        return non_pruned + hpruning
 
     def backpropagation(self):
 

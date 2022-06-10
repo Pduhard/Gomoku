@@ -165,7 +165,7 @@ class Board:
             self.draw_mcts_hints(sa_n, sa_v)
 
         elif self.hint_type == 2:
-            self.draw_actions(actions)
+            self.draw_actions(actions ^ 1)
 
         elif self.hint_type == 3:
             self.draw_actions(pruning)
@@ -300,10 +300,13 @@ class Board:
     def draw_actions(self, actions: np.array):
 
         if actions is not None:
-            color = pygame.Color(200, 50, 50, 100)
             for y in range(self.board_size[1]):
                 for x in range(self.board_size[0]):
-                    if not actions[y, x]:
+                    if actions[y, x]:
+                        if actions[y, x] >= 2:
+                            color = pygame.Color(200, 80, 80, 100)
+                        else:
+                            color = pygame.Color(100, 40, 40, 100)
                         self.hint_surface.fill(color)
                         self.win.blit(self.hint_surface, (
                             self.ox + self.cells_coord[0, y, x] - self.csx,

@@ -62,14 +62,16 @@ def _create_align_masks(board, graph, sr, sc):
 
 @njit()
 def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
+    # print("hpruning start")
+
     # Padding: 2 on the left and top / 5 on the right and bottom
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
 
     # Do not apply supplementary useless computations on y and x
     pruning = np.zeros((26, 26), dtype=Typing.PruningDtype)
-    for y in range(2 + gz_start_r, 3 + gz_end_r):
-        for x in range(2 + gz_start_c, 3 + gz_end_c):
+    for y in range(2 + gz_start_r, 2 + gz_end_r):
+        for x in range(2 + gz_start_c, 2 + gz_end_c):
 
             if board_pad[0, y, x]:
                 pruning |= _create_align_masks(board_pad, my_h_graph, y, x)
@@ -77,4 +79,5 @@ def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
             elif board_pad[1, y, x]:
                 pruning |= _create_align_masks(board_pad, opp_h_graph, y, x)
 
+    # print("hpruning end")
     return pruning[..., 2:21, 2:21]
