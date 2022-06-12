@@ -38,11 +38,11 @@ class NoDoubleThrees:
 				# maybe this over before two lines : a[r, c] = self.is_valid(full_board, r, c)
 		return a
 
-	def is_valid(self, full_board: np.ndarray, ar: int, ac: int):
+	def is_valid(self, full_board: np.ndarray, ar: int, ac: int, player_idx: int):
 		# return 1
 		# return njit_is_valid(board, ac, ar, self.FT_IDENT)
 		full_board_ptr = ffi.from_buffer(full_board)
-		ret = self._is_double_threes_cfunc(self._board_ptr, full_board_ptr, ar, ac)
+		ret = self._is_double_threes_cfunc(self._board_ptr, full_board_ptr, ar, ac, player_idx)
 		return False if ret else True
 
 	def create_snapshot(self):

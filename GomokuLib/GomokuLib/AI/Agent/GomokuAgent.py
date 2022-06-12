@@ -228,11 +228,10 @@ class GomokuAgent(Bot):
 
                 self.RLengine._next_turn_rules()
                 turn_data.update(self.mcts.get_state_data_after_action(self.RLengine))
-                self.RLengine._shift_board()
                 self.update_UI(
                     **turn_data,
                     # mode=mode,
-                    captures=self.engine.get_captures()[::-1],
+                    captures=self.engine.get_captures(),
                     board=self.engine.board,
                     turn=self.engine.turn,
                     player_idx=self.engine.player_idx,

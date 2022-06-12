@@ -32,9 +32,9 @@ class GameEndingCapture:
 			return 0
 		ar, ac = self.stats[player_idx ^ 1]
 
-		win = self.is_winning_cfunc(self._board_ptr, 361, ar, ac, gz0, gz1, gz2, gz3)
+		win = self.is_winning_cfunc(self._board_ptr, player_idx ^ 1, ar, ac, gz0, gz1, gz2, gz3)
 		if win:
-			return 3
+			return 1
 
 		self.stats[2][player_idx ^ 1] = 0
 		return 0

@@ -17,12 +17,12 @@ ffi = _fastcore.ffi
 from .MCTS import MCTS
 
 @njit()
-def heuristic(engine):
+def heuristic(engine: Gomoku):
     board = engine.board
 
     cap = engine.get_captures()
-    c0 = cap[0]
-    c1 = cap[1]
+    c0 = cap[engine.player_idx]
+    c1 = cap[engine.player_idx ^ 1]
 
     game_zone = engine.get_game_zone()
     g0 = game_zone[0]
@@ -30,7 +30,7 @@ def heuristic(engine):
     g2 = game_zone[2]
     g3 = game_zone[3]
 
-    return njit_heuristic(board, c0, c1, g0, g1, g2, g3)
+    return njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx)
 
 
 @njit()

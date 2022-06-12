@@ -13,7 +13,7 @@ from numba import njit
 """
 
 @njit()
-def _create_align_masks(board, graph, sr, sc):
+def _create_align_masks(board, graph, sr, sc, player_idx):
     dirs = [
         [-1, 1],
         [0, 1],
@@ -22,12 +22,13 @@ def _create_align_masks(board, graph, sr, sc):
     ]
 
     mask = np.zeros((26, 26), dtype=Typing.PruningDtype)
+    way = -1 if player_idx == 1 else 1
     mask_align_id = np.zeros((7, 2), dtype=Typing.BoardDtype)
     p = np.array(
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
-        dtype=np.float32    # np.dot handle by Numba require float
+        dtype=Typing.PruningDtype    # np.dot handle by Numba require float
     )
-    buf = np.zeros(14, dtype=np.float32)
+    buf = np.zeros(14, dtype=Typing.PruningDtype)
 
     for di in range(4):
 
@@ -36,7 +37,7 @@ def _create_align_masks(board, graph, sr, sc):
 
         for i in range(0, 7):
             mask_align_id[i, :] = [r, c]           # Remember indexes, to create mask in case of
-            buf[i*2: i*2 + 2] = board[:, r, c]
+            buf[i*2: i*2 + 2] = board[::way, r, c]
 
             r += dr
             c += dc
@@ -61,7 +62,7 @@ def _create_align_masks(board, graph, sr, sc):
 
 
 @njit()
-def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
+def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
     # print("hpruning start")
 
     # Padding: 2 on the left and top / 5 on the right and bottom
@@ -73,11 +74,11 @@ def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c):
     for y in range(2 + gz_start_r, 2 + gz_end_r):
         for x in range(2 + gz_start_c, 2 + gz_end_c):
 
-            if board_pad[0, y, x]:
-                pruning |= _create_align_masks(board_pad, my_h_graph, y, x)
+            if board_pad[player_idx, y, x]:
+                pruning += _create_align_masks(board_pad, my_h_graph, y, x, player_idx)
 
-            elif board_pad[1, y, x]:
-                pruning |= _create_align_masks(board_pad, opp_h_graph, y, x)
+            elif board_pad[player_idx ^ 1, y, x]:
+                pruning += _create_align_masks(board_pad, opp_h_graph, y, x, player_idx ^ 1)
 
     # print("hpruning end")
     return pruning[..., 2:21, 2:21]

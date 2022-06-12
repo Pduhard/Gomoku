@@ -129,7 +129,7 @@ class Board:
 
     def draw_stones(self, board: np.ndarray, player_idx: int):
 
-        stone_x, stone_y = self.cells_coord * board[player_idx][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
+        stone_x, stone_y = self.cells_coord * board[0][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
         empty_cells = stone_x != 0                               # Boolean array to remove empty cells
         stone_x = stone_x[empty_cells]
         stone_y = stone_y[empty_cells]
@@ -137,7 +137,7 @@ class Board:
         for x, y in stones:
             self.win.blit(self.whitestone, (self.ox + x - self.csx, self.oy + y - self.csy))
 
-        stone_x, stone_y = self.cells_coord * board[player_idx ^ 1][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
+        stone_x, stone_y = self.cells_coord * board[1][np.newaxis, ...]   # Get negative address for white stones, 0 for empty cell, positive address for black stones
         empty_cells = stone_x != 0                                          # Boolean array to remove empty cells
         stone_x = stone_x[empty_cells]
         stone_y = stone_y[empty_cells]
@@ -168,7 +168,7 @@ class Board:
             self.draw_actions(actions ^ 1)
 
         elif self.hint_type == 3:
-            self.draw_actions(pruning)
+            self.draw_model_hints(pruning)
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):
 
@@ -282,20 +282,23 @@ class Board:
                 Transparent middle green    if policy close to 0            (= sigmoid close to 0.5)
                 Opaque lime green           if policy tends to big positive (= sigmoid close to 1)
         """
-        if policy.max() != policy.min():
+        if policy is not None:
+            if policy.max() != policy.min():
 
-            policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
-            policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
+                policy = np.abs(policy)
+                print(f"Board: policy:\n{policy}")
+                policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
+                policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
 
-            for y in range(self.board_size[1]):
-                for x in range(self.board_size[0]):
+                for y in range(self.board_size[1]):
+                    for x in range(self.board_size[0]):
 
-                    alpha = int(255 * policyAlpha[y, x])
-                    green = int(255 * policyGreen[y, x])
-                    color = pygame.Color(0, green, 0, alpha)
+                        alpha = int(255 * policyAlpha[y, x])
+                        green = int(255 * policyGreen[y, x])
+                        color = pygame.Color(0, green, 0, alpha)
 
-                    self.hint_surface.fill(color)
-                    self.win.blit(self.hint_surface, (self.ox + self.cells_coord[0, y, x] - self.csx, self.oy + self.cells_coord[1, y, x] - self.csy))
+                        self.hint_surface.fill(color)
+                        self.win.blit(self.hint_surface, (self.ox + self.cells_coord[0, y, x] - self.csx, self.oy + self.cells_coord[1, y, x] - self.csy))
 
     def draw_actions(self, actions: np.array):
 

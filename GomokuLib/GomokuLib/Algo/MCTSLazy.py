@@ -74,7 +74,7 @@ class MCTSLazy(MCTS):
         return f"MCTSLazy with: Progressive/Lazy valid action checking ({self.mcts_iter} iter)"
 
     def get_actions(self) -> np.ndarray:
-        return (self.engine.board[0] | self.engine.board[0]).astype(np.int8) ^ 1
+        return (self.engine.board[0] | self.engine.board[1]).astype(np.int8) ^ 1
 
     def selection(self, policy: np.ndarray, state_data: list) -> tuple[int]:
 

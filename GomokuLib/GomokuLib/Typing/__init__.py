@@ -7,7 +7,7 @@ from numba.core import types
 BoardDtype = np.int8
 ActionDtype = np.int8
 GameZoneDtype = np.int8
-PruningDtype = np.int8
+PruningDtype = np.float32
 HeuristicGraphDtype = np.float32
 
 TupleDtype = np.int32
@@ -55,6 +55,7 @@ nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
 nbBoardFFI = nb.types.CPointer(board_nb_dtype)
 nbGameZone = game_zone_nb_dtype[:]
 nbPolicy = mcts_float_nb_dtype[:, :]
+nbStrDtype = nb.typeof('en two one')
 
 nbPathArray = path_array_nb_dtype
 nbPath = path_nb_dtype[:]

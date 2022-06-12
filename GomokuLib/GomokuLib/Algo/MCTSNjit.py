@@ -6,18 +6,11 @@ import numpy as np
 from GomokuLib.Algo import njit_hpruning, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
-# from .MCTSToBytes import tobytes
 
 import numba as nb
 from numba import njit
 from numba.experimental import jitclass
 from numba.core.typing import cffi_utils
-import fastcore._algo as _fastcore
-
-cffi_utils.register_module(_fastcore)
-_algo = _fastcore.lib
-ffi = _fastcore.ffi
-
 
 @nb.vectorize('float64(int8, float64)')
 def _valid_policy_action(actions, policy):
@@ -26,8 +19,6 @@ def _valid_policy_action(actions, policy):
     else:
         return 0
 
-# statehash_dtype = np.dtype(('U', 722))
-unitypr =  nb.typeof('str')
 @jitclass()
 class MCTSNjit:
 
@@ -46,8 +37,8 @@ class MCTSNjit:
     max_depth: Typing.mcts_int_nb_dtype
     end_game: nb.boolean
     reward: Typing.mcts_float_nb_dtype
-    current_statehash: unitypr
-    gamestatehash: unitypr
+    current_statehash: Typing.nbStrDtype
+    gamestatehash: Typing.nbStrDtype
 
     def __init__(self, 
                  engine: Gomoku,
@@ -65,7 +56,6 @@ class MCTSNjit:
         self.new_heuristic = new_heuristic
 
         self.init()
-        self.current_statehash = '0' * 722
         self.path = np.zeros(361, dtype=Typing.PathDtype)
 
         self.all_actions = np.empty((361, 2), dtype=Typing.ActionDtype)
@@ -78,7 +68,7 @@ class MCTSNjit:
 
     def init(self):
         self.states = nb.typed.Dict.empty(
-            key_type=unitypr,
+            key_type=Typing.nbStrDtype,
             value_type=Typing.nbState
         )
 
@@ -91,7 +81,7 @@ class MCTSNjit:
             key_type=nb.types.unicode_type,
             value_type=Typing.nbState
         )
-        statehash = self.fast_tobytes(game_engine.board, game_engine.player_idx)
+        statehash = self.fast_tobytes(game_engine.board)
         if statehash in self.states:
             mcts_data['mcts_state_data'] = self.states[statehash]
         else:
@@ -104,7 +94,7 @@ class MCTSNjit:
             key_type=nb.types.unicode_type,
             value_type=Typing.MCTSFloatDtype
         )
-        statehash = self.fast_tobytes(game_engine.board, game_engine.player_idx)
+        statehash = self.fast_tobytes(game_engine.board)
         if statehash in self.states:
             statedata = self.states[statehash]
             mcts_data['heuristic'] = statedata[0]['heuristic']
@@ -141,14 +131,13 @@ class MCTSNjit:
     def do_n_iter(self, game_engine: Gomoku, iter: int):
 
         self.max_depth = 0
-        self.gamestatehash = self.fast_tobytes(game_engine.board, game_engine.player_idx)
+        self.gamestatehash = self.fast_tobytes(game_engine.board)
 
         for i in range(iter):
             self.current_statehash = self.gamestatehash
             self.engine.update(game_engine)
 
             self.mcts(i)
-
             if self.depth + 1 > self.max_depth:
                 self.max_depth = self.depth + 1
 
@@ -187,7 +176,7 @@ class MCTSNjit:
             # rawidx = best_action[0] * 19 + best_action[1]
             # self.current_statehash = self.current_statehash[362:] + self.current_statehash[:rawidx] + '1' + self.current_statehash[rawidx + 1:361]
             # print(len(self.current_statehash))
-            self.current_statehash = self.fast_tobytes(self.engine.board, self.engine.player_idx)
+            self.current_statehash = self.fast_tobytes(self.engine.board)
 
         if np.any(self.engine.get_captures() >= 5) and not self.end_game:
             with nb.objmode():
@@ -262,7 +251,7 @@ class MCTSNjit:
 
         self.path[self.depth]['board'][...] = self.engine.board
         # self.path[self.depth]['statehash'] = statehash
-        self.path[self.depth]['player_idx'] = self.engine.player_idx
+        # self.path[self.depth]['player_idx'] = self.engine.player_idx
         self.path[self.depth]['bestAction'][:] = best_action
         # with nb.objmode():
         #     print(f"Fill path depth {self.depth} statehash:\n{self.path[self.depth]['statehash']}")
@@ -328,8 +317,11 @@ class MCTSNjit:
         board = engine.board
 
         cap = engine.get_captures()
-        c0 = cap[0]
-        c1 = cap[1]
+        c0 = cap[engine.player_idx]
+        c1 = cap[engine.player_idx ^ 1]
+        
+        # c0 = cap[0]
+        # c1 = cap[1]
 
         game_zone = engine.get_game_zone()
         g0 = game_zone[0]
@@ -337,11 +329,7 @@ class MCTSNjit:
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        return njit_heuristic(board, c0, c1, g0, g1, g2, g3)
-        # if self.new_heuristic:
-        #     return njit_heuristic(board, c0, c1, g0, g1, g2, g3)
-        # else:
-        #     return old_njit_heuristic(board, c0, c1, g0, g1, g2, g3)
+        return njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx)
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
@@ -379,7 +367,7 @@ class MCTSNjit:
 
     def get_neighbors_mask(self, board):
 
-        neigh = np.zeros((19, 19), dtype=Typing.PruningDtype)
+        neigh = np.zeros((19, 19), dtype=Typing.BoardDtype)
 
         neigh[:-1, :] |= board[1:, :]  # Roll cols to left
         neigh[1:, :] |= board[:-1, :]  # Roll cols to right
@@ -402,12 +390,12 @@ class MCTSNjit:
             g1 = game_zone[1]
             g2 = game_zone[2]
             g3 = game_zone[3]
-            hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3)
+            hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3, self.engine.player_idx)
 
         else:
             hpruning = np.zeros((19, 19), dtype=Typing.PruningDtype)
 
-        full_board = (self.engine.board[0] | self.engine.board[1]).astype(Typing.PruningDtype)
+        full_board = self.engine.board[0] | self.engine.board[1]
         non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
 
         xp = non_pruned ^ full_board
@@ -430,9 +418,9 @@ class MCTSNjit:
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         
         board = memory['board']
-        player_idx = memory['player_idx']
+        # player_idx = memory['player_idx']
         r, c = memory['bestAction']
-        statehash = self.fast_tobytes(board, player_idx)
+        statehash = self.fast_tobytes(board)
         # print(f"memory['bestAction']:\n{r} {c}")
 
         # if statehash not in self.states:
@@ -452,23 +440,9 @@ class MCTSNjit:
         stateAction_update[1] = reward
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
 
-    def tobytes(self, arr: Typing.BoardDtype):
-        return ''.join(map(str, map(np.int8, np.nditer(arr)))) # Aled la ligne (nogil parallele mieux ?..)
-        # return np.char.join('', map(np.unicode_, np.nditer(arr)))
-
-    # def test_rec(self, arr, idx):
-    #     if (arr[idx] == 1):
-    #         res = '1'
-    #     else:
-    #         res = '0'
-    #     if idx == 721:
-    #         return res
-    #     return res + self.test_rec(arr, idx + 1)
-
-    def fast_tobytes(self, arr: Typing.BoardDtype, player_idx: int):
-
+    def fast_tobytes(self, arr: Typing.BoardDtype):
         byte_list = []
         for i in range(19):
             for j in range(19):
-                byte_list.append('1' if arr[player_idx, i, j] == 1 else ('2' if arr[player_idx ^ 1, i, j] == 1 else '0'))
+                byte_list.append('1' if arr[0, i, j] == 1 else ('2' if arr[1, i, j] == 1 else '0'))
         return ''.join(byte_list)

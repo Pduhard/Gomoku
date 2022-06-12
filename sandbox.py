@@ -72,7 +72,16 @@ from fastcore._algo import lib as fastcore_algo
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Device selected: {device}")
 # device = 'cpu'
+from GomokuLib.Algo import MCTSNjit
 
+def getMCTSNjit(engine):
+
+    return MCTSNjit(
+        engine=engine,
+        iter=10000,
+        pruning=True,
+        rollingout_turns=2
+    )
 
 def duel():
 
@@ -84,34 +93,21 @@ def duel():
     # )
 
     # p1 = GomokuLib.Player.Human(runner)
-    # mcts_p1 = GomokuLib.Algo.MCTSNjit(
+    mcts_p1 = getMCTSNjit(runner.engine)
+    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
     #     iter=10000,
-    #     pruning=True,
-    #     rollingout_turns=5,
-    #     # new_heuristic=True
+    #     hard_pruning=True,
+    #     rollingout_turns=2
     # )
-    # p1 = GomokuLib.Player.Bot(mcts_p1)
-    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=runner.engine,
-        iter=10000,
-        hard_pruning=True,
-        rollingout_turns=5
-    )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     # p2 = GomokuLib.Player.Human(runner)
-    mcts_p2 = GomokuLib.Algo.MCTSNjit(
-        engine=runner.engine,
-        iter=10000,
-        pruning=True,
-        rollingout_turns=5,
-        # new_heuristic=True
-    )
+    mcts_p2 = getMCTSNjit(runner.engine)
     p2 = GomokuLib.Player.Bot(mcts_p2)
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
-    #     iter=10000,
+    #     iter=3000,
     #     hard_pruning=True,
     #     rollingout_turns=5
     # )
@@ -139,7 +135,8 @@ def duel():
     # profiler = cProfile.Profile()
     # profiler.enable()
 
-    winners = runner.run([p1, p2], n_games=1)  # White: 0 / Black: 1
+    # winners = runner.run([p1, p2], n_games=1)  # White: 0 / Black: 1
+    winners = runner.run([p2, p1], n_games=1)  # White: 0 / Black: 1
 
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')

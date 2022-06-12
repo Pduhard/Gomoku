@@ -6,6 +6,7 @@ int is_winning(char *board, int p, int ar, int ac, int gz_start_r, int gz_start_
     static int  direction[8] = {-1, -1, -1, 0, -1, 1, 0, 1};
     static int  cmax = 19;
 
+    int p_idx = p * 361;
     // four directions
     for (int direction_idx = 0; direction_idx < 8; direction_idx += 2)
     {
@@ -27,11 +28,11 @@ int is_winning(char *board, int p, int ar, int ac, int gz_start_r, int gz_start_
             c1 -= dc;
             if (no_edge)
             {
-                if (board[p + r1 * cmax + c1] == 0)     // Stop if no stone found
+                if (board[p_idx + r1 * cmax + c1] == 0)     // Stop if no stone found
                     count1 = i;                     // Save stone align length (Default at 4)
             }
-//            else if (r1 < 0 || r1 >= rmax || c1 < 0 || c1 >= cmax || board[p + r1 * cmax + c1] == 0)
-            else if (r1 < gz_start_r || gz_end_r < r1 || c1 < gz_start_c || gz_end_c < c1 || board[p + r1 * cmax + c1] == 0)
+//            else if (r1 < 0 || r1 >= rmax || c1 < 0 || c1 >= cmax || board[p_idx + r1 * cmax + c1] == 0)
+            else if (r1 < gz_start_r || gz_end_r < r1 || c1 < gz_start_c || gz_end_c < c1 || board[p_idx + r1 * cmax + c1] == 0)
                 count1 = i;
         }
 
@@ -49,11 +50,11 @@ int is_winning(char *board, int p, int ar, int ac, int gz_start_r, int gz_start_
             c1 += dc;
             if (no_edge)
             {
-                if (board[p + r1 * cmax + c1] == 0)
+                if (board[p_idx + r1 * cmax + c1] == 0)
                     count2 = i;
             }
-            else if (r1 < gz_start_r || gz_end_r < r1 || c1 < gz_start_c || gz_end_c < c1 || board[p + r1 * cmax + c1] == 0)
-//            else if (r1 < 0 || r1 >= rmax || c1 < 0 || c1 >= cmax || board[p + r1 * cmax + c1] == 0)
+            else if (r1 < gz_start_r || gz_end_r < r1 || c1 < gz_start_c || gz_end_c < c1 || board[p_idx + r1 * cmax + c1] == 0)
+//            else if (r1 < 0 || r1 >= rmax || c1 < 0 || c1 >= cmax || board[p_idx + r1 * cmax + c1] == 0)
                 count2 = i;
         }
 
