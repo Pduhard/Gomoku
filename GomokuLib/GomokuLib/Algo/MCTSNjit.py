@@ -55,7 +55,6 @@ class MCTSNjit:
         self.rollingout_turns = rollingout_turns
         self.c = np.sqrt(2)
         self.new_heuristic = new_heuristic
-
         self.init()
         self.path = np.zeros(361, dtype=Typing.PathDtype)
 
@@ -126,7 +125,7 @@ class MCTSNjit:
         # print(f"StateAction reward: {sa_r}")
         # print(f"Qualities: {sa_r / sa_v}")
 
-        # print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
+        # print(f"coun to bytes: {self.count_tobytes} tt time: {13 * self.count_tobytes} us")
         return arg // 19, arg % 19
 
     def do_n_iter(self, game_engine: Gomoku, iter: int):
@@ -147,6 +146,7 @@ class MCTSNjit:
         # print(f"\n[MCTSNjit mcts function iter {mcts_iter}]\n")
         self.depth = 0
         self.end_game = self.engine.isover()
+        statehashes = []
         while self.current_statehash in self.states and not self.end_game:
 
             state_data = self.states[self.current_statehash][0]
@@ -168,23 +168,43 @@ class MCTSNjit:
                     breakpoint()
 
             self.fill_path(self.current_statehash, best_action)
+            statehashes.append(self.current_statehash)
+            rawidx = best_action[0] * 19 + best_action[1]
+            newStone = '1' if self.engine.player_idx == 0 else '2'
+            self.current_statehash = self.current_statehash[:rawidx] + newStone + self.current_statehash[rawidx + 1:]
+            
             self.engine.apply_action(best_action)
             self.engine.next_turn()
             self.depth += 1
 
+            # remove captured stone from statehash
+            if self.engine.is_capture_active:
+                captures = self.engine.capture.captured_buffer
+                for i in range(self.engine.capture.capture_count):
+                    rawidx0 = captures[i, 0, 0] * 19 + captures[i, 0, 1]
+                    rawidx1 = captures[i, 1, 0] * 19 + captures[i, 1, 1]
+                    if rawidx0 > rawidx1:
+                        rawidx1 ^= rawidx0
+                        rawidx0 ^= rawidx1
+                        rawidx1 ^= rawidx0
+                    self.current_statehash = (
+                        self.current_statehash[:rawidx0] + '0'
+                        + self.current_statehash[rawidx0 + 1:rawidx1] + '0'
+                        + self.current_statehash[rawidx1 + 1:]
+                    )
+            #####
+
             self.end_game = self.engine.isover()
 
-            # rawidx = best_action[0] * 19 + best_action[1]
-            # self.current_statehash = self.current_statehash[362:] + self.current_statehash[:rawidx] + '1' + self.current_statehash[rawidx + 1:361]
             # print(len(self.current_statehash))
-            self.current_statehash = self.fast_tobytes(self.engine.board)
+            # self.current_statehash = self.fast_tobytes(self.engine.board)
 
         actions = self.engine.get_lazy_actions()
         pruning = self.pruning()
         self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
 
         self.expand(self.current_statehash, actions, pruning)
-        self.backpropagation()
+        self.backpropagation(statehashes)
 
     def get_policy(self, state_data: Typing.nbState, *args) -> Typing.nbPolicy:
         """
@@ -272,17 +292,6 @@ class MCTSNjit:
         if self.engine.winner == -1: # Draw
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
-
-    # def award(self):
-    #     """
-    #         Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
-    #     """
-    #     self.rollingout()
-
-    #     if self.engine.isover():
-    #         return self.award_end_game()
-    #     else:
-    #         return 0.5
 
     def award(self):
         """
@@ -397,24 +406,23 @@ class MCTSNjit:
         # print("Choose normal pruning")
         return non_pruned + hpruning
 
-    def backpropagation(self):
+    def backpropagation(self, statehashes):
 
         # Start with the last play (Penultimate state/board)
         reward = 1 - self.reward
         for i in range(self.depth - 1, -1, -1):
             # print(f"Backprop path index {i}")
-            self.backprop_memory(self.path[i], reward)
+            self.backprop_memory(self.path[i], reward, statehashes[i])
             reward = 1 - reward
             # reward = 1 - (0.90 * reward)
 
-    def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
+    def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype, statehash: string):
         # print(f"Memory:\n{memory}")
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         
-        board = memory['board']
+        # board = memory['board']
         # player_idx = memory['player_idx']
         r, c = memory['bestAction']
-        statehash = self.fast_tobytes(board)
         # print(f"memory['bestAction']:\n{r} {c}")
 
         # if statehash not in self.states:

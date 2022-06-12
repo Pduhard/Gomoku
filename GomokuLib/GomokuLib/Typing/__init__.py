@@ -52,6 +52,12 @@ nbHeuristicGraph = heuristic_graph_nb_dtype[:]
 nbBoard = nb.types.Array(dtype=board_nb_dtype, ndim=3, layout="C")
 nbAction = nb.types.Array(dtype=action_nb_type, ndim=2, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
+
+nbCapturedBuf = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=3, layout="C")
+nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
+nbBoardFFI = nb.types.CPointer(board_nb_dtype)
+nbCapturedBufFFI = nb.types.CPointer(mcts_int_nb_dtype)
+
 nbBoardFFI = nb.types.CPointer(board_nb_dtype)
 nbGameZone = game_zone_nb_dtype[:]
 nbPolicy = mcts_float_nb_dtype[:, :]

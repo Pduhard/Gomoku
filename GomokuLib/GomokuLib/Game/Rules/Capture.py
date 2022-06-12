@@ -20,18 +20,22 @@ class Capture():
 	name: nb.types.string
 	player_count_capture: Typing.nbTuple
 	_board_ptr: Typing.nbBoardFFI
+	captured_buffer: Typing.nbCapturedBuf 
+	_captured_ptr: Typing.nbCapturedBufFFI
 	count_captures_cfunc: count_captures_ctype
+	capture_count: Typing.mcts_int_nb_dtype
 
 	def __init__(self, board) -> None:
 		self.name = 'Capture'
 		self.player_count_capture = np.zeros(2, dtype=Typing.TupleDtype)
 		self._board_ptr = ffi.from_buffer(board)
 		self.count_captures_cfunc = _rules.count_captures
-	
-	def endturn(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
+		self.captured_buffer = np.zeros((16, 2, 2), dtype=np.int32)
+		self._captured_ptr = ffi.from_buffer(self.captured_buffer)
 
-		count1 = self.count_captures_cfunc(self._board_ptr, ar, ac, gz0, gz1, gz2, gz3, player_idx)
-		self.player_count_capture[player_idx] += count1
+	def endturn(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
+		self.capture_count = self.count_captures_cfunc(self._board_ptr, ar, ac, gz0, gz1, gz2, gz3, player_idx, self._captured_ptr)
+		self.player_count_capture[player_idx] += self.capture_count
 
 	def winning(self, player_idx: int, *args):
 		if self.player_count_capture[player_idx] >= 5:
