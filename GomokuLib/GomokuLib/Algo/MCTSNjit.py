@@ -29,7 +29,7 @@ class MCTSNjit:
     rollingout_turns: Typing.mcts_int_nb_dtype
 
     states: Typing.nbStateDict
-    path: Typing.nbPath
+    path: Typing.nbPathArray
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
     new_heuristic: nb.boolean
@@ -56,7 +56,7 @@ class MCTSNjit:
         self.c = np.sqrt(2)
         self.new_heuristic = new_heuristic
         self.init()
-        self.path = np.zeros(361, dtype=Typing.PathDtype)
+        self.path = np.zeros((361, 2), dtype=Typing.mcts_int_nb_dtype)
 
         self.all_actions = np.empty((361, 2), dtype=Typing.ActionDtype)
         for i in range(19):
@@ -167,8 +167,9 @@ class MCTSNjit:
                 with nb.objmode():
                     breakpoint()
 
-            self.fill_path(self.current_statehash, best_action)
+            # self.fill_path(self.current_statehash, best_action)
             statehashes.append(self.current_statehash)
+            self.path[self.depth][:] = best_action
             rawidx = best_action[0] * 19 + best_action[1]
             newStone = '1' if self.engine.player_idx == 0 else '2'
             self.current_statehash = self.current_statehash[:rawidx] + newStone + self.current_statehash[rawidx + 1:]
@@ -261,19 +262,6 @@ class MCTSNjit:
                     return gAction
                 else:
                     actions[x, y] = 0
-
-    def fill_path(self, statehash, best_action: np.ndarray):
-        # print(f"Fill path depth {self.depth} statehash:\n{statehash}")
-
-        # sh = np.unicode_(statehash)
-        # print(f"Statehash : {sh} {sh.dtype}")
-
-        self.path[self.depth]['board'][...] = self.engine.board
-        # self.path[self.depth]['statehash'] = statehash
-        # self.path[self.depth]['player_idx'] = self.engine.player_idx
-        self.path[self.depth]['bestAction'][:] = best_action
-        # with nb.objmode():
-        #     print(f"Fill path depth {self.depth} statehash:\n{self.path[self.depth]['statehash']}")
 
     def expand(self, statehash: string, actions: np.ndarray, pruning: np.ndarray):
         state = np.zeros(1, dtype=Typing.StateDataDtype)
@@ -416,29 +404,14 @@ class MCTSNjit:
             reward = 1 - reward
             # reward = 1 - (0.90 * reward)
 
-    def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype, statehash: string):
-        # print(f"Memory:\n{memory}")
+    def backprop_memory(self, best_action, reward: Typing.MCTSFloatDtype, statehash: string):
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
-        
-        # board = memory['board']
-        # player_idx = memory['player_idx']
-        r, c = memory['bestAction']
-        # print(f"memory['bestAction']:\n{r} {c}")
 
-        # if statehash not in self.states:
-        #     print(f"statehash not in states !!! ->\n{statehash}")
-        #     count = 0
-        #     for c in statehash:
-        #         if c != '0':
-        #             count+= 1
-        #     print('count: ', count)
-
+        r, c = best_action
         state_data = self.states[statehash][0]
-        # state_data = self.states[statehash][0]
 
         state_data['visits'] += 1                           # update n count
         state_data['rewards'] += reward                     # update state value / Use for ?...
-
         stateAction_update[1] = reward
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
 

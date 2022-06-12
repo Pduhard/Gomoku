@@ -14,13 +14,6 @@ TupleDtype = np.int32
 MCTSIntDtype = np.int32
 MCTSFloatDtype = np.float32
 
-PathDtype = np.dtype([
-    ('board', BoardDtype, (2, 19, 19)),
-    # ('statehash', np.dtype(('U', 722))),
-    ('player_idx', MCTSIntDtype),
-    ('bestAction', MCTSIntDtype, (2,))
-], align=True)
-
 StateDataDtype = np.dtype([
     # ('worker_id', MCTSIntDtype),
     ('max_depth', MCTSIntDtype),
@@ -42,10 +35,7 @@ heuristic_graph_nb_dtype = nb.from_dtype(HeuristicGraphDtype)
 mcts_float_nb_dtype = nb.from_dtype(MCTSFloatDtype)
 mcts_int_nb_dtype = nb.from_dtype(MCTSIntDtype)
 
-path_nb_dtype = nb.from_dtype(PathDtype)
-path_array_nb_dtype = nb.typeof(np.zeros((), dtype=PathDtype))
 state_data_nb_dtype = nb.from_dtype(StateDataDtype)
-
 
 nbTuple = tuple_nb_dtype[:]
 nbHeuristicGraph = heuristic_graph_nb_dtype[:]
@@ -55,6 +45,7 @@ nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
 
 nbCapturedBuf = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=3, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
+nbPathArray = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=2, layout="C")
 nbBoardFFI = nb.types.CPointer(board_nb_dtype)
 nbCapturedBufFFI = nb.types.CPointer(mcts_int_nb_dtype)
 
@@ -63,9 +54,6 @@ nbGameZone = game_zone_nb_dtype[:]
 nbPolicy = mcts_float_nb_dtype[:, :]
 nbStrDtype = nb.typeof('en two one')
 
-nbPathArray = path_array_nb_dtype
-nbPath = path_nb_dtype[:]
-nbPathBuff = path_nb_dtype[:, :, :]
 nbState = state_data_nb_dtype[:]
 nbStateBuff = state_data_nb_dtype[:, :]
 
