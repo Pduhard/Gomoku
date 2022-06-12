@@ -1,4 +1,5 @@
 from os import stat
+import string
 import GomokuLib
 
 import numpy as np
@@ -177,8 +178,13 @@ class MCTSNjit:
             # print(len(self.current_statehash))
             self.current_statehash = self.fast_tobytes(self.engine.board)
 
-        # self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))
-        self.expand(self.current_statehash)
+        # self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))4
+
+        actions = self.engine.get_lazy_actions()
+        pruning = self.pruning()
+        self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
+
+        self.expand(self.current_statehash, actions, pruning)
         self.backpropagation()
 
     def get_policy(self, state_data: Typing.nbState, *args) -> Typing.nbPolicy:
@@ -250,15 +256,10 @@ class MCTSNjit:
         # with nb.objmode():
         #     print(f"Fill path depth {self.depth} statehash:\n{self.path[self.depth]['statehash']}")
 
-    def expand(self, statehash: str):
+    def expand(self, statehash: string, actions: np.ndarray, pruning: np.ndarray):
         # print(f"Expand depth {self.depth} statehash:\n{statehash}")
         
         self.states[statehash] = np.zeros(1, dtype=Typing.StateDataDtype)
-
-        actions = self.engine.get_lazy_actions()
-        # actions = self.engine.get_actions()
-        pruning = self.pruning()
-        self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
 
         self.states[statehash][0]['max_depth'] = self.depth
         self.states[statehash][0]['visits'] = 1
@@ -348,15 +349,21 @@ class MCTSNjit:
                     breakpoint()
                 return
 
-            i = np.random.randint(action_number)
-            gAction = actions[i]
-            while not self.engine.is_valid_action(gAction):
-                i = np.random.randint(action_number)
-                gAction = actions[i]
+            arr = np.arange(action_number)
+            np.random.shuffle(arr)
+            # i = np.random.randint(action_number)
+            i = 0
+            gAction = actions[arr[0]]
+            while (i < action_number and not self.engine.is_valid_action(gAction)):
+                gAction = actions[arr[i]]
+                i += 1
 
+            if (i == action_number):
+                return
             self.engine.apply_action(gAction)
             self.engine.next_turn()
             turn += 1
+
 
     def get_neighbors_mask(self, board):
 

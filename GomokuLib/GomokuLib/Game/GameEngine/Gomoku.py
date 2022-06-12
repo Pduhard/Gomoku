@@ -70,7 +70,7 @@ class Gomoku:
         # full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         masks &= self.basic_rules.get_valid(full_board)
         if self.is_no_double_threes_active:
-            masks &= self.no_double_threes.get_valid(full_board)
+            masks &= self.no_double_threes.get_valid(full_board, self.player_idx)
         return masks
 
     def is_valid_action(self, action: np.ndarray) -> bool:

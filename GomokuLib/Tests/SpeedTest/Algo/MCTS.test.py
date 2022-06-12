@@ -69,6 +69,19 @@ def _faketobytes(n, mcts, boards):
     for i in range(n):
         fake_tobytes(boards[i])
 
+@njit()
+def _expand(n, mcts, boards, actions, prunings):
+    for i in range(n):
+        mcts.engine.board = boards[i]
+        statehash = mcts.fast_tobytes(mcts.engine.board)
+        mcts.expand(statehash, actions[i], prunings[i])
+
+@njit()
+def _award(n, mcts, boards):
+    for i in range(n):
+        mcts.engine.board = boards[i]
+        mcts.award()
+
 def _log(fname, times, ranges):
     print('######################')
     print('Gomoku', fname, ': ')
@@ -90,6 +103,8 @@ def _log(fname, times, ranges):
 
 
 def test_rollingout(mcts, boards, engine_ref):
+    boards = np.zeros((10000, 2, 19, 19), dtype=Typing.BoardDtype)
+    old_rollingout = mcts.rollingout_turns
     mcts.rollingout_turns = 100
     _rollingout(10, mcts, boards, engine_ref)
     times = []
@@ -101,7 +116,8 @@ def test_rollingout(mcts, boards, engine_ref):
         _rollingout(r, mcts, boards, engine_ref)
         times.append(time.perf_counter())
 
-    _log('get_neighbors_mask', times, ranges)
+    mcts.rollingout_turns = old_rollingout
+    _log('rollingout', times, ranges)
 
 def test_get_neighbors_mask(mcts, boards):
 
@@ -161,6 +177,57 @@ def test_prunning(mcts, boards):
 
     _log('prunning', times, ranges)
 
+def test_call(mcts, boards, engine_ref):
+
+    mcts.init()
+    mcts.do_n_iter(engine_ref, 100)
+
+    times = []
+    ranges = test_ranges
+    nr = []
+    times.append(time.perf_counter())
+    for r in ranges:
+        mcts.init()
+        mcts.do_n_iter(engine_ref, r)
+
+        times.append(time.perf_counter())
+
+    _log('call', times, ranges)
+
+
+def test_expand(mcts, boards):
+
+    actions = np.random.randint(0, 2, (10000, 19, 19), dtype=Typing.ActionDtype)
+    prunings = np.random.randint(0, 2, (10000, 19, 19), dtype=Typing.PruningDtype)
+    mcts.init()
+    _expand(1, mcts, boards, actions, prunings)
+
+    times = []
+    ranges = test_ranges
+    nr = []
+    times.append(time.perf_counter())
+    for r in ranges:
+        mcts.init()
+        _expand(r, mcts, boards, actions, prunings)
+        times.append(time.perf_counter())
+
+    _log('expand', times, ranges)
+
+
+def test_award(mcts, boards):
+
+    _award(1, mcts, boards)
+
+    times = []
+    ranges = test_ranges
+    nr = []
+    times.append(time.perf_counter())
+    for r in ranges:
+        _award(r, mcts, boards)
+        times.append(time.perf_counter())
+
+    _log('award', times, ranges)
+
 if __name__ == "__main__":
     boards = np.random.randint(0, 2, (10000, 2, 19, 19), dtype=Typing.BoardDtype)
     engine = Gomoku()
@@ -169,10 +236,13 @@ if __name__ == "__main__":
         engine=engine,
         iter=3000,
         pruning=True,
-        rollingout_turns=10
+        rollingout_turns=5
     )
     test_tobytes(mcts, boards)
     test_faketobytes(mcts, boards)
     test_prunning(mcts, boards)
     test_get_neighbors_mask(mcts, boards)
+    test_call(mcts, boards, engine_ref)
+    test_expand(mcts, boards)
+    test_award(mcts, boards)
     test_rollingout(mcts, boards, engine_ref)

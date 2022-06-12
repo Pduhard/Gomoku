@@ -28,12 +28,12 @@ class NoDoubleThrees:
 		self._is_double_threes_cfunc = _rules.is_double_threes
 		self._board_ptr = ffi.from_buffer(board)
 
-	def get_valid(self, full_board: np.ndarray):
+	def get_valid(self, full_board: np.ndarray, player_idx: int):
 		# return njit_get_valid(board, self.FT_IDENT)
 		a = np.zeros_like(full_board, dtype=full_board.dtype)
 		for r in range(19):
 			for c in range(19):
-				if self.is_valid(full_board, r, c):
+				if self.is_valid(full_board, r, c, player_idx):
 					a[r, c] = 1
 				# maybe this over before two lines : a[r, c] = self.is_valid(full_board, r, c)
 		return a

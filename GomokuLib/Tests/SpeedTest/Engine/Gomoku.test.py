@@ -28,12 +28,6 @@ def _is_valid_action(n, gomoku, random_actions):
     return ret
 
 @njit()
-def _shift_board(n, gomoku):
-    for i in range(n):
-        gomoku._shift_board()
-
-
-@njit()
 def _update(n, gomoku1, gomoku2):
     for i in range(n):
         cd = i & 1
@@ -81,7 +75,7 @@ def test_get_actions():
         _get_actions(r, gomoku)
         times.append(time.perf_counter())
 
-    _log('get_valid', times, ranges)
+    _log('get_actions', times, ranges)
 
 
 def test_is_valid_action():
@@ -100,23 +94,6 @@ def test_is_valid_action():
         times.append(time.perf_counter())
 
     _log('is_valid_action', times, ranges)
-
-def test_shift_board():
-    gomoku = Gomoku()
-    gomoku.board = np.random.randint(0, 2, (2, 19, 19), dtype=Typing.BoardDtype)
-    gomoku.update_board_ptr()
-    _shift_board(1, gomoku)
-
-    times = []
-    ranges = test_ranges
-
-    times.append(time.perf_counter())
-    for r in ranges:
-        _shift_board(r, gomoku)
-        times.append(time.perf_counter())
-
-    _log('shift_board', times, ranges)
-
 
 def test_update():
     gomoku1 = Gomoku()
@@ -137,12 +114,11 @@ def test_update():
         _update(r, gomoku1, gomoku2)
         times.append(time.perf_counter())
 
-    _log('shift_board', times, ranges)
+    _log('update', times, ranges)
 
 if __name__ == "__main__":
     test_get_actions()
     # test_is_valid()
     test_is_valid_action()
-    test_shift_board()
     test_update()
 
