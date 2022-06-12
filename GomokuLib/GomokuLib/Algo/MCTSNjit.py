@@ -6,19 +6,11 @@ import numpy as np
 from GomokuLib.Algo import njit_heuristic, my_heuristic_graph, opp_heuristic_graph
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
-# from .MCTSToBytes import tobytes
 
 import numba as nb
 from numba import njit
 from numba.experimental import jitclass
 from numba.core.typing import cffi_utils
-import fastcore._algo as _fastcore
-
-cffi_utils.register_module(_fastcore)
-_algo = _fastcore.lib
-ffi = _fastcore.ffi
-
-
 
 @nb.vectorize('float64(int8, float64)')
 def _valid_policy_action(actions, policy):
@@ -27,8 +19,6 @@ def _valid_policy_action(actions, policy):
     else:
         return 0
 
-# statehash_dtype = np.dtype(('U', 722))
-unitypr =  nb.typeof('str')
 @jitclass()
 class MCTSNjit:
 
@@ -48,8 +38,8 @@ class MCTSNjit:
     max_depth: Typing.mcts_int_nb_dtype
     end_game: nb.boolean
     reward: Typing.mcts_float_nb_dtype
-    current_statehash: unitypr
-    gamestatehash: unitypr
+    current_statehash: Typing.nbStrDtype
+    gamestatehash: Typing.nbStrDtype
 
     def __init__(self, 
                  engine: Gomoku,
@@ -65,7 +55,6 @@ class MCTSNjit:
         self.c = np.sqrt(2)
 
         self.init()
-        self.current_statehash = '0' * 722
         self.path = np.zeros(361, dtype=Typing.PathDtype)
 
         self.all_actions = np.empty((361, 2), dtype=Typing.ActionDtype)
@@ -78,7 +67,7 @@ class MCTSNjit:
 
     def init(self):
         self.states = nb.typed.Dict.empty(
-            key_type=unitypr,
+            key_type=Typing.nbStrDtype,
             value_type=Typing.nbState
         )
 
@@ -148,7 +137,6 @@ class MCTSNjit:
             self.engine.update(game_engine)
 
             self.mcts(i)
-
             if self.depth + 1 > self.max_depth:
                 self.max_depth = self.depth + 1
 

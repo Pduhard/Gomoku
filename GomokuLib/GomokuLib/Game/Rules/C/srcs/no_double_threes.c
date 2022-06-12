@@ -28,6 +28,7 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
 {
     static long rmax = 19, cmax = 19;
     int  lineidx[8];   // Idx of each cell on the line (Implicite action on the middle between index 3 and 4)
+    int  flineidx[8];   // Idx of each cell on the line for the full board (Implicite action on the middle between index 3 and 4)
     int  map_edges[8]; // Bool values 4 cells in 2 directions (Implicite action on the middle between index 3 and 4)
     long pr = ar;
     long pc = ac;
@@ -44,6 +45,9 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
         map_edges[3 + i] = nr < 0 || rmax <= nr || nc < 0 || cmax <= nc;
         lineidx[4 - i] = map_edges[4 - i] ? -1 : player_idx + pr * cmax + pc;
         lineidx[3 + i] = map_edges[3 + i] ? -1 : player_idx + nr * cmax + nc;
+
+        flineidx[4 - i] = map_edges[4 - i] ? -1 : pr * cmax + pc;
+        flineidx[3 + i] = map_edges[3 + i] ? -1 : nr * cmax + nc;
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 4-i, lineidx[4 - i] / cmax, lineidx[4 - i] % cmax, map_edges[4 - i], map_edges[4 - i] ? -1 : board[lineidx[4 - i]]);
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 3+i, lineidx[3 + i] / cmax, lineidx[3 + i] % cmax, map_edges[3 + i], map_edges[3 + i] ? -1 : board[lineidx[3 + i]]);
     }
@@ -56,11 +60,11 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
         {/*   012 3 4 567
                _|###|__
               __|###|_     */
-            // fprintf(stderr, "(%d && %d || %d && %d) && %d && %d && %d && %d\n", map_edges[1] == 0, full_board[lineidx[1]] == 0, map_edges[6] == 0, full_board[lineidx[6]] == 0, map_edges[2] == 0, map_edges[5] == 0, full_board[lineidx[2]] == 0, full_board[lineidx[5]] == 0);
-            return (((map_edges[1] == 0 && full_board[lineidx[1]] == 0) || (map_edges[6] == 0 && full_board[lineidx[6]] == 0)) &&
-                map_edges[2] == 0 && map_edges[5] == 0 && full_board[lineidx[2]] == 0 && full_board[lineidx[5]] == 0);
+            // fprintf(stderr, "(%d && %d || %d && %d) && %d && %d && %d && %d\n", map_edges[1] == 0, full_board[flineidx[1]] == 0, map_edges[6] == 0, full_board[flineidx[6]] == 0, map_edges[2] == 0, map_edges[5] == 0, full_board[flineidx[2]] == 0, full_board[flineidx[5]] == 0);
+            return (((map_edges[1] == 0 && full_board[flineidx[1]] == 0) || (map_edges[6] == 0 && full_board[flineidx[6]] == 0)) &&
+                map_edges[2] == 0 && map_edges[5] == 0 && full_board[flineidx[2]] == 0 && full_board[flineidx[5]] == 0);
         }
-        else if (full_board[lineidx[4]] == 0)
+        else if (full_board[flineidx[4]] == 0)
         {/* 012 3 4 567
               _|##_|#_
              _#|##_|_
@@ -70,26 +74,26 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
                 return 0;           // No possible case
             // fprintf(stderr, "Here 0 0\n");
 
-            if (map_edges[6] == 0 && full_board[lineidx[2]] == 0 && board[lineidx[5]] == 1 && full_board[lineidx[6]] == 0) // _|##_|#_
+            if (map_edges[6] == 0 && full_board[flineidx[2]] == 0 && board[lineidx[5]] == 1 && full_board[flineidx[6]] == 0) // _|##_|#_
                 return 1;
             if (map_edges[1])
                 return 0;           // No more possible case
 
             // fprintf(stderr, "Here 0 1\n");
-            if (map_edges[5] == 0 && full_board[lineidx[1]] == 0 && board[lineidx[2]] == 1 && full_board[lineidx[5]] == 0) // _#|##_|_
+            if (map_edges[5] == 0 && full_board[flineidx[1]] == 0 && board[lineidx[2]] == 1 && full_board[flineidx[5]] == 0) // _#|##_|_
                 return 1;
 
-            if (map_edges[0] == 0 && full_board[lineidx[0]] == 0)
+            if (map_edges[0] == 0 && full_board[flineidx[0]] == 0)
             {
                 // fprintf(stderr, "Here 0 2\n");
-                if (board[lineidx[1]] == 1 && full_board[lineidx[2]] == 0) // _#_|##_|
+                if (board[lineidx[1]] == 1 && full_board[flineidx[2]] == 0) // _#_|##_|
                     return 1;
                 // fprintf(stderr, "Here 0 3\n");
-                return full_board[lineidx[1]] == 0 && board[lineidx[2]] == 1; // __#|##_|
+                return full_board[flineidx[1]] == 0 && board[lineidx[2]] == 1; // __#|##_|
             }
         }
     }
-    else if (full_board[lineidx[3]] == 0)
+    else if (full_board[flineidx[3]] == 0)
     {
         if (board[lineidx[4]])  // Next cell ?
         {/*  012 3 4 567
@@ -101,33 +105,33 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
                 return 0;           // No possible case
 
             // fprintf(stderr, "Here 1 0\n");
-            if (map_edges[1] == 0 && full_board[lineidx[5]] == 0 && board[lineidx[2]] == 1 && full_board[lineidx[1]] == 0) // _#|_##|_
+            if (map_edges[1] == 0 && full_board[flineidx[5]] == 0 && board[lineidx[2]] == 1 && full_board[flineidx[1]] == 0) // _#|_##|_
                 return 1;
             if (map_edges[6])
                 return 0;           // No more possible case
 
-            // fprintf(stderr, "Here 1 1 | %d %d %d %d\n", map_edges[2] == 0, full_board[lineidx[2]] == 0, board[lineidx[5]] == 1, full_board[lineidx[6]] == 0);
-            if (map_edges[2] == 0 && full_board[lineidx[2]] == 0 && board[lineidx[5]] == 1 && full_board[lineidx[6]] == 0) // _|_##|#_
+            // fprintf(stderr, "Here 1 1 | %d %d %d %d\n", map_edges[2] == 0, full_board[flineidx[2]] == 0, board[lineidx[5]] == 1, full_board[flineidx[6]] == 0);
+            if (map_edges[2] == 0 && full_board[flineidx[2]] == 0 && board[lineidx[5]] == 1 && full_board[flineidx[6]] == 0) // _|_##|#_
                 return 1;
 
-            if (map_edges[7] == 0 && full_board[lineidx[7]] == 0)
+            if (map_edges[7] == 0 && full_board[flineidx[7]] == 0)
             {
                 // fprintf(stderr, "Here 1 2\n");
-                if (full_board[lineidx[5]] == 0 && board[lineidx[6]] == 1) // |_##|_#_
+                if (full_board[flineidx[5]] == 0 && board[lineidx[6]] == 1) // |_##|_#_
                     return 1;
 
                 // fprintf(stderr, "Here 1 3\n");
-                return board[lineidx[5]] == 1 && full_board[lineidx[6]] == 0; // |_##|#__
+                return board[lineidx[5]] == 1 && full_board[flineidx[6]] == 0; // |_##|#__
             }
         }
-        else if (full_board[lineidx[4]] == 0)
+        else if (full_board[flineidx[4]] == 0)
         {/* 012 3 4 567
                |_#_|##_
             _##|_#_|      */
-            // fprintf(stderr, "(%d && %d && %d && %d) || (%d && %d && %d && %d)\n", map_edges[0] == 0, board[lineidx[2]] == 1, board[lineidx[1]] == 1, full_board[lineidx[0]] == 0, map_edges[7] == 0, board[lineidx[5]] == 1, board[lineidx[6]] == 1, full_board[lineidx[7]] == 0);
+            // fprintf(stderr, "(%d && %d && %d && %d) || (%d && %d && %d && %d)\n", map_edges[0] == 0, board[lineidx[2]] == 1, board[lineidx[1]] == 1, full_board[flineidx[0]] == 0, map_edges[7] == 0, board[lineidx[5]] == 1, board[lineidx[6]] == 1, full_board[flineidx[7]] == 0);
 
-            return ((map_edges[0] == 0 && board[lineidx[2]] == 1 && board[lineidx[1]] == 1 && full_board[lineidx[0]] == 0) ||
-                (map_edges[7] == 0 && board[lineidx[5]] == 1 && board[lineidx[6]] == 1 && full_board[lineidx[7]] == 0));
+            return ((map_edges[0] == 0 && board[lineidx[2]] == 1 && board[lineidx[1]] == 1 && full_board[flineidx[0]] == 0) ||
+                (map_edges[7] == 0 && board[lineidx[5]] == 1 && board[lineidx[6]] == 1 && full_board[flineidx[7]] == 0));
         }
     }
     return 0;
