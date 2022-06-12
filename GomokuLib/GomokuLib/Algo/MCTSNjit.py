@@ -3,7 +3,7 @@ import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import njit_hpruning, njit_heuristic, old_njit_heuristic
+from GomokuLib.Algo import njit_hpruning, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 # from .MCTSToBytes import tobytes

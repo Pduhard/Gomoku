@@ -9,7 +9,7 @@ from .MCTSEval import MCTSEval
 from .MCTSEvalLazy import MCTSEvalLazy
 from .MCTSAI import MCTSAI
 from .MCTSNjit import MCTSNjit
-from .MCTSParallel import MCTSParallel
+# from .MCTSParallel import MCTSParallel
 
 __all__ = [
     'MCTS',
@@ -20,7 +20,7 @@ __all__ = [
     'MCTSEvalLazy',
     'MCTSAI',
     'MCTSNjit',
-    'MCTSParallel',
+    # 'MCTSParallel',
 
     'njit_heuristic',
     'njit_hpruning',
