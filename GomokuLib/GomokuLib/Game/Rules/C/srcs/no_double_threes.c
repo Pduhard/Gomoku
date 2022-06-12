@@ -24,11 +24,12 @@
          |
 */
 
-static int is_threes(char *board, char *full_board, long ar, long ac, long dr, long dc, int player_idx)
+static int is_threes(char *board, long ar, long ac, long dr, long dc, int player_idx)
 {
     static long rmax = 19, cmax = 19;
     int  lineidx[8];   // Idx of each cell on the line (Implicite action on the middle between index 3 and 4)
     int  flineidx[8];   // Idx of each cell on the line for the full board (Implicite action on the middle between index 3 and 4)
+    int  fboards[8];   // Idx of each cell on the line for the full board (Implicite action on the middle between index 3 and 4)
     int  map_edges[8]; // Bool values 4 cells in 2 directions (Implicite action on the middle between index 3 and 4)
     long pr = ar;
     long pc = ac;
@@ -51,6 +52,8 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 4-i, lineidx[4 - i] / cmax, lineidx[4 - i] % cmax, map_edges[4 - i], map_edges[4 - i] ? -1 : board[lineidx[4 - i]]);
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 3+i, lineidx[3 + i] / cmax, lineidx[3 + i] % cmax, map_edges[3 + i], map_edges[3 + i] ? -1 : board[lineidx[3 + i]]);
     }
+    for (int i = 0; i < 8; i++)
+        fboards[i] = board[flineidx[i]] | board[361 + flineidx[i]];
 
     if (map_edges[3] || map_edges[4])
         return 0;
@@ -60,11 +63,11 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
         {/*   012 3 4 567
                _|###|__
               __|###|_     */
-            // fprintf(stderr, "(%d && %d || %d && %d) && %d && %d && %d && %d\n", map_edges[1] == 0, full_board[flineidx[1]] == 0, map_edges[6] == 0, full_board[flineidx[6]] == 0, map_edges[2] == 0, map_edges[5] == 0, full_board[flineidx[2]] == 0, full_board[flineidx[5]] == 0);
-            return (((map_edges[1] == 0 && full_board[flineidx[1]] == 0) || (map_edges[6] == 0 && full_board[flineidx[6]] == 0)) &&
-                map_edges[2] == 0 && map_edges[5] == 0 && full_board[flineidx[2]] == 0 && full_board[flineidx[5]] == 0);
+            // fprintf(stderr, "(%d && %d || %d && %d) && %d && %d && %d && %d\n", map_edges[1] == 0, fboards[1] == 0, map_edges[6] == 0, fboards[6] == 0, map_edges[2] == 0, map_edges[5] == 0, fboards[2] == 0, fboards[5] == 0);
+            return (((map_edges[1] == 0 && fboards[1] == 0) || (map_edges[6] == 0 && fboards[6] == 0)) &&
+                map_edges[2] == 0 && map_edges[5] == 0 && fboards[2] == 0 && fboards[5] == 0);
         }
-        else if (full_board[flineidx[4]] == 0)
+        else if (fboards[4] == 0)
         {/* 012 3 4 567
               _|##_|#_
              _#|##_|_
@@ -74,26 +77,26 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
                 return 0;           // No possible case
             // fprintf(stderr, "Here 0 0\n");
 
-            if (map_edges[6] == 0 && full_board[flineidx[2]] == 0 && board[lineidx[5]] == 1 && full_board[flineidx[6]] == 0) // _|##_|#_
+            if (map_edges[6] == 0 && fboards[2] == 0 && board[lineidx[5]] == 1 && fboards[6] == 0) // _|##_|#_
                 return 1;
             if (map_edges[1])
                 return 0;           // No more possible case
 
             // fprintf(stderr, "Here 0 1\n");
-            if (map_edges[5] == 0 && full_board[flineidx[1]] == 0 && board[lineidx[2]] == 1 && full_board[flineidx[5]] == 0) // _#|##_|_
+            if (map_edges[5] == 0 && fboards[1] == 0 && board[lineidx[2]] == 1 && fboards[5] == 0) // _#|##_|_
                 return 1;
 
-            if (map_edges[0] == 0 && full_board[flineidx[0]] == 0)
+            if (map_edges[0] == 0 && fboards[0] == 0)
             {
                 // fprintf(stderr, "Here 0 2\n");
-                if (board[lineidx[1]] == 1 && full_board[flineidx[2]] == 0) // _#_|##_|
+                if (board[lineidx[1]] == 1 && fboards[2] == 0) // _#_|##_|
                     return 1;
                 // fprintf(stderr, "Here 0 3\n");
-                return full_board[flineidx[1]] == 0 && board[lineidx[2]] == 1; // __#|##_|
+                return fboards[1] == 0 && board[lineidx[2]] == 1; // __#|##_|
             }
         }
     }
-    else if (full_board[flineidx[3]] == 0)
+    else if (fboards[3] == 0)
     {
         if (board[lineidx[4]])  // Next cell ?
         {/*  012 3 4 567
@@ -105,59 +108,59 @@ static int is_threes(char *board, char *full_board, long ar, long ac, long dr, l
                 return 0;           // No possible case
 
             // fprintf(stderr, "Here 1 0\n");
-            if (map_edges[1] == 0 && full_board[flineidx[5]] == 0 && board[lineidx[2]] == 1 && full_board[flineidx[1]] == 0) // _#|_##|_
+            if (map_edges[1] == 0 && fboards[5] == 0 && board[lineidx[2]] == 1 && fboards[1] == 0) // _#|_##|_
                 return 1;
             if (map_edges[6])
                 return 0;           // No more possible case
 
-            // fprintf(stderr, "Here 1 1 | %d %d %d %d\n", map_edges[2] == 0, full_board[flineidx[2]] == 0, board[lineidx[5]] == 1, full_board[flineidx[6]] == 0);
-            if (map_edges[2] == 0 && full_board[flineidx[2]] == 0 && board[lineidx[5]] == 1 && full_board[flineidx[6]] == 0) // _|_##|#_
+            // fprintf(stderr, "Here 1 1 | %d %d %d %d\n", map_edges[2] == 0, fboards[2] == 0, board[lineidx[5]] == 1, fboards[6] == 0);
+            if (map_edges[2] == 0 && fboards[2] == 0 && board[lineidx[5]] == 1 && fboards[6] == 0) // _|_##|#_
                 return 1;
 
-            if (map_edges[7] == 0 && full_board[flineidx[7]] == 0)
+            if (map_edges[7] == 0 && fboards[7] == 0)
             {
                 // fprintf(stderr, "Here 1 2\n");
-                if (full_board[flineidx[5]] == 0 && board[lineidx[6]] == 1) // |_##|_#_
+                if (fboards[5] == 0 && board[lineidx[6]] == 1) // |_##|_#_
                     return 1;
 
                 // fprintf(stderr, "Here 1 3\n");
-                return board[lineidx[5]] == 1 && full_board[flineidx[6]] == 0; // |_##|#__
+                return board[lineidx[5]] == 1 && fboards[6] == 0; // |_##|#__
             }
         }
-        else if (full_board[flineidx[4]] == 0)
+        else if (fboards[4] == 0)
         {/* 012 3 4 567
                |_#_|##_
             _##|_#_|      */
-            // fprintf(stderr, "(%d && %d && %d && %d) || (%d && %d && %d && %d)\n", map_edges[0] == 0, board[lineidx[2]] == 1, board[lineidx[1]] == 1, full_board[flineidx[0]] == 0, map_edges[7] == 0, board[lineidx[5]] == 1, board[lineidx[6]] == 1, full_board[flineidx[7]] == 0);
+            // fprintf(stderr, "(%d && %d && %d && %d) || (%d && %d && %d && %d)\n", map_edges[0] == 0, board[lineidx[2]] == 1, board[lineidx[1]] == 1, fboards[0] == 0, map_edges[7] == 0, board[lineidx[5]] == 1, board[lineidx[6]] == 1, fboards[7] == 0);
 
-            return ((map_edges[0] == 0 && board[lineidx[2]] == 1 && board[lineidx[1]] == 1 && full_board[flineidx[0]] == 0) ||
-                (map_edges[7] == 0 && board[lineidx[5]] == 1 && board[lineidx[6]] == 1 && full_board[flineidx[7]] == 0));
+            return ((map_edges[0] == 0 && board[lineidx[2]] == 1 && board[lineidx[1]] == 1 && fboards[0] == 0) ||
+                (map_edges[7] == 0 && board[lineidx[5]] == 1 && board[lineidx[6]] == 1 && fboards[7] == 0));
         }
     }
     return 0;
 }
 
-static char count_threes(char *board, char *full_board, long ar, long ac, int player_idx)
+static char count_threes(char *board, long ar, long ac, int player_idx)
 {
-    int count = is_threes(board, full_board, ar, ac, -1, 1, player_idx);
+    int count = is_threes(board, ar, ac, -1, 1, player_idx);
     // fprintf(stderr, "count0=%d\n", count);
 
-    count += is_threes(board, full_board, ar, ac, 0, 1, player_idx);
+    count += is_threes(board, ar, ac, 0, 1, player_idx);
     // fprintf(stderr, "count1=%d\n", count);
     if (count == 2)
         return 2;
-    count += is_threes(board, full_board, ar, ac, 1, 1, player_idx);
+    count += is_threes(board, ar, ac, 1, 1, player_idx);
     // fprintf(stderr, "count2=%d\n", count);
     if (count == 0)
         return 0;
     if (count == 2)
         return 2;
-    count += is_threes(board, full_board, ar, ac, 1, 0, player_idx);
+    count += is_threes(board, ar, ac, 1, 0, player_idx);
     // fprintf(stderr, "count3=%d\n", count);
     return count;
 }
 
-int is_double_threes(char *board, char *full_board, long ar, long ac, int player_idx)
+int is_double_threes(char *board, long ar, long ac, int player_idx)
 {
     int old_value = 1;
     long  cell_i = player_idx + ar * 19 + ac;
@@ -166,7 +169,7 @@ int is_double_threes(char *board, char *full_board, long ar, long ac, int player
     board[cell_i] ^= old_value;
     old_value ^= board[cell_i];
 
-    int count = count_threes(board, full_board, ar, ac, player_idx * 361);
+    int count = count_threes(board, ar, ac, player_idx * 361);
 
     old_value ^= board[cell_i]; // Replace old value
     board[cell_i] ^= old_value;

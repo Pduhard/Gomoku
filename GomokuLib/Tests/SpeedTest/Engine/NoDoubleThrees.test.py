@@ -23,7 +23,7 @@ def _is_valid(n, full_board, no_double_threes):
     ret = dtype=Typing.BoardDtype(0)
     for i in range(n):
         ret += no_double_threes.is_valid(
-            full_board, (i ^ 78) % 19, (i ^ 23) % 19, i % 2
+            (i ^ 78) % 19, (i ^ 23) % 19, i % 2
         )
     return ret
 
