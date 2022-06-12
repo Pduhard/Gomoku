@@ -60,14 +60,13 @@ class Gomoku:
         self.basic_rules = BasicRule(self.board)
 
     def get_lazy_actions(self) -> np.ndarray:
-        full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
+        full_board = self.board[0] | self.board[1]
         return self.basic_rules.get_valid(full_board)
 
     def get_actions(self) -> np.ndarray:
         masks = np.ones((19, 19), dtype=Typing.BoardDtype)
 
         full_board = self.board[0] | self.board[1]
-        # full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         masks &= self.basic_rules.get_valid(full_board)
         if self.is_no_double_threes_active:
             masks &= self.no_double_threes.get_valid(full_board, self.player_idx)
@@ -76,7 +75,6 @@ class Gomoku:
     def is_valid_action(self, action: np.ndarray) -> bool:
         ar, ac = action
         full_board = self.board[0] | self.board[1]
-        # full_board = (self.board[0] | self.board[1]).astype(Typing.BoardDtype)
         is_valid = self.basic_rules.is_valid(full_board, ar, ac)
         if self.is_no_double_threes_active:
             is_valid &= self.no_double_threes.is_valid(full_board, ar, ac, self.player_idx)
@@ -101,11 +99,7 @@ class Gomoku:
             return self.capture.get_captures()
         return np.array([0, 0], dtype=Typing.TupleDtype)
 
-    # def get_history(self) -> np.ndarray:
-    #     return np.array(self.history)
-
     def get_game_zone(self) -> list:
-        # return np.array(([0, 0, self.board_size[0] - 1, self.board_size[1] - 1]), dtype=np.int8)
         return self.game_zone
 
     def update_game_zone(self, ar, ac):
@@ -119,7 +113,6 @@ class Gomoku:
             elif self.game_zone[3] < ac:
                 self.game_zone[3] = ac
         else:
-            # self.game_zone_init = True
             self.game_zone = np.array((ar, ac, ar, ac), dtype=Typing.GameZoneDtype)
 
     def _next_turn_rules(self):
