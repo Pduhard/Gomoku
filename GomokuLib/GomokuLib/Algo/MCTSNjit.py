@@ -421,19 +421,6 @@ class MCTSNjit:
         stateAction_update[1] = reward
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
 
-    def tobytes(self, arr: Typing.BoardDtype):
-        return ''.join(map(str, map(np.int8, np.nditer(arr)))) # Aled la ligne (nogil parallele mieux ?..)
-        # return np.char.join('', map(np.unicode_, np.nditer(arr)))
-
-    # def test_rec(self, arr, idx):
-    #     if (arr[idx] == 1):
-    #         res = '1'
-    #     else:
-    #         res = '0'
-    #     if idx == 721:
-    #         return res
-    #     return res + self.test_rec(arr, idx + 1)
-
     def fast_tobytes(self, arr: Typing.BoardDtype):
 
         byte_list = []

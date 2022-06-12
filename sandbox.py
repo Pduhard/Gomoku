@@ -142,7 +142,8 @@ def duel():
     # profiler = cProfile.Profile()
     # profiler.enable()
 
-    winners = runner.run([p1, p2], n_games=1)  # White: 0 / Black: 1
+    # winners = runner.run([p1, p2], n_games=1)  # White: 0 / Black: 1
+    winners = runner.run([p2, p1], n_games=1)  # White: 0 / Black: 1
 
     # profiler.disable()
     # stats = pstats.Stats(profiler).sort_stats('tottime')

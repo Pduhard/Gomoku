@@ -113,13 +113,21 @@ class MCTSParallel:
     def __str__(self):
         return f"MCTSParallel with {self.num_workers} workers and  iterations"
 
+    def fast_tobytes(self, arr: Typing.BoardDtype):
+
+        byte_list = []
+        for i in range(19):
+            for j in range(19):
+                byte_list.append('1' if arr[0, i, j] == 1 else ('2' if arr[1, i, j] == 1 else '0'))
+        return ''.join(byte_list)
+
     def __call__(self, game_engine: Gomoku) -> tuple:
         self.game_engine = game_engine
 
         faulthandler.enable(all_threads=True)   # Print traceback of segfaults
         self.work()
 
-        k = self.tobytes(self.game_engine.board)
+        k = self.fast_tobytes(self.game_engine.board)
         state_data = self.states[k][0]
         sa_v, sa_r = state_data.stateAction
         sa_v += 1
@@ -190,7 +198,7 @@ class MCTSParallel:
 
     def get_state_data(self, engine):
         return {
-            'mcts_state_data': self.states[self.tobytes(self.engine.board)],
+            'mcts_state_data': self.states[self.fast_tobytes(self.engine.board)],
         }
 
     def get_state_data_after_action(self, engine):
@@ -274,8 +282,7 @@ class MCTSParallel:
 
         for i in range(buff_size):
             path_len = self.states_buff[pool_id, i].depth
-            # k = str(self.path_buff[pool_id, i, path_len - 1].board.tobytes())
-            k = self.tobytes(self.path_buff[pool_id, i, path_len].board)
+            k = self.fast_tobytes(self.path_buff[pool_id, i, path_len].board)
 
             # Expansion
             # if k in self.states:
@@ -315,8 +322,7 @@ class MCTSParallel:
         board = memory.board
         bestAction = memory.bestAction
 
-        # state_data = self.states[str(board.tobytes())]
-        state_data = self.states[self.tobytes(board)][0]
+        state_data = self.states[self.fast_tobytes(board)][0]
 
         state_data.visits += 1                           # update n count
         state_data.rewards += reward                     # update state value
@@ -325,6 +331,3 @@ class MCTSParallel:
 
         r, c = bestAction
         state_data.stateAction[..., r, c] += [1, reward]  # update state-action count / value
-
-    def tobytes(self, arr: Typing.nbBoard):
-        return ''.join(map(str, map(np.int8, np.nditer(arr))))

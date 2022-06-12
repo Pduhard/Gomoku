@@ -47,7 +47,7 @@ def _get_heuristic_coefs():
 
     heuristic_coefs_dict = nb.typed.Dict.empty(
         key_type=nb.types.unicode_type,
-        value_type=Typing.mcts_int_nb_dtype
+        value_type=nb.float32
     )
     heuristic_coefs_dict = {
         'my_win_possible': 0.5,
@@ -169,7 +169,7 @@ def _old_find_align_reward(board, graph, sr, sc, player_idx):
         dtype=np.float32    # np.dot handle by Numba require float
     )
     buf = np.zeros(14, dtype=np.float32)
-    rewards = np.zeros(4, dtype=np.int32)
+    rewards = np.zeros(4, dtype=np.float32)
 
     for di in range(4):
 
@@ -204,7 +204,7 @@ def _find_align_reward(board, graph, sr, sc, player_idx):
     )
     align_ids = np.zeros(4, dtype=np.int32)
     buf = np.zeros((4, 14), dtype=np.int32)
-    rewards = np.zeros(4, dtype=np.int32)
+    rewards = np.zeros(4, dtype=np.float32)
 
     for di in range(4):
 
@@ -237,9 +237,9 @@ def njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_c, g
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
 
-    rewards = np.zeros((21, 21), dtype=np.int32)
-    for y in range(2 + gz_start_r, 2 + gz_end_r):
-        for x in range(2 + gz_start_c, 2 + gz_end_c):
+    rewards = np.zeros((21, 21), dtype=np.float32)
+    for y in range(2 + gz_start_r, 3 + gz_end_r):
+        for x in range(2 + gz_start_c, 3 + gz_end_c):
 
             if board_pad[player_idx, y, x]:
                 rewards[y, x] = _find_align_reward(board_pad, my_graph, y, x, player_idx)
@@ -258,9 +258,9 @@ def old_njit_heuristic(board, my_graph, opp_graph, c0, c1, gz_start_r, gz_start_
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
 
-    rewards = np.zeros((21, 21), dtype=np.int32)
-    for y in range(2 + gz_start_r, 2 + gz_end_r):
-        for x in range(2 + gz_start_c, 2 + gz_end_c):
+    rewards = np.zeros((21, 21), dtype=np.float32)
+    for y in range(2 + gz_start_r, 3 + gz_end_r):
+        for x in range(2 + gz_start_c, 3 + gz_end_c):
 
             if board_pad[player_idx, y, x]:
                 rewards[y, x] = _old_find_align_reward(board_pad, my_graph, y, x, player_idx)
