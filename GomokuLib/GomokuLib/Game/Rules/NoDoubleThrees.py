@@ -33,16 +33,15 @@ class NoDoubleThrees:
 		a = np.zeros_like(full_board, dtype=full_board.dtype)
 		for r in range(19):
 			for c in range(19):
-				if self.is_valid(full_board, r, c, player_idx):
+				if self.is_valid(r, c, player_idx):
 					a[r, c] = 1
 				# maybe this over before two lines : a[r, c] = self.is_valid(full_board, r, c)
 		return a
 
-	def is_valid(self, full_board: np.ndarray, ar: int, ac: int, player_idx: int):
+	def is_valid(self, ar: int, ac: int, player_idx: int):
 		# return 1
 		# return njit_is_valid(board, ac, ar, self.FT_IDENT)
-		full_board_ptr = ffi.from_buffer(full_board)
-		ret = self._is_double_threes_cfunc(self._board_ptr, full_board_ptr, ar, ac, player_idx)
+		ret = self._is_double_threes_cfunc(self._board_ptr, ar, ac, player_idx)
 		return False if ret else True
 
 	def create_snapshot(self):

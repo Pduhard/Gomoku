@@ -31,8 +31,8 @@ class BasicRule:
         ret = np.ones_like(full_board)
         return ret ^ full_board
 
-    def is_valid(self, full_board: np.ndarray, ar: int, ac: int):
-        return full_board[ar][ac] == 0
+    def is_valid(self, board: np.ndarray, ar: int, ac: int):
+        return board[0, ar, ac] + board[1, ar, ac] == 0
 
     def winning(self, player_idx: int, ar: int, ac: int, gz0: int, gz1: int, gz2: int, gz3: int):
         return self._winning_cfunc(self._board_ptr, player_idx, ar, ac, gz0, gz1, gz2, gz3)

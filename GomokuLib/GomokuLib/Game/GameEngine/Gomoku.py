@@ -74,10 +74,9 @@ class Gomoku:
 
     def is_valid_action(self, action: np.ndarray) -> bool:
         ar, ac = action
-        full_board = self.board[0] | self.board[1]
-        is_valid = self.basic_rules.is_valid(full_board, ar, ac)
+        is_valid = self.basic_rules.is_valid(self.board, ar, ac)
         if self.is_no_double_threes_active:
-            is_valid &= self.no_double_threes.is_valid(full_board, ar, ac, self.player_idx)
+            is_valid &= self.no_double_threes.is_valid(ar, ac, self.player_idx)
         return is_valid
 
     def apply_action(self, action: np.ndarray):

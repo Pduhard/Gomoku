@@ -87,10 +87,13 @@ def test_is_valid_action():
     times = []
     ranges = test_ranges
 
+    random_actions = [
+        np.random.randint(0, 19, (r, 2), dtype=Typing.ActionDtype)
+        for r in ranges
+    ]
     times.append(time.perf_counter())
-    for r in ranges:
-        random_actions = np.random.randint(0, 19, (r, 2), dtype=Typing.ActionDtype)
-        _is_valid_action(r, gomoku, random_actions)
+    for r, random_action in zip(ranges, random_actions):
+        _is_valid_action(r, gomoku, random_action)
         times.append(time.perf_counter())
 
     _log('is_valid_action', times, ranges)
