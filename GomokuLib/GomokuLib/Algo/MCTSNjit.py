@@ -56,7 +56,7 @@ class MCTSNjit:
         self.c = np.sqrt(2)
         self.new_heuristic = new_heuristic
         self.init()
-        self.path = np.zeros((361, 2), dtype=Typing.mcts_int_nb_dtype)
+        self.path = np.zeros((361, 2), dtype=Typing.MCTSIntDtype)
 
         self.all_actions = np.empty((361, 2), dtype=Typing.ActionDtype)
         for i in range(19):
@@ -372,21 +372,24 @@ class MCTSNjit:
 
         return neigh
 
-    def pruning(self, heuristic_pruning: nb.boolean = True):
+    def pruning(self, engine: Gomoku = None, heuristic_pruning: nb.boolean = True):
+
+        if engine is None:
+            engine = self.engine
 
         if heuristic_pruning:
-            game_zone = self.engine.get_game_zone()
+            game_zone = engine.get_game_zone()
             # print(f"game_zone:", game_zone)
             g0 = game_zone[0]
             g1 = game_zone[1]
             g2 = game_zone[2]
             g3 = game_zone[3]
-            hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3, self.engine.player_idx)
+            hpruning = njit_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx)
 
         else:
             hpruning = np.zeros((19, 19), dtype=Typing.PruningDtype)
 
-        full_board = self.engine.board[0] | self.engine.board[1]
+        full_board = engine.board[0] | engine.board[1]
         non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
 
         xp = non_pruned ^ full_board

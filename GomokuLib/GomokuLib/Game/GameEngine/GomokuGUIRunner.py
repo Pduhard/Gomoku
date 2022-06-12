@@ -99,8 +99,8 @@ class GomokuGUIRunner(GomokuRunner):
             self.engine.apply_action(player_action)
             self.engine._next_turn_rules()
 
-            if is_bot:
-                algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
+            # if is_bot:
+            #     algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
 
             # Game data fetching needs to be after apply_action/update_rules and before next_turn
             game_data = self.get_game_data(dtime_turn)

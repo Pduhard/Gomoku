@@ -87,8 +87,8 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
                 rewards[y, x] += my_cap_coef * _find_align_reward(board_pad, my_cap_graph, y, x, player_idx)
 
             elif board_pad[player_idx ^ 1, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, opp_h_graph, y, x, player_idx ^ 1)
-                rewards[y, x] += opp_cap_coef * _find_align_reward(board_pad, opp_cap_graph, y, x, player_idx ^ 1)
+                rewards[y, x] = _find_align_reward(board_pad, opp_h_graph, y, x, player_idx)
+                rewards[y, x] += opp_cap_coef * _find_align_reward(board_pad, opp_cap_graph, y, x, player_idx)
 
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)

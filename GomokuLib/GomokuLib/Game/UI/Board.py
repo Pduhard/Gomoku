@@ -1,3 +1,4 @@
+from curses import echo
 import os
 import pygame
 import numpy as np
@@ -115,7 +116,7 @@ class Board:
         player_idx = ss_data.get('player_idx', 0)
         self.win.blit(self.bg, (self.ox, self.oy))
 
-        if ss_data and 'mcts_state_data' in ss_data:
+        if ss_data:
             self.draw_hints(ss_data)
 
         self.draw_stones(board, player_idx)
@@ -151,23 +152,47 @@ class Board:
         try:
             state_data = ss_data['mcts_state_data'][0]
         except:
-            state_data = ss_data['mcts_state_data']
+            state_data = ss_data.get('mcts_state_data', None)
 
-        try:
-            (sa_n, sa_v), actions, pruning = state_data['StateAction'], state_data['Actions'], None
-        except:
-            (sa_n, sa_v), actions, pruning = state_data['stateAction'], state_data['actions'], state_data['pruning']
-
-        if self.hint_type == 0 and 'Policy' in state_data:
-            self.draw_model_hints(state_data['Policy'])
+        if self.hint_type == 0 and state_data:
+            pass
+            # self.draw_model_hints(state_data.get('Policy', None))
         
-        elif self.hint_type == 1:
-            self.draw_mcts_hints(sa_n, sa_v)
+        elif self.hint_type == 1 and state_data:
+            try:
+                sa_n, sa_v = state_data['StateAction']
+            except:
+                try:
+                    sa_n, sa_v = state_data['stateAction']
+                except:
+                    sa_n, sa_v = None, None
 
-        elif self.hint_type == 2:
-            self.draw_actions(actions ^ 1)
+            if sa_n is not None:
+                self.draw_mcts_hints(sa_n, sa_v)
+
+        elif self.hint_type == 2 and state_data:
+            try:
+                actions = state_data['Actions']
+            except:
+                try:
+                    actions = state_data['actions']
+                except:
+                    actions = None
+
+            if actions is not None:
+                self.draw_actions(actions ^ 1)
 
         elif self.hint_type == 3:
+            try:
+                pruning = state_data['Pruning']
+            except:
+                try:
+                    pruning = state_data['pruning']
+                except:
+                    pruning = ss_data.get('pruning', None)
+            
+            # pruning = state_data.get('pruning', None)
+            # pruning = ss_data.get('pruning', None)
             self.draw_model_hints(pruning)
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):

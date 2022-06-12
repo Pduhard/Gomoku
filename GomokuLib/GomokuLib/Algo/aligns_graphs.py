@@ -10,32 +10,30 @@ import numba as nb
 
     Current player heuristic
         Indexes:                        01|2345
-            5 stones ->                 XX#####
 
-            4 stones + 2 empty cells -> X_####_
-
-            4 stones + 1 empty cells -> X_####X
+            4 stones + 1 empty cells -> X_####X     my_win
             4 stones + 1 empty cells -> XX#_###
             4 stones + 1 empty cells -> XX##_##
             4 stones + 1 empty cells -> XX###_#
             4 stones + 1 empty cells -> XX####_
 
-            3 stones + 3 empty cells -> __###_X
+            3 stones + 3 empty cells -> __###_X     my_win_1_turn
             3 stones + 3 empty cells -> X_#_##_
             3 stones + 3 empty cells -> X_##_#_
             3 stones + 3 empty cells -> X_###__
 
     Opponent player heuristic:
         Indexes:                        01|2345
-            5 stones ->                 XX#####
+            5 stones ->                 XX#####     opp_win
+            4 stones + 2 empty cells -> X_####_     opp_win
 
-            4 stones + 1 empty cells -> X_####X
+            4 stones + 1 empty cells -> X_####X     opp_win_1_turn
             4 stones + 1 empty cells -> XX#_###
             4 stones + 1 empty cells -> XX##_##
             4 stones + 1 empty cells -> XX###_#
             4 stones + 1 empty cells -> XX####_
 
-            3 stones + 3 empty cells -> __###_X
+            3 stones + 3 empty cells -> __###_X     opp_win_2_turn
             3 stones + 3 empty cells -> X_#_##_
             3 stones + 3 empty cells -> X_##_#_
             3 stones + 3 empty cells -> X_###__
@@ -46,21 +44,20 @@ import numba as nb
 """
 
 def _get_heuristic_coefs():
-    """
-        Baisser l'importance des captures ?
-    """
     heuristic_coefs_dict = nb.typed.Dict.empty(
         key_type=nb.types.unicode_type,
         value_type=Typing.heuristic_graph_nb_dtype
     )
     heuristic_coefs_dict = {
-        'capture': 0.25,
-        'my_win_possible': 0.5,
-        'opp_win_2_turn': -2, # > 2 * my_win_possible
-        'my_win_1_turn': 3,     # > opp_win_2_turn
-        'opp_win_1_turn': -4,
+        'capture': 0.5,
+
+        'opp_win_2_turn': -1,
+        'my_win_1_turn': 2,
+        'opp_force_countering': -3,
+
+        'opp_win_1_turn': -5,
         'my_win': 6,
-        'opp_win': -8,
+        'opp_win': -7,
     }
     return heuristic_coefs_dict
 
@@ -111,20 +108,17 @@ def init_my_heuristic_graph():
 
     # print("init_my_heuristic_graph", len(my_graph), my_graph)
     # Current player alignments
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "__###_X", 0, 0)
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "X_#_##_", 0, 0)
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "X_##_#_", 0, 0)
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "X_###__", 0, 0)
-    
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "X_####X", 0, 0)
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "XX#_###", 0, 0)
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "XX##_##", 0, 0)
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "XX###_#", 0, 0)
-    _parse_align(my_graph, 0b10, coefs['my_win_possible'], "XX####_", 0, 0)
 
-    _parse_align(my_graph, 0b10, coefs['my_win_1_turn'], "X_####_", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win_1_turn'], "__###_X", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win_1_turn'], "X_#_##_", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win_1_turn'], "X_##_#_", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win_1_turn'], "X_###__", 0, 0)
 
-    _parse_align(my_graph, 0b10, coefs['my_win'], "XX#####", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win'], "X_####X", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win'], "XX#_###", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win'], "XX##_##", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win'], "XX###_#", 0, 0)
+    _parse_align(my_graph, 0b10, coefs['my_win'], "XX####_", 0, 0)
 
     fill_graph = np.nonzero(my_graph)
     # print(fill_graph)
@@ -147,11 +141,13 @@ def init_opp_heuristic_graph():
     _parse_align(opp_graph, 0b01, coefs['opp_win_2_turn'], "X_##_#_", 0, 0)
     _parse_align(opp_graph, 0b01, coefs['opp_win_2_turn'], "X_###__", 0, 0)
 
-    _parse_align(opp_graph, 0b01, coefs['opp_win_1_turn'], "X_####X", 0, 0)
-    _parse_align(opp_graph, 0b01, coefs['opp_win_1_turn'], "XX#_###", 0, 0)
-    _parse_align(opp_graph, 0b01, coefs['opp_win_1_turn'], "XX##_##", 0, 0)
-    _parse_align(opp_graph, 0b01, coefs['opp_win_1_turn'], "XX###_#", 0, 0)
-    _parse_align(opp_graph, 0b01, coefs['opp_win_1_turn'], "XX####_", 0, 0)
+    _parse_align(opp_graph, 0b01, coefs['opp_force_countering'], "X_####X", 0, 0)
+    _parse_align(opp_graph, 0b01, coefs['opp_force_countering'], "XX#_###", 0, 0)
+    _parse_align(opp_graph, 0b01, coefs['opp_force_countering'], "XX##_##", 0, 0)
+    _parse_align(opp_graph, 0b01, coefs['opp_force_countering'], "XX###_#", 0, 0)
+    _parse_align(opp_graph, 0b01, coefs['opp_force_countering'], "XX####_", 0, 0)
+
+    _parse_align(opp_graph, 0b10, coefs['opp_win_1_turn'], "X_####_", 0, 0)
 
     _parse_align(opp_graph, 0b01, coefs['opp_win'], "XX#####", 0, 0)
 

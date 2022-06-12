@@ -78,7 +78,7 @@ def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx)
                 pruning += _create_align_masks(board_pad, my_h_graph, y, x, player_idx)
 
             elif board_pad[player_idx ^ 1, y, x]:
-                pruning += _create_align_masks(board_pad, opp_h_graph, y, x, player_idx ^ 1)
+                pruning += _create_align_masks(board_pad, opp_h_graph, y, x, player_idx)
 
     # print("hpruning end")
     return pruning[..., 2:21, 2:21]
