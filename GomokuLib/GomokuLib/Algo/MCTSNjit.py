@@ -179,8 +179,6 @@ class MCTSNjit:
             # print(len(self.current_statehash))
             self.current_statehash = self.fast_tobytes(self.engine.board)
 
-        # self.fill_path(statehash, np.full(2, -1, Typing.MCTSIntDtype))4
-
         actions = self.engine.get_lazy_actions()
         pruning = self.pruning()
         self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
@@ -258,20 +256,17 @@ class MCTSNjit:
         #     print(f"Fill path depth {self.depth} statehash:\n{self.path[self.depth]['statehash']}")
 
     def expand(self, statehash: string, actions: np.ndarray, pruning: np.ndarray):
-        # print(f"Expand depth {self.depth} statehash:\n{statehash}")
+        state = np.zeros(1, dtype=Typing.StateDataDtype)
         
-        self.states[statehash] = np.zeros(1, dtype=Typing.StateDataDtype)
+        state[0]['max_depth'] = self.depth
+        state[0]['visits'] = 1
+        state[0]['rewards'] = self.reward
+        state[0]['stateAction'][...] = 0.
+        state[0]['actions'][...] = actions
+        state[0]['heuristic'] = self.reward
+        state[0]['pruning'][...] = pruning
 
-        self.states[statehash][0]['max_depth'] = self.depth
-        self.states[statehash][0]['visits'] = 1
-        self.states[statehash][0]['rewards'] = self.reward
-        self.states[statehash][0]['stateAction'][...] = 0.
-        self.states[statehash][0]['actions'][...] = actions
-        self.states[statehash][0]['heuristic'] = self.reward
-        self.states[statehash][0]['pruning'][...] = pruning
-    
-        # with nb.objmode():
-        #     print(f"Expand:\n{self.states[statehash]}")
+        self.states[statehash] = state
 
     def award_end_game(self):
         if self.engine.winner == -1: # Draw

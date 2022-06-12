@@ -198,7 +198,7 @@ def test_call(mcts, boards, engine_ref):
 def test_expand(mcts, boards):
 
     actions = np.random.randint(0, 2, (10000, 19, 19), dtype=Typing.ActionDtype)
-    prunings = np.random.randint(0, 2, (10000, 19, 19), dtype=Typing.PruningDtype)
+    prunings = np.random.randn(10000, 19, 19) * 2.
     mcts.init()
     _expand(1, mcts, boards, actions, prunings)
 
@@ -238,11 +238,12 @@ if __name__ == "__main__":
         pruning=True,
         rollingout_turns=5
     )
-    test_tobytes(mcts, boards)
-    test_faketobytes(mcts, boards)
-    test_prunning(mcts, boards)
-    test_get_neighbors_mask(mcts, boards)
-    test_call(mcts, boards, engine_ref)
-    test_expand(mcts, boards)
-    test_award(mcts, boards)
-    test_rollingout(mcts, boards, engine_ref)
+    # test_tobytes(mcts, boards)
+    # test_faketobytes(mcts, boards)
+    # test_prunning(mcts, boards)
+    # test_get_neighbors_mask(mcts, boards)
+    # test_call(mcts, boards, engine_ref)
+    for i in range(10):
+        test_expand(mcts, boards)
+    # test_award(mcts, boards)
+    # test_rollingout(mcts, boards, engine_ref)
