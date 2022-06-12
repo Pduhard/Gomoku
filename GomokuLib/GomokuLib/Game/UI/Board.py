@@ -42,7 +42,7 @@ class Board:
         self.whitestone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WhiteStone.png").convert_alpha()
         self.blackstone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/BlackStone.png").convert_alpha()
 
-        self.hint_type = 1
+        self.hint_type = 0
         self.hint_mouse = None
         self.init_ui()
 
@@ -154,9 +154,9 @@ class Board:
             state_data = ss_data['mcts_state_data']
 
         try:
-            (sa_n, sa_v), actions = state_data['StateAction'], state_data['Actions']
+            (sa_n, sa_v), actions, pruning = state_data['StateAction'], state_data['Actions'], None
         except:
-            (sa_n, sa_v), actions = state_data['stateAction'], state_data['actions']
+            (sa_n, sa_v), actions, pruning = state_data['stateAction'], state_data['actions'], state_data['pruning']
 
         if self.hint_type == 0 and 'Policy' in state_data:
             self.draw_model_hints(state_data['Policy'])
@@ -165,7 +165,10 @@ class Board:
             self.draw_mcts_hints(sa_n, sa_v)
 
         elif self.hint_type == 2:
-            self.draw_actions(actions)
+            self.draw_actions(actions ^ 1)
+
+        elif self.hint_type == 3:
+            self.draw_model_hints(pruning)
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):
 
@@ -279,32 +282,39 @@ class Board:
                 Transparent middle green    if policy close to 0            (= sigmoid close to 0.5)
                 Opaque lime green           if policy tends to big positive (= sigmoid close to 1)
         """
-        if policy.max() != policy.min():
+        if policy is not None:
+            if policy.max() != policy.min():
 
-            policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
-            policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
+                policy = np.abs(policy)
+                print(f"Board: policy:\n{policy}")
+                policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
+                policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
 
-            for y in range(self.board_size[1]):
-                for x in range(self.board_size[0]):
+                for y in range(self.board_size[1]):
+                    for x in range(self.board_size[0]):
 
-                    alpha = int(255 * policyAlpha[y, x])
-                    green = int(255 * policyGreen[y, x])
-                    color = pygame.Color(0, green, 0, alpha)
+                        alpha = int(255 * policyAlpha[y, x])
+                        green = int(255 * policyGreen[y, x])
+                        color = pygame.Color(0, green, 0, alpha)
 
-                    self.hint_surface.fill(color)
-                    self.win.blit(self.hint_surface, (self.ox + self.cells_coord[0, y, x] - self.csx, self.oy + self.cells_coord[1, y, x] - self.csy))
+                        self.hint_surface.fill(color)
+                        self.win.blit(self.hint_surface, (self.ox + self.cells_coord[0, y, x] - self.csx, self.oy + self.cells_coord[1, y, x] - self.csy))
 
     def draw_actions(self, actions: np.array):
 
-        color = pygame.Color(200, 50, 50, 100)
-        for y in range(self.board_size[1]):
-            for x in range(self.board_size[0]):
-                if not actions[y, x]:
-                    self.hint_surface.fill(color)
-                    self.win.blit(self.hint_surface, (
-                        self.ox + self.cells_coord[0, y, x] - self.csx,
-                        self.oy + self.cells_coord[1, y, x] - self.csy
-                    ))
+        if actions is not None:
+            for y in range(self.board_size[1]):
+                for x in range(self.board_size[0]):
+                    if actions[y, x]:
+                        if actions[y, x] >= 2:
+                            color = pygame.Color(200, 80, 80, 100)
+                        else:
+                            color = pygame.Color(100, 40, 40, 100)
+                        self.hint_surface.fill(color)
+                        self.win.blit(self.hint_surface, (
+                            self.ox + self.cells_coord[0, y, x] - self.csx,
+                            self.oy + self.cells_coord[1, y, x] - self.csy
+                        ))
 
     def blit_text(self, text, x, y, size=20):
 

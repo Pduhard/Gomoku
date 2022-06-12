@@ -4,7 +4,7 @@ import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import njit_heuristic, my_heuristic_graph, opp_heuristic_graph
+from GomokuLib.Algo import njit_hpruning, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -32,8 +32,7 @@ class MCTSNjit:
     path: Typing.nbPath
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
-    my_heuristic_graph: Typing.nbHeuristicGraph
-    opp_heuristic_graph: Typing.nbHeuristicGraph
+    new_heuristic: nb.boolean
 
     depth: Typing.mcts_int_nb_dtype
     max_depth: Typing.mcts_int_nb_dtype
@@ -46,7 +45,8 @@ class MCTSNjit:
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
                  pruning: nb.boolean = True,
-                 rollingout_turns: Typing.MCTSIntDtype = 10
+                 rollingout_turns: Typing.MCTSIntDtype = 10,
+                 new_heuristic: nb.boolean = True
                  ):
 
         self.engine = engine.clone()
@@ -54,6 +54,7 @@ class MCTSNjit:
         self.is_pruning = pruning
         self.rollingout_turns = rollingout_turns
         self.c = np.sqrt(2)
+        self.new_heuristic = new_heuristic
 
         self.init()
         self.path = np.zeros(361, dtype=Typing.PathDtype)
@@ -96,12 +97,12 @@ class MCTSNjit:
         )
         statehash = self.fast_tobytes(game_engine.board)
         if statehash in self.states:
-            # h = self.states[statehash][0]['heuristic']
-            mcts_data['heuristic'] = self.states[statehash][0]['heuristic']
-            mcts_data['max_depth'] = self.states[statehash][0]['max_depth']
+            statedata = self.states[statehash]
+            mcts_data['heuristic'] = statedata[0]['heuristic']
+            mcts_data['max_depth'] = statedata[0]['max_depth']
         else:
             # h = self.heuristic(game_engine, debug=True)
-            mcts_data['heuristic'] = self.heuristic(game_engine, debug=True)
+            mcts_data['heuristic'] = Typing.MCTSFloatDtype(self.heuristic(game_engine, debug=True))
             mcts_data['max_depth'] = Typing.MCTSFloatDtype(self.max_depth)
 
         # return {
@@ -251,7 +252,7 @@ class MCTSNjit:
 
         self.path[self.depth]['board'][...] = self.engine.board
         # self.path[self.depth]['statehash'] = statehash
-        self.path[self.depth]['player_idx'] = self.engine.player_idx
+        # self.path[self.depth]['player_idx'] = self.engine.player_idx
         self.path[self.depth]['bestAction'][:] = best_action
         # with nb.objmode():
         #     print(f"Fill path depth {self.depth} statehash:\n{self.path[self.depth]['statehash']}")
@@ -314,9 +315,6 @@ class MCTSNjit:
         cap = engine.get_captures()
         c0 = cap[engine.player_idx]
         c1 = cap[engine.player_idx ^ 1]
-        
-        # c0 = cap[0]
-        # c1 = cap[1]
 
         game_zone = engine.get_game_zone()
         g0 = game_zone[0]
@@ -324,7 +322,7 @@ class MCTSNjit:
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        return njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, c0, c1, g0, g1, g2, g3, engine.player_idx)
+        return njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx)
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
@@ -332,7 +330,8 @@ class MCTSNjit:
         while not self.engine.isover() and turn < self.rollingout_turns:
         # while not self.engine.isover():
 
-            pruning = self.pruning().flatten().astype(np.bool8)
+            pruning = self.pruning(heuristic_pruning=False)
+            pruning = pruning.flatten().astype(np.bool8)
 
             # Create actions from pruning
             if pruning.any():
@@ -367,7 +366,7 @@ class MCTSNjit:
 
     def get_neighbors_mask(self, board):
 
-        neigh = np.zeros((19, 19), dtype=Typing.PruningDtype)
+        neigh = np.zeros((19, 19), dtype=Typing.BoardDtype)
 
         neigh[:-1, :] |= board[1:, :]  # Roll cols to left
         neigh[1:, :] |= board[:-1, :]  # Roll cols to right
@@ -381,17 +380,27 @@ class MCTSNjit:
 
         return neigh
 
-    def pruning(self):
+    def pruning(self, heuristic_pruning: nb.boolean = True):
 
-        if not self.is_pruning:
-            return np.ones((19, 19), dtype=Typing.PruningDtype)
+        if heuristic_pruning:
+            game_zone = self.engine.get_game_zone()
+            # print(f"game_zone:", game_zone)
+            g0 = game_zone[0]
+            g1 = game_zone[1]
+            g2 = game_zone[2]
+            g3 = game_zone[3]
+            hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3, self.engine.player_idx)
 
-        full_board = (self.engine.board[0] | self.engine.board[1]).astype(Typing.PruningDtype)
+        else:
+            hpruning = np.zeros((19, 19), dtype=Typing.PruningDtype)
+
+        full_board = self.engine.board[0] | self.engine.board[1]
         non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
 
         xp = non_pruned ^ full_board
         non_pruned = xp & non_pruned  # Remove neighbors stones already placed
-        return non_pruned
+        # print("Choose normal pruning")
+        return non_pruned + hpruning
 
     def backpropagation(self):
 
@@ -401,12 +410,14 @@ class MCTSNjit:
             # print(f"Backprop path index {i}")
             self.backprop_memory(self.path[i], reward)
             reward = 1 - reward
+            # reward = 1 - (0.90 * reward)
 
     def backprop_memory(self, memory: Typing.StateDataDtype, reward: Typing.MCTSFloatDtype):
         # print(f"Memory:\n{memory}")
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         
         board = memory['board']
+        # player_idx = memory['player_idx']
         r, c = memory['bestAction']
         statehash = self.fast_tobytes(board)
         # print(f"memory['bestAction']:\n{r} {c}")
@@ -429,7 +440,6 @@ class MCTSNjit:
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
 
     def fast_tobytes(self, arr: Typing.BoardDtype):
-
         byte_list = []
         for i in range(19):
             for j in range(19):
