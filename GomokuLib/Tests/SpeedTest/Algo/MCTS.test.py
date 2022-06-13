@@ -41,33 +41,9 @@ def _rollingout(n, mcts, boards, engine_ref):
         mcts.rollingout()
 
 @njit()
-def fake_tobytes(arr: Typing.BoardDtype):
-    # flat = arr.flatten()
-    # i = 0
-    # res = np.empty_like(flat) ('2' if arr[1, i / 19, i % 19] == 1 else '0'))
-
-    a = []
-    for i in range(19):
-        for j in range(19):
-            a.append('1' if arr[0, i, j] == 1 else ('2' if arr[1, i, j] == 1 else '0'))
-    return ''.join(a)
-    # return ''.join([
-    #     ('1' if arr[0, i // 19, i % 19] == 1 else ('2' if arr[1, i // 19, i % 19] == 1 else '0'))
-    #     for i in range(361)
-    # ])
-
-    return '0' * 361 + '1' * 361
-    return res
-
-@njit()
-def _tobytes(n, mcts, boards):
+def _fast_tobytes(n, mcts, boards):
     for i in range(n):
         mcts.fast_tobytes(boards[i])
-
-@njit()
-def _faketobytes(n, mcts, boards):
-    for i in range(n):
-        fake_tobytes(boards[i])
 
 @njit()
 def _expand(n, mcts, boards, actions, prunings):
@@ -77,10 +53,36 @@ def _expand(n, mcts, boards, actions, prunings):
         mcts.expand(statehash, actions[i], prunings[i])
 
 @njit()
+def _backprop_memory(n, mcts, boards, best_actions, rewards, statehashes):
+    for i in range(n):
+        mcts.backprop_memory(best_actions[i], rewards[i], statehashes[i])
+
+@njit()
+def _get_policy(n, mcts, state_data):
+    for i in range(n):
+        mcts.get_policy(state_data[i])
+
+
+@njit()
+def _get_best_policy_actions(n, mcts, policies, actions):
+    for i in range(n):
+        mcts.get_best_policy_actions(policies[i], actions[i])
+
+@njit()
+def _lazy_selection(n, mcts, policies, actions):
+    for i in range(n):
+        mcts.lazy_selection(policies[i], actions[i])
+
+@njit()
 def _award(n, mcts, boards):
     for i in range(n):
         mcts.engine.board = boards[i]
         mcts.award()
+@njit()
+def _heuristic(n, mcts, boards):
+    for i in range(n):
+        mcts.engine.board = boards[i]
+        mcts.heuristic()
 
 def _log(fname, times, ranges):
     print('######################')
@@ -135,33 +137,17 @@ def test_get_neighbors_mask(mcts, boards):
 
 def test_tobytes(mcts, boards):
 
-    _tobytes(1, mcts, boards)
+    _fast_tobytes(1, mcts, boards)
 
     times = []
     ranges = test_ranges
 
     times.append(time.perf_counter())
     for r in ranges:
-        _tobytes(r, mcts, boards)
+        _fast_tobytes(r, mcts, boards)
         times.append(time.perf_counter())
 
-    _log('tobytes', times, ranges)
-
-
-def test_faketobytes(mcts, boards):
-
-    _faketobytes(1, mcts, boards)
-
-    times = []
-    ranges = test_ranges
-
-    times.append(time.perf_counter())
-    for r in ranges:
-        _faketobytes(r, mcts, boards)
-        times.append(time.perf_counter())
-
-    _log('faketobytes', times, ranges)
-
+    _log('fast_tobytes', times, ranges)
 
 def test_prunning(mcts, boards):
 
@@ -184,7 +170,6 @@ def test_call(mcts, boards, engine_ref):
 
     times = []
     ranges = test_ranges
-    nr = []
     times.append(time.perf_counter())
     for r in ranges:
         mcts.init()
@@ -220,13 +205,85 @@ def test_award(mcts, boards):
 
     times = []
     ranges = test_ranges
-    nr = []
     times.append(time.perf_counter())
     for r in ranges:
         _award(r, mcts, boards)
         times.append(time.perf_counter())
 
     _log('award', times, ranges)
+
+def test_get_policy(mcts):
+    state_datas = np.empty((10000), dtype=Typing.StateDataDtype)
+
+    _get_policy(1, mcts, state_datas)
+
+    times = []
+    ranges = test_ranges
+    times.append(time.perf_counter())
+    for r in ranges:
+        _get_policy(r, mcts, state_datas)
+        times.append(time.perf_counter())
+
+    _log('get_policy', times, ranges)
+
+def test_get_best_policy_actions(mcts):
+    policies = np.random.randn(10000, 19, 19).astype(np.float64)
+    actions = np.random.randint(0, 2, (10000, 19, 19), dtype=np.int8)
+
+    _get_best_policy_actions(1, mcts, policies, actions)
+
+    times = []
+    ranges = test_ranges
+    times.append(time.perf_counter())
+    for r in ranges:
+        _get_best_policy_actions(r, mcts, policies, actions)
+        times.append(time.perf_counter())
+
+    _log('get_best_policy_actions', times, ranges)
+
+def test_lazy_selection(mcts):
+    policies = np.around(np.random.randn(10000, 19, 19).astype(np.float64), decimals=2)
+    actions = np.random.randint(0, 2, (10000, 19, 19), dtype=np.int8)
+
+    _lazy_selection(1, mcts, policies, actions)
+
+    times = []
+    ranges = test_ranges
+    times.append(time.perf_counter())
+    for r in ranges:
+        _lazy_selection(r, mcts, policies, actions)
+        times.append(time.perf_counter())
+
+    _log('lazy_selection', times, ranges)
+
+def test_heuristic(mcts, boards):
+
+    _heuristic(1, mcts, boards)
+
+    times = []
+    ranges = test_ranges
+    times.append(time.perf_counter())
+    for r in ranges:
+        _heuristic(r, mcts, boards)
+        times.append(time.perf_counter())
+
+    _log('heuristic', times, ranges)
+
+def test_backprop_memory(mcts, boards):
+
+    best_actions = np.random.randint(0, 18, (10000, 2), dtype=Typing.ActionDtype)
+    rewards = np.random.randn(10000) * 2.
+    statehashes = [mcts.fast_tobytes(b) for b in boards]
+    _backprop_memory(1, mcts, boards, best_actions, rewards, statehashes)
+
+    times = []
+    ranges = test_ranges
+    times.append(time.perf_counter())
+    for r in ranges:
+        _backprop_memory(r, mcts, boards, best_actions, rewards, statehashes)
+        times.append(time.perf_counter())
+
+    _log('backprop_memory', times, ranges)
 
 if __name__ == "__main__":
     boards = np.random.randint(0, 2, (10000, 2, 19, 19), dtype=Typing.BoardDtype)
@@ -238,12 +295,17 @@ if __name__ == "__main__":
         pruning=True,
         rollingout_turns=5
     )
+    engine.game_zone = np.array((0, 0, 18, 18), dtype=Typing.GameZoneDtype)
     # test_tobytes(mcts, boards)
-    # test_faketobytes(mcts, boards)
     # test_prunning(mcts, boards)
     # test_get_neighbors_mask(mcts, boards)
     # test_call(mcts, boards, engine_ref)
-    for i in range(10):
-        test_expand(mcts, boards)
+    test_expand(mcts, boards)
+    test_backprop_memory(mcts, boards) # do it after expand
     # test_award(mcts, boards)
     # test_rollingout(mcts, boards, engine_ref)
+    # test_get_policy(mcts)
+    # test_get_best_policy_actions(mcts)
+    # test_lazy_selection(mcts)
+    test_heuristic(mcts, boards)
+    # test_backpropagation() ??
