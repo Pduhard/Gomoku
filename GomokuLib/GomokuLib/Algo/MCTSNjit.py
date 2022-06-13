@@ -1,10 +1,9 @@
 from os import stat
 import string
-import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import njit_classic_pruning, njit_hpruning, njit_heuristic
+from GomokuLib.Algo import njit_classic_pruning, njit_create_hpruning, njit_dynamic_hpruning, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -12,6 +11,7 @@ import numba as nb
 from numba import njit
 from numba.experimental import jitclass
 from numba.core.typing import cffi_utils
+
 
 @nb.vectorize('float64(int8, float64)')
 def _valid_policy_action(actions, policy):
@@ -153,20 +153,8 @@ class MCTSNjit:
             state_data = self.states[self.current_statehash][0]
 
             policy = self.get_policy(state_data, self.c)
-            # best_action = self.selection(policy, state_data)
-            best_action = self.lazy_selection(policy, state_data['actions'])
-
-            # with nb.objmode():
-            #     print(f"best_action {best_action[0]} {best_action[1]} | self.states[statehash][0]['stateAction']:\n{self.states[statehash][0]['stateAction']}")
-            #     # print(f"policy:\n{policy}")
-            #     # print(f"best_action:\n{best_action}")
-            #     breakpoint()
-            #     pass
-
-            if self.depth > 50:
-                print(f"Depth > 50")
-                with nb.objmode():
-                    breakpoint()
+            pruning = self.dynamic_pruning(state_data['pruning'])
+            best_action = self.lazy_selection(policy * pruning, state_data['actions'])
 
             # self.fill_path(self.current_statehash, best_action)
             statehashes.append(self.current_statehash)
@@ -202,10 +190,10 @@ class MCTSNjit:
             # self.current_statehash = self.fast_tobytes(self.engine.board)
 
         actions = self.engine.get_lazy_actions()
-        pruning = self.pruning(depth=self.depth)
+        pruning_arr = self.new_state_pruning()
         self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
 
-        self.expand(self.current_statehash, actions, pruning)
+        self.expand(self.current_statehash, actions, pruning_arr)
         self.backpropagation(statehashes)
 
     def get_policy(self, state_data: Typing.nbState, *args) -> Typing.nbPolicy:
@@ -219,8 +207,7 @@ class MCTSNjit:
         s_v = state_data['visits']
         sa_v, sa_r = state_data['stateAction']
         ucbs = sa_r / (sa_v + 1) + self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
-        # return ucbs * state_data['pruning']
-        return ucbs * self.pruning(depth=self.depth)
+        return ucbs
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
         best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
@@ -265,16 +252,16 @@ class MCTSNjit:
                 else:
                     actions[x, y] = 0
 
-    def expand(self, statehash: string, actions: np.ndarray, pruning: np.ndarray):
+    def expand(self, statehash: string, actions: np.ndarray, pruning_arr: np.ndarray):
         state = np.zeros(1, dtype=Typing.StateDataDtype)
-        
+
         state[0]['max_depth'] = self.depth
         state[0]['visits'] = 1
         state[0]['rewards'] = self.reward
         state[0]['stateAction'][...] = 0.
         state[0]['actions'][...] = actions
         state[0]['heuristic'] = self.reward
-        state[0]['pruning'][...] = pruning
+        state[0]['pruning'][...] = pruning_arr
 
         self.states[statehash] = state
 
@@ -283,24 +270,23 @@ class MCTSNjit:
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
 
-    def pruning(self, engine: Gomoku = None, heuristic_pruning: nb.boolean = True, depth: int = 0):
+    def new_state_pruning(self, engine: Gomoku = None):
 
         if engine is None:
             engine = self.engine
 
-        # return njit_classic_pruning(engine.board)
+        game_zone = engine.get_game_zone()
+        g0 = game_zone[0]
+        g1 = game_zone[1]
+        g2 = game_zone[2]
+        g3 = game_zone[3]
+        return njit_create_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx)
 
-        if heuristic_pruning:
-            game_zone = engine.get_game_zone()
-            # print(f"game_zone:", game_zone)
-            g0 = game_zone[0]
-            g1 = game_zone[1]
-            g2 = game_zone[2]
-            g3 = game_zone[3]
-            return njit_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx, depth)
+    def dynamic_pruning(self, pruning_arr: np.ndarray):
+        return njit_dynamic_hpruning(pruning_arr, self.depth)
 
-        else:
-            return njit_classic_pruning(engine.board)
+    def classic_pruning(self):
+        return njit_classic_pruning(self.engine.board)
 
     def award(self):
         """
@@ -343,7 +329,7 @@ class MCTSNjit:
         while not self.engine.isover() and turn < self.rollingout_turns:
         # while not self.engine.isover():
 
-            pruning = self.pruning(heuristic_pruning=False)
+            pruning = self.classic_pruning()
             pruning = pruning.flatten().astype(np.bool8)
 
             # Create actions from pruning

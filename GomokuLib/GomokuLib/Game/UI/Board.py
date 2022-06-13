@@ -6,6 +6,7 @@ import torch
 
 from GomokuLib.Game.UI.HumanHints import HumanHints
 from GomokuLib.Game.GameEngine.Snapshot import Snapshot
+from GomokuLib.Algo.hpruning import njit_dynamic_hpruning
 
 # from GomokuLib.Media import WoodBGBoard_img, WhiteStone_img, BlackStone_img
 
@@ -184,16 +185,21 @@ class Board:
 
         elif self.hint_type == 3:
             try:
-                pruning = ss_data['pruning']
+                pruning_arr = ss_data['pruning']
             except:
                 try:
-                    pruning = state_data['pruning']
+                    pruning_arr = state_data['pruning']
                 except:
-                    pruning = state_data.get('Pruning', None)
-            
-            # pruning = state_data.get('pruning', None)
-            # pruning = ss_data.get('pruning', None)
-            self.draw_model_hints(pruning)
+                    pruning_arr = state_data.get('Pruning', None)
+
+            try:
+                if pruning_arr is not None and len(pruning_arr.shape) == 3:
+                    self.draw_model_hints(njit_dynamic_hpruning(pruning_arr))
+                else:
+                    raise Exception()
+            except:
+                print(f"Board: pruning failed: {pruning_arr.shape}")
+
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):
 
@@ -308,11 +314,10 @@ class Board:
                 Opaque lime green           if policy tends to big positive (= sigmoid close to 1)
         """
         if policy is not None:
-            policy = policy.astype(np.float32)
             if policy.max() != policy.min():
 
+                print(f"Board: policy:\n{policy}")
                 policy = np.abs(policy)
-                # print(f"Board: policy:\n{policy}")
                 policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
                 policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
 

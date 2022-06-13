@@ -38,7 +38,6 @@ class Display:
             if 'heuristic' in ss_data:
                 h = ss_data['heuristic']
                 max_depth = '_'
-                print("h in ss_data")
             else:
                 try:
                     h = ss_data['mcts_state_data'][0]['heuristic']

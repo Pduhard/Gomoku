@@ -83,7 +83,6 @@ class Graph:
 
     def save_datas(self, ss_data: dict, ss_i: int, **kwargs):
         player_idx = ss_data.get('player_idx', 0)
-        # player_idx = ss_data.get('player_idx', 0) ^ 1   # Because heuristic is made before player action of a state
 
         try:
             state_data = ss_data['mcts_state_data'][0]

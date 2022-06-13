@@ -111,37 +111,62 @@ def _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
     # print("hpruning end")
     return pruning[..., 2:21, 2:21]
 
+@njit()
+def njit_create_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
+    """
+        Create 3 ndarrays:
+            - Alignments rewards
+            - Alignments rewards + Captures rewards
+            - Alignments rewards + Classic pruning
+    """
+    rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_h_graph, opp_h_graph)
+    
+    pruning_arr = np.zeros((3, 19, 19), dtype=Typing.PruningDtype)
+    # Big depth: Just focus on best pruning_arr
+    pruning_arr[0][...] = _keep_uppers(rewards, Typing.PruningDtype(np.amax(rewards)))
 
-@nb.vectorize('int8(float32, float32)')
+    # hpruning + cap: Dynamic computation depending on MCTS depth
+    pruning_arr[1][...] = rewards + _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_cap_graph, opp_cap_graph)
+
+    # hpruning + classic pruning (Without cap because classic pruning is enought and faster)
+    pruning_arr[2][...] = _keep_uppers(rewards, Typing.PruningDtype(1.)) + njit_classic_pruning(board)
+    return pruning_arr
+
+@nb.vectorize('float32(float32, float32)')
 def _keep_uppers(board, num):
     if board >= num:
         return 1
     else:
         return 0
 
-
 @njit()
-def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, mcts_depth: int = 0):
+def njit_dynamic_hpruning(pruning_arr: np.ndarray, mcts_depth: int = 0):
 
-    depth_hard_prune = 4
-    rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_h_graph, opp_h_graph)
+    depth_hard_prune = 3
 
-    rmax = np.amax(rewards)
-    # print("hpruning amax: ", rmax, " depth ", mcts_depth)
     if mcts_depth >= depth_hard_prune:
-        return _keep_uppers(rewards, rmax)
+        # Big depth: Just focus on best pruning_arr
+        return pruning_arr[0]
 
-    if rmax > depth_hard_prune - mcts_depth:
-        rewards += _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_cap_graph, opp_cap_graph)
-        return _keep_uppers(rewards, depth_hard_prune - mcts_depth)
+    rmax = Typing.PruningDtype(np.amax(pruning_arr[0]))
+    ddepth = Typing.PruningDtype(depth_hard_prune - mcts_depth)
+    if rmax > ddepth:
+        return _keep_uppers(pruning_arr[1], ddepth)  # hpruning + cap
+
     else:
-        return _keep_uppers(rewards, 1) + njit_classic_pruning(board)
+        # hpruning + classic pruning (Without cap because classic pruning is enought and faster)
+        return pruning_arr[2]
 
 
 
 if __name__ == "__main__":
 
+    board = np.random.randint(0, 10, size=(2, 19, 19), dtype=Typing.BoardDtype)
+    board = _keep_uppers(board.astype(Typing.PruningDtype), Typing.PruningDtype(9)).astype(Typing.BoardDtype)
+    print(board)
 
-    board = np.random.randint(0, 5, size=(19, 19), dtype=Typing.MCTSIntDtype).astype(Typing.PruningDtype)
-    res = _keep_uppers(board, 4)
-    print(board, "\n", res)
+    pruning_arr = njit_create_hpruning(board, 0, 0, 18, 18, 0)
+
+    for depth in range(6):
+        pruning = njit_dynamic_hpruning(pruning_arr, depth)
+        print(f"pruning depth {depth}:\n{pruning}\n\n")
