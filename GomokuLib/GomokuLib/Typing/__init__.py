@@ -14,6 +14,12 @@ TupleDtype = np.int32
 MCTSIntDtype = np.int32
 MCTSFloatDtype = np.float32
 
+# hpruning_dict = nb.typed.Dict.empty(
+#     key_type=nb.int8,
+#     value_type=nb.from_dtype(PruningDtype)
+# )
+# nbHpruningDict = nb.typeof(hpruning_dict)
+
 StateDataDtype = np.dtype([
     # ('worker_id', MCTSIntDtype),
     ('max_depth', MCTSIntDtype),

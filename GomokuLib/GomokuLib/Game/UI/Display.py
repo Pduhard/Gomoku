@@ -38,6 +38,7 @@ class Display:
             if 'heuristic' in ss_data:
                 h = ss_data['heuristic']
                 max_depth = '_'
+                print("h in ss_data")
             else:
                 try:
                     h = ss_data['mcts_state_data'][0]['heuristic']
@@ -50,6 +51,12 @@ class Display:
                         h = -42
                         max_depth = -1
 
+            if 'player_idx' in ss_data:
+                p_id = ss_data['player_idx']
+                waiting = f"P{p_id}: {'Black' if p_id else 'White'}"
+            else:
+                waiting = '_'
+
             all_fields = {
                 'Total time': f"{round(tottime / 60, 2)} min",
                 'Snapshot': f"{ss_i + 1}/{ss_num}",
@@ -59,7 +66,7 @@ class Display:
                 'P1: Black': ss_data.get('p2', '_'),
                 'Turn': ss_data.get('turn', '_'),
                 'dtime (ms)': ss_data.get('dtime', '_'),
-                'Waiting': 'White' if ss_data.get('player_idx', '_') == 0 else 'Black',
+                'Waiting': waiting,
                 'Captures': ss_data.get('captures', '_'),
                 'Heuristic': h,
                 'Tree depth': max_depth,

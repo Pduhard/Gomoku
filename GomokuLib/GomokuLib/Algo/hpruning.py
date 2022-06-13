@@ -1,5 +1,5 @@
 import GomokuLib.Typing as Typing
-from GomokuLib.Algo.aligns_graphs import my_h_graph, opp_h_graph
+from GomokuLib.Algo.aligns_graphs import my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph
 
 import numba as nb
 import numpy as np
@@ -90,7 +90,7 @@ def _create_aligns_reward(board, graph, sr, sc, player_idx):
 
 
 @njit()
-def _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
+def _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_graph, opp_graph):
     # print("hpruning start")
 
     # Padding: 2 on the left and top / 5 on the right and bottom
@@ -103,10 +103,10 @@ def _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
         for x in range(2 + gz_start_c, 3 + gz_end_c):
 
             if board_pad[player_idx, y, x]:
-                pruning += _create_aligns_reward(board_pad, my_h_graph, y, x, player_idx)
+                pruning += _create_aligns_reward(board_pad, my_graph, y, x, player_idx)
 
             elif board_pad[player_idx ^ 1, y, x]:
-                pruning += _create_aligns_reward(board_pad, opp_h_graph, y, x, player_idx)
+                pruning += _create_aligns_reward(board_pad, opp_graph, y, x, player_idx)
 
     # print("hpruning end")
     return pruning[..., 2:21, 2:21]
@@ -123,15 +123,17 @@ def _keep_uppers(board, num):
 @njit()
 def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, mcts_depth: int = 0):
 
-    rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx)
+    depth_hard_prune = 4
+    rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_h_graph, opp_h_graph)
 
     rmax = np.amax(rewards)
     # print("hpruning amax: ", rmax, " depth ", mcts_depth)
-    if mcts_depth >= 5:
+    if mcts_depth >= depth_hard_prune:
         return _keep_uppers(rewards, rmax)
 
-    if rmax > 5 - mcts_depth:
-        return _keep_uppers(rewards, 5 - mcts_depth)
+    if rmax > depth_hard_prune - mcts_depth:
+        rewards += _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_cap_graph, opp_cap_graph)
+        return _keep_uppers(rewards, depth_hard_prune - mcts_depth)
     else:
         return _keep_uppers(rewards, 1) + njit_classic_pruning(board)
 

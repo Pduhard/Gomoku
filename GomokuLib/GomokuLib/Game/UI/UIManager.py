@@ -287,10 +287,10 @@ class UIManager:
         if self.human_hints_active:
             ss_data.update(self.humanHints.fetch_hints())
 
-        ss_data.update({
-            'heuristic': self.humanHints.mcts.heuristic(self.engine),
-            'pruning': self.humanHints.mcts.pruning(self.engine, True)
-        })
+        # ss_data.update({
+        #     'heuristic': self.humanHints.mcts.heuristic(self.engine),
+        #     'pruning': self.humanHints.mcts.pruning(self.engine, True)
+        # })
 
         for o in self.components:
             o.draw(

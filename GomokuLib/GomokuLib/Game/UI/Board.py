@@ -184,12 +184,12 @@ class Board:
 
         elif self.hint_type == 3:
             try:
-                pruning = state_data['Pruning']
+                pruning = ss_data['pruning']
             except:
                 try:
                     pruning = state_data['pruning']
                 except:
-                    pruning = ss_data.get('pruning', None)
+                    pruning = state_data.get('Pruning', None)
             
             # pruning = state_data.get('pruning', None)
             # pruning = ss_data.get('pruning', None)
@@ -308,6 +308,7 @@ class Board:
                 Opaque lime green           if policy tends to big positive (= sigmoid close to 1)
         """
         if policy is not None:
+            policy = policy.astype(np.float32)
             if policy.max() != policy.min():
 
                 policy = np.abs(policy)

@@ -89,26 +89,26 @@ class MCTSNjit:
             mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
         return mcts_data
 
-    def get_state_data_after_action(self, game_engine: Gomoku):
+    # def get_state_data_after_action(self, game_engine: Gomoku):
+    #     """
+    #         Useless function !
+    #     """
+    #     mcts_data = nb.typed.Dict.empty(
+    #         key_type=nb.types.unicode_type,
+    #         value_type=Typing.MCTSFloatDtype
+    #     )
+    #     statehash = self.fast_tobytes(game_engine.board)
+    #     if statehash in self.states:
+    #         statedata = self.states[statehash]
+    #         mcts_data['heuristic'] = statedata[0]['heuristic']
+    #     else:
+    #         # h = self.heuristic(game_engine, debug=True)
+    #         mcts_data['heuristic'] = Typing.MCTSFloatDtype(self.heuristic(game_engine, debug=True))
 
-        mcts_data = nb.typed.Dict.empty(
-            key_type=nb.types.unicode_type,
-            value_type=Typing.MCTSFloatDtype
-        )
-        statehash = self.fast_tobytes(game_engine.board)
-        if statehash in self.states:
-            statedata = self.states[statehash]
-            mcts_data['heuristic'] = statedata[0]['heuristic']
-            mcts_data['max_depth'] = statedata[0]['max_depth']
-        else:
-            # h = self.heuristic(game_engine, debug=True)
-            mcts_data['heuristic'] = Typing.MCTSFloatDtype(self.heuristic(game_engine, debug=True))
-            mcts_data['max_depth'] = Typing.MCTSFloatDtype(self.max_depth)
-
-        # return {
-        #     'heuristic': h
-        # }
-        return mcts_data
+    #     # return {
+    #     #     'heuristic': h
+    #     # }
+    #     return mcts_data
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
@@ -219,7 +219,8 @@ class MCTSNjit:
         s_v = state_data['visits']
         sa_v, sa_r = state_data['stateAction']
         ucbs = sa_r / (sa_v + 1) + self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
-        return ucbs * state_data['pruning']
+        # return ucbs * state_data['pruning']
+        return ucbs * self.pruning(depth=self.depth)
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
         best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
