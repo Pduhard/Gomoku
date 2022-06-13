@@ -23,6 +23,8 @@ from fastcore._algo import lib as fastcore_algo
 
 """
 
+        vectorize hprunning et get_policy/amaf
+
         Pourquoi des fois le server casse la connectino immediatement
             quand le client se connecte en route ...
             BrokenPipeError

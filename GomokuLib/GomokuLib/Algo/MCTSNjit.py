@@ -197,18 +197,31 @@ class MCTSNjit:
         self.expand(self.current_statehash, actions, pruning_arr)
         self.backpropagation(statehashes)
 
-    def get_policy(self, state_data: Typing.nbState, *args) -> Typing.nbPolicy:
+    def get_policy(self, state_data: Typing.nbState, mcts_iter: Typing.mcts_int_nb_dtype) -> Typing.nbPolicy:
         """
             ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
 
-            exploitation_rate(s, a) =   reward(s, a) / (visits(s, a) + 1)
+            exploitation_rate(s, a):
+                AMAFQuality(s, a) = beta * AMAF(s, a) + (1 - beta) * quality(s, a)
+
+                    quality(s, a) = rewards(s, a)     / (visits(s, a)     + 1)
+                    AMAF(s, a)    = rewardsAMAF(s, a) / (visitsAMAF(s, a) + 1)
+                    0 < beta < 1
+                
             exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
 
         """
         s_v = state_data['visits']
         sa_v, sa_r = state_data['stateAction']
-        ucbs = sa_r / (sa_v + 1) + self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
-        return ucbs
+        amaf_n, amaf_v = state_data['amaf']
+
+        sa = sa_r / (sa_v + 1)
+        amaf = amaf_v / (amaf_n + 1)
+        beta = np.sqrt(1 / (1 + 3 * mcts_iter))
+
+        quality = beta * amaf + (1 - beta) * sa
+        exploration = self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
+        return quality + exploration
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
         best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
@@ -263,6 +276,7 @@ class MCTSNjit:
         state[0]['actions'][...] = actions
         state[0]['heuristic'] = self.reward
         state[0]['pruning'][...] = pruning_arr
+        state[0]['amaf'][...] = 0.
 
         self.states[statehash] = state
 
@@ -365,15 +379,18 @@ class MCTSNjit:
 
     def backpropagation(self, statehashes):
 
+        # Init backprop AMAF buffer
+        amaf_masks = np.zeros((2, 2, 19, 19))    # sAMAF_v and sAMAF_n for 2 players
+        
         # Start with the last play (Penultimate state/board)
         reward = 1 - self.reward
         for i in range(self.depth - 1, -1, -1):
             # print(f"Backprop path index {i}")
-            self.backprop_memory(self.path[i], reward, statehashes[i])
+            self.backprop_memory(self.path[i], reward, statehashes[i], amaf_masks)
             reward = 1 - reward
             # reward = 1 - (0.90 * reward)
 
-    def backprop_memory(self, best_action, reward: Typing.MCTSFloatDtype, statehash: string):
+    def backprop_memory(self, best_action, reward: Typing.MCTSFloatDtype, statehash: string, amaf_masks: np.ndarray):
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
 
         r, c = best_action
@@ -383,6 +400,9 @@ class MCTSNjit:
         state_data['rewards'] += reward                     # update state value / Use for ?...
         stateAction_update[1] = reward
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
+
+        amaf_masks[player_idx, ..., r, c] += stateAction_update  # update state-action count / value
+        state_data['amaf'] += amaf_masks[player_idx]
 
     def fast_tobytes(self, arr: Typing.BoardDtype):
         byte_list = []
