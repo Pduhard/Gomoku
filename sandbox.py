@@ -80,7 +80,7 @@ def getMCTSNjit(engine):
         engine=engine,
         iter=10000,
         pruning=True,
-        rollingout_turns=0
+        rollingout_turns=2
     )
 
 def duel():

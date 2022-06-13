@@ -146,7 +146,6 @@ def njit_create_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, play
 
 @njit()
 def njit_dynamic_hpruning(pruning_arr: np.ndarray, mcts_depth: int = 0):
-
     if mcts_depth == 0:        # 0
         return pruning_arr[0]
     if mcts_depth > 2:         # 3 | ...
