@@ -155,11 +155,14 @@ class Board:
         except:
             state_data = ss_data.get('mcts_state_data', None)
 
-        if self.hint_type == 0 and state_data:
+        if state_data is None:
+            return
+
+        if self.hint_type == 0:
             pass
             # self.draw_model_hints(state_data.get('Policy', None))
         
-        elif self.hint_type == 1 and state_data:
+        elif self.hint_type == 1:
             try:
                 sa_n, sa_v = state_data['StateAction']
             except:
@@ -171,7 +174,7 @@ class Board:
             if sa_n is not None:
                 self.draw_mcts_hints(sa_n, sa_v)
 
-        elif self.hint_type == 2 and state_data:
+        elif self.hint_type == 2:
             try:
                 actions = state_data['Actions']
             except:

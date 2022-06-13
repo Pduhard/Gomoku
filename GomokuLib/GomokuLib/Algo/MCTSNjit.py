@@ -141,6 +141,7 @@ class MCTSNjit:
             self.mcts(i)
             if self.depth + 1 > self.max_depth:
                 self.max_depth = self.depth + 1
+            # print(self.max_depth, " ", self.depth)
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 
