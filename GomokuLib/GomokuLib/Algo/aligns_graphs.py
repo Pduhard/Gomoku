@@ -53,11 +53,11 @@ def _get_heuristic_coefs():
 
         'opp_win_2_turn': -1,
         'my_win_1_turn': 2,
-        'opp_force_countering': -3,
+        'opp_force_countering': -4,
 
-        'opp_win_1_turn': -5,
-        'my_win': 6,
-        'opp_win': -7,
+        'opp_win_1_turn': -6,
+        'my_win': 7,
+        'opp_win': -8,
     }
     return heuristic_coefs_dict
 

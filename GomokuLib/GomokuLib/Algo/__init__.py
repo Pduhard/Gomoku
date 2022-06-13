@@ -1,5 +1,5 @@
 from .heuristic import njit_heuristic
-from .hpruning import njit_hpruning
+from .hpruning import njit_classic_pruning, njit_hpruning
 
 from .MCTS import MCTS
 from .MCTSLazy import MCTSLazy
@@ -24,4 +24,5 @@ __all__ = [
 
     'njit_heuristic',
     'njit_hpruning',
+    'njit_classic_pruning',
 ]

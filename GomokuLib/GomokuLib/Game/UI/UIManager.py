@@ -287,6 +287,11 @@ class UIManager:
         if self.human_hints_active:
             ss_data.update(self.humanHints.fetch_hints())
 
+        ss_data.update({
+            'heuristic': self.humanHints.mcts.heuristic(self.engine),
+            'pruning': self.humanHints.mcts.pruning(self.engine, True)
+        })
+
         for o in self.components:
             o.draw(
                 ss_data=ss_data,
@@ -345,7 +350,7 @@ class UIManager:
             'captures': self.engine.get_captures(),
             'winner': self.engine.winner,
             'heuristic': self.humanHints.mcts.heuristic(self.engine),
-            'pruning': self.humanHints.mcts.pruning(engine=self.engine, heuristic_pruning=True)
+            'pruning': self.humanHints.mcts.pruning(self.engine, True)
         }
 
     def debug_mode(self):

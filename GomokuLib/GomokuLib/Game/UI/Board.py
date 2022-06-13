@@ -311,7 +311,7 @@ class Board:
             if policy.max() != policy.min():
 
                 policy = np.abs(policy)
-                print(f"Board: policy:\n{policy}")
+                # print(f"Board: policy:\n{policy}")
                 policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
                 policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
 

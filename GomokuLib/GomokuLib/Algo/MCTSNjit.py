@@ -4,7 +4,7 @@ import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import njit_hpruning, njit_heuristic
+from GomokuLib.Algo import njit_classic_pruning, njit_hpruning, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -83,7 +83,8 @@ class MCTSNjit:
         )
         statehash = self.fast_tobytes(game_engine.board)
         if statehash in self.states:
-            mcts_data['mcts_state_data'] = self.states[statehash]
+            statedata = self.states[statehash]
+            mcts_data['mcts_state_data'] = statedata
         else:
             mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
         return mcts_data
@@ -201,7 +202,7 @@ class MCTSNjit:
             # self.current_statehash = self.fast_tobytes(self.engine.board)
 
         actions = self.engine.get_lazy_actions()
-        pruning = self.pruning()
+        pruning = self.pruning(depth=self.depth)
         self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
 
         self.expand(self.current_statehash, actions, pruning)
@@ -281,6 +282,25 @@ class MCTSNjit:
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
 
+    def pruning(self, engine: Gomoku = None, heuristic_pruning: nb.boolean = True, depth: int = 0):
+
+        if engine is None:
+            engine = self.engine
+
+        # return njit_classic_pruning(engine.board)
+
+        if heuristic_pruning:
+            game_zone = engine.get_game_zone()
+            # print(f"game_zone:", game_zone)
+            g0 = game_zone[0]
+            g1 = game_zone[1]
+            g2 = game_zone[2]
+            g3 = game_zone[3]
+            return njit_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx, depth)
+
+        else:
+            return njit_classic_pruning(engine.board)
+
     def award(self):
         """
             Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
@@ -354,48 +374,6 @@ class MCTSNjit:
             self.engine.apply_action(gAction)
             self.engine.next_turn()
             turn += 1
-
-
-    def get_neighbors_mask(self, board):
-
-        neigh = np.zeros((19, 19), dtype=Typing.BoardDtype)
-
-        neigh[:-1, :] |= board[1:, :]  # Roll cols to left
-        neigh[1:, :] |= board[:-1, :]  # Roll cols to right
-        neigh[:, :-1] |= board[:, 1:]  # Roll rows to top
-        neigh[:, 1:] |= board[:, :-1]  # Roll rows to bottom
-
-        neigh[1:, 1:] |= board[:-1, :-1]  # Roll cells to the right-bottom corner
-        neigh[1:, :-1] |= board[:-1, 1:]  # Roll cells to the right-upper corner
-        neigh[:-1, 1:] |= board[1:, :-1]  # Roll cells to the left-bottom corner
-        neigh[:-1, :-1] |= board[1:, 1:]  # Roll cells to the left-upper corner
-
-        return neigh
-
-    def pruning(self, engine: Gomoku = None, heuristic_pruning: nb.boolean = True):
-
-        if engine is None:
-            engine = self.engine
-
-        if heuristic_pruning:
-            game_zone = engine.get_game_zone()
-            # print(f"game_zone:", game_zone)
-            g0 = game_zone[0]
-            g1 = game_zone[1]
-            g2 = game_zone[2]
-            g3 = game_zone[3]
-            hpruning = njit_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx)
-
-        else:
-            hpruning = np.zeros((19, 19), dtype=Typing.PruningDtype)
-
-        full_board = engine.board[0] | engine.board[1]
-        non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
-
-        xp = non_pruned ^ full_board
-        non_pruned = xp & non_pruned  # Remove neighbors stones already placed
-        # print("Choose normal pruning")
-        return non_pruned + hpruning
 
     def backpropagation(self, statehashes):
 
