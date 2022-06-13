@@ -7,7 +7,7 @@ ffi = FFI()
 from GomokuLib.Game.Rules import BasicRule
 from GomokuLib import Typing
 
-test_ranges = [10, 1000, 1000000]
+test_ranges = [10, 1000, 10000, 1000000]
 
 @njit()
 def _get_valid(n, full_board, basic_rule):

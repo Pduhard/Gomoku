@@ -7,6 +7,12 @@ import numpy as np
 from GomokuLib.Algo import njit_hpruning, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
+from GomokuLib.Algo.aligns_graphs import (
+    init_my_heuristic_graph,
+    init_opp_heuristic_graph,
+    init_my_captures_graph,
+    init_opp_captures_graph
+)
 
 import numba as nb
 from numba import njit
@@ -41,6 +47,11 @@ class MCTSNjit:
     current_statehash: Typing.nbStrDtype
     gamestatehash: Typing.nbStrDtype
 
+    my_h_graph: Typing.nbHeuristicGraph
+    opp_h_graph: Typing.nbHeuristicGraph
+    my_cap_graph: Typing.nbHeuristicGraph
+    opp_cap_graph: Typing.nbHeuristicGraph
+
     def __init__(self, 
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
@@ -62,6 +73,12 @@ class MCTSNjit:
         for i in range(19):
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
+
+        #init graph for heuristic
+        self.my_h_graph = init_my_heuristic_graph()
+        self.opp_h_graph = init_opp_heuristic_graph()
+        self.my_cap_graph = init_my_captures_graph()
+        self.opp_cap_graph = init_opp_captures_graph()
 
         print(f"{self.str()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
@@ -298,7 +315,6 @@ class MCTSNjit:
             return h_leaf
 
     def heuristic(self, engine: Gomoku = None, debug=False):
-
         if engine is None:
             engine = self.engine
 
@@ -314,7 +330,8 @@ class MCTSNjit:
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        return njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx)
+        return njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx, self.my_h_graph, self.opp_h_graph,
+            self.my_cap_graph, self.opp_cap_graph)
 
     def rollingout(self):
         # gAction = np.zeros(2, dtype=Typing.TupleDtype)
@@ -381,7 +398,8 @@ class MCTSNjit:
             g1 = game_zone[1]
             g2 = game_zone[2]
             g3 = game_zone[3]
-            hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3, self.engine.player_idx)
+            hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3, self.engine.player_idx
+                , self.my_h_graph, self.opp_h_graph)
 
         else:
             hpruning = np.zeros((19, 19), dtype=Typing.PruningDtype)

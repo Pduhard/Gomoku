@@ -38,10 +38,11 @@ mcts_int_nb_dtype = nb.from_dtype(MCTSIntDtype)
 state_data_nb_dtype = nb.from_dtype(StateDataDtype)
 
 nbTuple = tuple_nb_dtype[:]
-nbHeuristicGraph = heuristic_graph_nb_dtype[:]
+nbHeuristicGraph = nb.types.Array(dtype=heuristic_graph_nb_dtype, ndim=1, layout="C")
 nbBoard = nb.types.Array(dtype=board_nb_dtype, ndim=3, layout="C")
 nbAction = nb.types.Array(dtype=action_nb_type, ndim=2, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
+nbGraph = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
 
 nbCapturedBuf = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=3, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")

@@ -2,6 +2,7 @@ import numpy as np
 import GomokuLib.Typing as Typing
 
 import numba as nb
+from numba import njit
 
 """
     _:  Empty cell
@@ -45,6 +46,7 @@ import numba as nb
     Initialization of heuristic's data
 """
 
+@njit()
 def _get_heuristic_coefs():
     """
         Baisser l'importance des captures ?
@@ -64,6 +66,7 @@ def _get_heuristic_coefs():
     }
     return heuristic_coefs_dict
 
+@njit()
 def _parse_align(graph, player_mark, v, align, i, p):
     """
         '#' needs to be at index 2. Because that's how the heuristic test
@@ -100,13 +103,14 @@ def _parse_align(graph, player_mark, v, align, i, p):
         _parse_align(graph, player_mark, v, align, i + 1, (p << 2) + 0b10)  # Can be an opponent's stone
 
 
+@njit()
 def init_my_heuristic_graph():
     """
         _parse_align() calls need to be in ascending order according to the rewards.
             Because some of them overwrite old registered alignments
     """
 
-    my_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
+    my_graph = np.zeros(2 << 16, Typing.HeuristicGraphDtype)
     coefs = _get_heuristic_coefs()
 
     # print("init_my_heuristic_graph", len(my_graph), my_graph)
@@ -126,18 +130,19 @@ def init_my_heuristic_graph():
 
     _parse_align(my_graph, 0b10, coefs['my_win'], "XX#####", 0, 0)
 
-    fill_graph = np.nonzero(my_graph)
+    # fill_graph = np.nonzero(my_graph)
     # print(fill_graph)
-    print("My heuristic init parse ", len(fill_graph[0]), " alignments")
+    # print("My heuristic init parse ", len(fill_graph[0]), " alignments")
     return my_graph
 
+@njit()
 def init_opp_heuristic_graph():
     """
         _parse_align() calls need to be in ascending order according to the rewards.
             Because some of them overwrite old registered alignments
     """
 
-    opp_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
+    opp_graph = np.zeros(2 << 16, Typing.HeuristicGraphDtype)
     coefs = _get_heuristic_coefs()
 
     # print("init_opp_heuristic_graph", len(opp_graph), opp_graph)
@@ -155,46 +160,48 @@ def init_opp_heuristic_graph():
 
     _parse_align(opp_graph, 0b01, coefs['opp_win'], "XX#####", 0, 0)
 
-    fill_graph = np.nonzero(opp_graph)
+    # fill_graph = np.nonzero(opp_graph)
     # print(fill_graph)
-    print("Opponent heuristic init parse ", len(fill_graph[0]), " alignments")
+    # print("Opponent heuristic init parse ", len(fill_graph[0]), " alignments")
     return opp_graph
 
+@njit()
 def init_my_captures_graph():
     """
         When I will be captured
     """
 
-    my_cap_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
+    my_cap_graph = np.zeros(2 << 16, Typing.HeuristicGraphDtype)
     coefs = _get_heuristic_coefs()
 
     # Alignments
     _parse_align(my_cap_graph, 0b10, coefs['capture'], "X$##_XX", 0, 0)
     _parse_align(my_cap_graph, 0b10, coefs['capture'], "X_##$XX", 0, 0)
 
-    fill_graph = np.nonzero(my_cap_graph)
-    print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
+    # fill_graph = np.nonzero(my_cap_graph)
+    # print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
     return my_cap_graph
 
+@njit()
 def init_opp_captures_graph():
     """
         When opponent will be captured
     """
-    opp_cap_graph = np.zeros(pow(2, 16), Typing.HeuristicGraphDtype)
+    opp_cap_graph = np.zeros(2 << 16, Typing.HeuristicGraphDtype)
     coefs = _get_heuristic_coefs()
 
     # Alignments
     _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X$##_XX", 0, 0)
     _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X_##$XX", 0, 0)
 
-    fill_graph = np.nonzero(opp_cap_graph)
-    print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
+    # fill_graph = np.nonzero(opp_cap_graph)
+    # print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
     return opp_cap_graph
 
 
-## Init graphs
+# ## Init graphs
 
-my_h_graph = init_my_heuristic_graph()
-opp_h_graph = init_opp_heuristic_graph()
-my_cap_graph = init_my_captures_graph()
-opp_cap_graph = init_opp_captures_graph()
+# my_h_graph = init_my_heuristic_graph()
+# opp_h_graph = init_opp_heuristic_graph()
+# my_cap_graph = init_my_captures_graph()
+# opp_cap_graph = init_opp_captures_graph()

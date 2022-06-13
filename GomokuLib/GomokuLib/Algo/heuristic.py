@@ -1,5 +1,5 @@
 import GomokuLib.Typing as Typing
-from .aligns_graphs import my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph
+# from .aligns_graphs import my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph
 
 import numba as nb
 from numba import njit
@@ -18,7 +18,6 @@ def _find_align_reward(board, graph, sr, sc, player_idx):
         [1, 1],
         [1, 0]
     ]
-    way = -1 if player_idx == 1 else 1
     p = np.array([
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
         [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
@@ -27,12 +26,10 @@ def _find_align_reward(board, graph, sr, sc, player_idx):
     ],
         dtype=np.int32
     )
-    align_ids = np.zeros(4, dtype=np.int32)
     buf = np.zeros((4, 14), dtype=np.int32)
-    rewards = np.zeros(4, dtype=Typing.heuristic_graph_nb_dtype)
 
+    way = -1 if player_idx == 1 else 1
     for di in range(4):
-
         dr, dc = dirs[di]
         r, c = sr - 2 * dr, sc - 2 * dc
         for i in range(0, 14, 2):
@@ -44,12 +41,13 @@ def _find_align_reward(board, graph, sr, sc, player_idx):
     mul = buf * p
 
     # Sum all digits to create indexes
-    align_ids[:] = np.sum(mul, axis=-1)
+    align_ids = np.sum(mul, axis=-1)
 
-    for di in range(4):
-        rewards[di] = graph[align_ids[di]]
+    reward = 0
+    for id in align_ids:
+        reward += graph[id]
 
-    return np.sum(rewards)
+    return reward
 
 
 @njit()
@@ -58,7 +56,8 @@ def _compute_capture_coef(my_cap, opp_cap):
 
 
 @njit()
-def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
+def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
+    my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph):
     """
         More opponent has cap, the greater the possibilities where he can cap me 
         Sum rewards of paterns init
@@ -78,18 +77,19 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
     my_cap_coef = -7 if c1 == 4 else -c1
     opp_cap_coef = c0
 
-    rewards = np.zeros((21, 21), dtype=Typing.heuristic_graph_nb_dtype)
+    reward = 0.
+
     for y in range(2 + gz_start_r, 3 + gz_end_r):
         for x in range(2 + gz_start_c, 3 + gz_end_c):
 
             if board_pad[player_idx, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, my_h_graph, y, x, player_idx)
-                rewards[y, x] += my_cap_coef * _find_align_reward(board_pad, my_cap_graph, y, x, player_idx)
+                reward += (_find_align_reward(board_pad, my_h_graph, y, x, player_idx)
+                    + my_cap_coef * _find_align_reward(board_pad, my_cap_graph, y, x, player_idx))
 
             elif board_pad[player_idx ^ 1, y, x]:
-                rewards[y, x] = _find_align_reward(board_pad, opp_h_graph, y, x, player_idx ^ 1)
-                rewards[y, x] += opp_cap_coef * _find_align_reward(board_pad, opp_cap_graph, y, x, player_idx ^ 1)
+                reward += (_find_align_reward(board_pad, opp_h_graph, y, x, player_idx ^ 1)
+                    + opp_cap_coef * _find_align_reward(board_pad, opp_cap_graph, y, x, player_idx ^ 1))
 
     # print("All rewards ->" ,rewards)
-    x = np.sum(rewards) + _compute_capture_coef(c0, c1)
+    x = reward + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.5 * x))

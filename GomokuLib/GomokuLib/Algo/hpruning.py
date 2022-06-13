@@ -1,5 +1,10 @@
 import GomokuLib.Typing as Typing
-from .aligns_graphs import my_h_graph, opp_h_graph
+# from .aligns_graphs import my_h_graph, opp_h_graph
+
+# my_h_graph = init_my_heuristic_graph()
+# opp_h_graph = init_opp_heuristic_graph()
+# my_cap_graph = init_my_captures_graph()
+# opp_cap_graph = init_opp_captures_graph()
 
 import numba as nb
 import numpy as np
@@ -62,7 +67,7 @@ def _create_align_masks(board, graph, sr, sc, player_idx):
 
 
 @njit()
-def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
+def njit_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_h_graph, opp_h_graph):
     # print("hpruning start")
 
     # Padding: 2 on the left and top / 5 on the right and bottom
