@@ -1,10 +1,9 @@
 from os import stat
 import string
-import GomokuLib
 
 import numpy as np
 
-from GomokuLib.Algo import njit_hpruning, njit_heuristic
+from GomokuLib.Algo import njit_classic_pruning, njit_create_hpruning, njit_dynamic_hpruning, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib.Algo.aligns_graphs import (
@@ -18,6 +17,7 @@ import numba as nb
 from numba import njit
 from numba.experimental import jitclass
 from numba.core.typing import cffi_utils
+
 
 @nb.vectorize('float64(int8, float64)')
 def _valid_policy_action(actions, policy):
@@ -67,7 +67,7 @@ class MCTSNjit:
         self.c = np.sqrt(2)
         self.new_heuristic = new_heuristic
         self.init()
-        self.path = np.zeros((361, 2), dtype=Typing.mcts_int_nb_dtype)
+        self.path = np.zeros((361, 2), dtype=Typing.MCTSIntDtype)
 
         self.all_actions = np.empty((361, 2), dtype=Typing.ActionDtype)
         for i in range(19):
@@ -100,31 +100,32 @@ class MCTSNjit:
         )
         statehash = self.fast_tobytes(game_engine.board)
         if statehash in self.states:
-            mcts_data['mcts_state_data'] = self.states[statehash]
+            statedata = self.states[statehash]
+            mcts_data['mcts_state_data'] = statedata
         else:
             mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
         return mcts_data
 
-    def get_state_data_after_action(self, game_engine: Gomoku):
+    # def get_state_data_after_action(self, game_engine: Gomoku):
+    #     """
+    #         Useless function !
+    #     """
+    #     mcts_data = nb.typed.Dict.empty(
+    #         key_type=nb.types.unicode_type,
+    #         value_type=Typing.MCTSFloatDtype
+    #     )
+    #     statehash = self.fast_tobytes(game_engine.board)
+    #     if statehash in self.states:
+    #         statedata = self.states[statehash]
+    #         mcts_data['heuristic'] = statedata[0]['heuristic']
+    #     else:
+    #         # h = self.heuristic(game_engine, debug=True)
+    #         mcts_data['heuristic'] = Typing.MCTSFloatDtype(self.heuristic(game_engine, debug=True))
 
-        mcts_data = nb.typed.Dict.empty(
-            key_type=nb.types.unicode_type,
-            value_type=Typing.MCTSFloatDtype
-        )
-        statehash = self.fast_tobytes(game_engine.board)
-        if statehash in self.states:
-            statedata = self.states[statehash]
-            mcts_data['heuristic'] = statedata[0]['heuristic']
-            mcts_data['max_depth'] = statedata[0]['max_depth']
-        else:
-            # h = self.heuristic(game_engine, debug=True)
-            mcts_data['heuristic'] = Typing.MCTSFloatDtype(self.heuristic(game_engine, debug=True))
-            mcts_data['max_depth'] = Typing.MCTSFloatDtype(self.max_depth)
-
-        # return {
-        #     'heuristic': h
-        # }
-        return mcts_data
+    #     # return {
+    #     #     'heuristic': h
+    #     # }
+    #     return mcts_data
 
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
@@ -157,6 +158,7 @@ class MCTSNjit:
             self.mcts(i)
             if self.depth + 1 > self.max_depth:
                 self.max_depth = self.depth + 1
+            # print(self.max_depth, " ", self.depth)
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 
@@ -169,20 +171,8 @@ class MCTSNjit:
             state_data = self.states[self.current_statehash][0]
 
             policy = self.get_policy(state_data, self.c)
-            # best_action = self.selection(policy, state_data)
-            best_action = self.lazy_selection(policy, state_data['actions'])
-
-            # with nb.objmode():
-            #     print(f"best_action {best_action[0]} {best_action[1]} | self.states[statehash][0]['stateAction']:\n{self.states[statehash][0]['stateAction']}")
-            #     # print(f"policy:\n{policy}")
-            #     # print(f"best_action:\n{best_action}")
-            #     breakpoint()
-            #     pass
-
-            if self.depth > 50:
-                print(f"Depth > 50")
-                with nb.objmode():
-                    breakpoint()
+            pruning = self.dynamic_pruning(state_data['pruning'])
+            best_action = self.lazy_selection(policy * pruning, state_data['actions'])
 
             # self.fill_path(self.current_statehash, best_action)
             statehashes.append(self.current_statehash)
@@ -218,10 +208,10 @@ class MCTSNjit:
             # self.current_statehash = self.fast_tobytes(self.engine.board)
 
         actions = self.engine.get_lazy_actions()
-        pruning = self.pruning()
+        pruning_arr = self.new_state_pruning()
         self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
 
-        self.expand(self.current_statehash, actions, pruning)
+        self.expand(self.current_statehash, actions, pruning_arr)
         self.backpropagation(statehashes)
 
     def get_policy(self, state_data: Typing.nbState, *args) -> Typing.nbPolicy:
@@ -235,7 +225,7 @@ class MCTSNjit:
         s_v = state_data['visits']
         sa_v, sa_r = state_data['stateAction']
         ucbs = sa_r / (sa_v + 1) + self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
-        return ucbs * state_data['pruning']
+        return ucbs
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
         best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
@@ -280,16 +270,16 @@ class MCTSNjit:
                 else:
                     actions[x, y] = 0
 
-    def expand(self, statehash: string, actions: np.ndarray, pruning: np.ndarray):
+    def expand(self, statehash: string, actions: np.ndarray, pruning_arr: np.ndarray):
         state = np.zeros(1, dtype=Typing.StateDataDtype)
-        
+
         state[0]['max_depth'] = self.depth
         state[0]['visits'] = 1
         state[0]['rewards'] = self.reward
         state[0]['stateAction'][...] = 0.
         state[0]['actions'][...] = actions
         state[0]['heuristic'] = self.reward
-        state[0]['pruning'][...] = pruning
+        state[0]['pruning'][...] = pruning_arr
 
         self.states[statehash] = state
 
@@ -297,6 +287,25 @@ class MCTSNjit:
         if self.engine.winner == -1: # Draw
             return 0.5
         return 1 if self.engine.winner == self.engine.player_idx else 0
+
+    def new_state_pruning(self, engine: Gomoku = None):
+
+        if engine is None:
+            engine = self.engine
+
+        game_zone = engine.get_game_zone()
+        g0 = game_zone[0]
+        g1 = game_zone[1]
+        g2 = game_zone[2]
+        g3 = game_zone[3]
+        return njit_create_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx,
+            self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph)
+
+    def dynamic_pruning(self, pruning_arr: np.ndarray):
+        return njit_dynamic_hpruning(pruning_arr, self.depth)
+
+    def classic_pruning(self):
+        return njit_classic_pruning(self.engine.board)
 
     def award(self):
         """
@@ -339,7 +348,7 @@ class MCTSNjit:
         while not self.engine.isover() and turn < self.rollingout_turns:
         # while not self.engine.isover():
 
-            pruning = self.pruning(heuristic_pruning=False)
+            pruning = self.classic_pruning()
             pruning = pruning.flatten().astype(np.bool8)
 
             # Create actions from pruning
@@ -371,46 +380,6 @@ class MCTSNjit:
             self.engine.apply_action(gAction)
             self.engine.next_turn()
             turn += 1
-
-
-    def get_neighbors_mask(self, board):
-
-        neigh = np.zeros((19, 19), dtype=Typing.BoardDtype)
-
-        neigh[:-1, :] |= board[1:, :]  # Roll cols to left
-        neigh[1:, :] |= board[:-1, :]  # Roll cols to right
-        neigh[:, :-1] |= board[:, 1:]  # Roll rows to top
-        neigh[:, 1:] |= board[:, :-1]  # Roll rows to bottom
-
-        neigh[1:, 1:] |= board[:-1, :-1]  # Roll cells to the right-bottom corner
-        neigh[1:, :-1] |= board[:-1, 1:]  # Roll cells to the right-upper corner
-        neigh[:-1, 1:] |= board[1:, :-1]  # Roll cells to the left-bottom corner
-        neigh[:-1, :-1] |= board[1:, 1:]  # Roll cells to the left-upper corner
-
-        return neigh
-
-    def pruning(self, heuristic_pruning: nb.boolean = True):
-
-        if heuristic_pruning:
-            game_zone = self.engine.get_game_zone()
-            # print(f"game_zone:", game_zone)
-            g0 = game_zone[0]
-            g1 = game_zone[1]
-            g2 = game_zone[2]
-            g3 = game_zone[3]
-            hpruning = njit_hpruning(self.engine.board, g0, g1, g2, g3, self.engine.player_idx
-                , self.my_h_graph, self.opp_h_graph)
-
-        else:
-            hpruning = np.zeros((19, 19), dtype=Typing.PruningDtype)
-
-        full_board = self.engine.board[0] | self.engine.board[1]
-        non_pruned = self.get_neighbors_mask(full_board)  # Get neightbors, depth=1
-
-        xp = non_pruned ^ full_board
-        non_pruned = xp & non_pruned  # Remove neighbors stones already placed
-        # print("Choose normal pruning")
-        return non_pruned + hpruning
 
     def backpropagation(self, statehashes):
 

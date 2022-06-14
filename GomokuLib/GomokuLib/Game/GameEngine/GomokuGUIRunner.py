@@ -97,20 +97,15 @@ class GomokuGUIRunner(GomokuRunner):
                 algo_data.update(dict(p.algo.get_state_data(self.engine)))
 
             self.engine.apply_action(player_action)
-            self.engine._next_turn_rules()
+            self.engine.next_turn()
 
-            if is_bot:
-                algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
-
-            # Game data fetching needs to be after apply_action/update_rules and before next_turn
-            game_data = self.get_game_data(dtime_turn)
-
-            self.engine._shift_board()
+            # if is_bot:
+            #     algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
 
             # Snapshot creation needs to be after next_turn
             self.update_UI(
-                **game_data,
-                **algo_data
+                **algo_data,
+                **self.get_game_data(dtime_turn),
             )
 
         print(f"Player {self.engine.winner} win.")

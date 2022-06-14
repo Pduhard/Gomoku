@@ -344,7 +344,8 @@ class UIManager:
             'player_idx': self.engine.player_idx,
             'captures': self.engine.get_captures(),
             'winner': self.engine.winner,
-            'heuristic': self.humanHints.mcts.heuristic(self.engine)
+            'heuristic': self.humanHints.mcts.heuristic(self.engine),
+            'pruning': self.humanHints.mcts.new_state_pruning(self.engine)
         }
 
     def debug_mode(self):
@@ -357,9 +358,7 @@ class UIManager:
         """
         if self.engine.is_valid_action(self.board_clicked_action):
             self.engine.apply_action(self.board_clicked_action)
-            self.engine._next_turn_rules()
-            debug_data = self.get_debug_data()
-            self.engine._shift_board()
+            self.engine.next_turn()
 
             if self.current_snapshot_idx != len(self.game_snapshots) - 1: # New state never seen
                 self.del_futures_snapshots(self.current_snapshot_idx)
@@ -367,7 +366,7 @@ class UIManager:
             self.game_snapshots.append({
                 'time': time.time(),
                 'snapshot': Snapshot.create_snapshot(self.engine),
-                'ss_data': debug_data
+                'ss_data': self.get_debug_data()
             })
             self.current_snapshot_idx += 1
             print(f"New snapshot: {self.current_snapshot_idx}")

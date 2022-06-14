@@ -1,3 +1,4 @@
+from curses import echo
 import os
 import pygame
 import numpy as np
@@ -5,6 +6,7 @@ import torch
 
 from GomokuLib.Game.UI.HumanHints import HumanHints
 from GomokuLib.Game.GameEngine.Snapshot import Snapshot
+from GomokuLib.Algo.hpruning import njit_dynamic_hpruning
 
 # from GomokuLib.Media import WoodBGBoard_img, WhiteStone_img, BlackStone_img
 
@@ -115,7 +117,7 @@ class Board:
         player_idx = ss_data.get('player_idx', 0)
         self.win.blit(self.bg, (self.ox, self.oy))
 
-        if ss_data and 'mcts_state_data' in ss_data:
+        if ss_data:
             self.draw_hints(ss_data)
 
         self.draw_stones(board, player_idx)
@@ -151,24 +153,56 @@ class Board:
         try:
             state_data = ss_data['mcts_state_data'][0]
         except:
-            state_data = ss_data['mcts_state_data']
+            state_data = ss_data.get('mcts_state_data', None)
 
-        try:
-            (sa_n, sa_v), actions, pruning = state_data['StateAction'], state_data['Actions'], None
-        except:
-            (sa_n, sa_v), actions, pruning = state_data['stateAction'], state_data['actions'], state_data['pruning']
+        if state_data is None:
+            return
 
-        if self.hint_type == 0 and 'Policy' in state_data:
-            self.draw_model_hints(state_data['Policy'])
+        if self.hint_type == 0:
+            pass
+            # self.draw_model_hints(state_data.get('Policy', None))
         
         elif self.hint_type == 1:
-            self.draw_mcts_hints(sa_n, sa_v)
+            try:
+                sa_n, sa_v = state_data['StateAction']
+            except:
+                try:
+                    sa_n, sa_v = state_data['stateAction']
+                except:
+                    sa_n, sa_v = None, None
+
+            if sa_n is not None:
+                self.draw_mcts_hints(sa_n, sa_v)
 
         elif self.hint_type == 2:
-            self.draw_actions(actions ^ 1)
+            try:
+                actions = state_data['Actions']
+            except:
+                try:
+                    actions = state_data['actions']
+                except:
+                    actions = None
+
+            if actions is not None:
+                self.draw_actions(actions ^ 1)
 
         elif self.hint_type == 3:
-            self.draw_model_hints(pruning)
+            try:
+                pruning_arr = ss_data['pruning']
+            except:
+                try:
+                    pruning_arr = state_data['pruning']
+                except:
+                    pruning_arr = state_data.get('Pruning', None)
+
+            try:
+                if pruning_arr is not None and len(pruning_arr.shape) == 3:
+                    self.draw_model_hints(njit_dynamic_hpruning(pruning_arr))
+                else:
+                    raise Exception()
+            except:
+                print(f"Board: pruning failed: {pruning_arr.shape}")
+
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):
 
@@ -285,8 +319,8 @@ class Board:
         if policy is not None:
             if policy.max() != policy.min():
 
-                policy = np.abs(policy)
                 print(f"Board: policy:\n{policy}")
+                policy = np.abs(policy)
                 policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
                 policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
 

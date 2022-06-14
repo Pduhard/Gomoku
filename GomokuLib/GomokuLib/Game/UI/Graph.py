@@ -95,9 +95,19 @@ class Graph:
             except:
                 s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
 
+            if 'heuristic' in ss_data:
+                h = ss_data['heuristic']
+            else:
+                try:
+                    h = ss_data['mcts_state_data'][0]['heuristic']
+                except:
+                    try:
+                        h = ss_data['mcts_state_data']['heuristic']
+                    except:
+                        h = -42
             arr = [
                 (self.graphs[player_idx]['stateQualities'], s_v / s_n),
-                (self.graphs[player_idx]['heuristics'], ss_data.get('heuristic', -42))
+                (self.graphs[player_idx]['heuristics'], h)
             ]
             for mem, data in arr:
                 if ss_i >= len(mem):
