@@ -23,8 +23,11 @@ from fastcore._algo import lib as fastcore_algo
 
 """
 
+        NoDoubleThrees marche plus !!!
+
+        Probleme avec le tout dernier coup, gameEndingCapture
+            Une stone peut etre reposer au meme endroit sur le 0, 0 !!
         depth graph
-        hprunning: enlever des cases pour les captures
         award: 1 heuristic
 
         Pourquoi des fois le server casse la connectino immediatement
@@ -82,7 +85,7 @@ def getMCTSNjit(engine, amaf_policy=True):
 
     return MCTSNjit(
         engine=engine,
-        iter=5000,
+        iter=10000,
         pruning=True,
         rollingout_turns=2,
         amaf_policy=amaf_policy
@@ -98,23 +101,23 @@ def duel():
     # )
 
     # p1 = GomokuLib.Player.Human(runner)
-    mcts_p1 = getMCTSNjit(runner.engine, True)
-    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-    #     engine=runner.engine,
-    #     iter=10000,
-    #     hard_pruning=True,
-    #     rollingout_turns=2
-    # )
+    # mcts_p1 = getMCTSNjit(runner.engine, True)
+    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=runner.engine,
+        iter=10000,
+        hard_pruning=True,
+        rollingout_turns=2
+    )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     # p2 = GomokuLib.Player.Human(runner)
-    mcts_p2 = getMCTSNjit(runner.engine, False)
+    mcts_p2 = getMCTSNjit(runner.engine, True)
     # p2 = GomokuLib.Player.Bot(mcts_p2)
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
     #     iter=10000,
     #     hard_pruning=True,
-    #     rollingout_turns=0
+    #     rollingout_turns=2
     # )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 

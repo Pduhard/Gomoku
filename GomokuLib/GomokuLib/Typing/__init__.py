@@ -27,7 +27,7 @@ StateDataDtype = np.dtype([
     ('rewards', MCTSFloatDtype),
     ('stateAction', MCTSFloatDtype, (2, 19, 19)),
     ('actions', ActionDtype, (19, 19)),
-    ('heuristic', MCTSFloatDtype),
+    ('heuristic', HeuristicGraphDtype),
     ('pruning', PruningDtype, (3, 19, 19)),
     ('amaf', MCTSFloatDtype, (2, 19, 19)),
 ], align=True)

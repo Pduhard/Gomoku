@@ -54,7 +54,6 @@ class MCTSNjit:
     depth: Typing.mcts_int_nb_dtype
     max_depth: Typing.mcts_int_nb_dtype
     end_game: nb.boolean
-    reward: Typing.mcts_float_nb_dtype
     current_statehash: Typing.nbStrDtype
     gamestatehash: Typing.nbStrDtype
 
@@ -185,10 +184,10 @@ class MCTSNjit:
         pruning_arr = self.new_state_pruning()
 
         # After all engine data fetching
-        self.reward = self.award_end_game() if self.end_game else self.award()
+        reward = self.award()
 
-        self.expand(self.current_statehash, actions, pruning_arr)
-        self.backpropagation(statehashes)
+        self.expand(self.current_statehash, actions, reward, pruning_arr)
+        self.backpropagation(statehashes, reward)
 
     def get_policy(self, state_data: Typing.nbState) -> Typing.nbPolicy:
         """
@@ -259,24 +258,19 @@ class MCTSNjit:
                 else:
                     actions[x, y] = 0
 
-    def expand(self, statehash: string, actions: np.ndarray, pruning_arr: np.ndarray):
+    def expand(self, statehash: string, actions: np.ndarray, reward: Typing.heuristic_graph_nb_dtype, pruning_arr: np.ndarray):
         state = np.zeros(1, dtype=Typing.StateDataDtype)
 
         state[0]['max_depth'] = self.depth
         state[0]['visits'] = 1
-        state[0]['rewards'] = self.reward       # Useless data for MCTS, usefull for UI
+        state[0]['rewards'] = reward       # Useless data for MCTS, usefull for UI
         state[0]['stateAction'][...] = 0.
         state[0]['actions'][...] = actions
-        state[0]['heuristic'] = self.reward
+        state[0]['heuristic'] = reward
         state[0]['pruning'][...] = pruning_arr
         state[0]['amaf'][...] = 0.
 
         self.states[statehash] = state
-
-    def award_end_game(self):
-        if self.engine.winner == -1: # Draw
-            return 0.5
-        return 1 if self.engine.winner == self.engine.player_idx else 0
 
     def new_state_pruning(self, engine: Gomoku = None):
 
@@ -291,8 +285,6 @@ class MCTSNjit:
         return njit_create_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx)
 
     def dynamic_pruning(self, pruning_arr: np.ndarray):
-        # arr_i = njit_dynamic_hpruning(self.depth)
-        # return pruning_arr[arr_i]
         if self.depth == 0:        # Depth 0
             return pruning_arr[0]
         if self.depth > 2:         # Depth 3 | ...
@@ -304,20 +296,15 @@ class MCTSNjit:
         return njit_classic_pruning(self.engine.board)
 
     def award(self):
-        """
-            Mean of leaf state heuristic & random(pruning) rollingout end state heuristic
-        """
-        h_leaf = self.heuristic()
-        if self.rollingout_turns:
-            self.rollingout()
-    
-            if self.engine.isover():
-                return self.award_end_game()
-            else:
-                h = self.heuristic()
-                return (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+        self.rollingout()
+
+        if self.engine.isover():
+            # if self.engine.winner == -1: # Draw
+            #     return 0.5
+            return 1 if self.engine.winner == self.engine.player_idx else 0
         else:
-            return h_leaf
+            h = self.heuristic()
+            return 1 - h if self.rollingout_turns % 2 else h
 
     def heuristic(self, engine: Gomoku = None, debug=False):
 
@@ -339,10 +326,8 @@ class MCTSNjit:
         return njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx)
 
     def rollingout(self):
-        # gAction = np.zeros(2, dtype=Typing.TupleDtype)
         turn = 0
-        while not self.engine.isover() and turn < self.rollingout_turns:
-        # while not self.engine.isover():
+        while turn < self.rollingout_turns and not self.engine.isover():
 
             pruning = self.classic_pruning()
             pruning = pruning.flatten().astype(np.bool8)
@@ -377,23 +362,22 @@ class MCTSNjit:
             self.engine.next_turn()
             turn += 1
 
-    def backpropagation(self, statehashes):
+    def backpropagation(self, statehashes, reward: Typing.heuristic_graph_nb_dtype):
 
         # Init backprop AMAF buffer
         amaf_masks = np.zeros((2, 2, 19, 19))    # sAMAF_v and sAMAF_n for 2 players
         
-        # Start with the last play (Penultimate state/board)
-        reward = 1 - self.reward
         p_id = 0
         for i in range(self.depth - 1, -1, -1):
-            # print("Backprop ", i, " reward ", reward)
-            self.backprop_memory(self.path[i], reward, statehashes[i], p_id, amaf_masks)
+            # Flip data
             reward = 1 - reward
             p_id ^= 1
-
             # reward = 1 - (0.90 * reward)
 
-    def backprop_memory(self, best_action, reward: Typing.MCTSFloatDtype, statehash: string, p_id: int, amaf_masks: np.ndarray):
+            # print("Backprop ", i, " reward ", reward)
+            self.backprop_memory(self.path[i], reward, statehashes[i], p_id, amaf_masks)
+
+    def backprop_memory(self, best_action, reward: Typing.heuristic_graph_nb_dtype, statehash: string, p_id: int, amaf_masks: np.ndarray):
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         stateAction_update[1] = reward
 
