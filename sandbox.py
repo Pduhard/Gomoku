@@ -23,12 +23,11 @@ from fastcore._algo import lib as fastcore_algo
 
 """
 
+        depth graph
         NoDoubleThrees marche plus !!!
 
         Probleme avec le tout dernier coup, gameEndingCapture
             Une stone peut etre reposer au meme endroit sur le 0, 0 !!
-        depth graph
-        award: 1 heuristic
 
         Pourquoi des fois le server casse la connectino immediatement
             quand le client se connecte en route ...
@@ -38,9 +37,6 @@ from fastcore._algo import lib as fastcore_algo
 
         Enlever les full_board = board0 | board1 qui sont de partout
         if pruning.any(): à enlever dans rollingout ?
-
-        Pourquoi self.states[statehash][0]['pruning'][...] = 0 ne marche pas ?
-
 
     TODO:
 
@@ -86,7 +82,6 @@ def getMCTSNjit(engine, amaf_policy=True):
     return MCTSNjit(
         engine=engine,
         iter=10000,
-        pruning=True,
         rollingout_turns=2,
         amaf_policy=amaf_policy
     )
@@ -101,24 +96,23 @@ def duel():
     # )
 
     # p1 = GomokuLib.Player.Human(runner)
-    # mcts_p1 = getMCTSNjit(runner.engine, True)
-    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=runner.engine,
-        iter=10000,
-        hard_pruning=True,
-        rollingout_turns=2
-    )
-    p1 = GomokuLib.Player.Bot(mcts_p1)
-
-    # p2 = GomokuLib.Player.Human(runner)
-    mcts_p2 = getMCTSNjit(runner.engine, True)
-    # p2 = GomokuLib.Player.Bot(mcts_p2)
-    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+    mcts_p1 = getMCTSNjit(runner.engine, True)
+    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
     #     iter=10000,
     #     hard_pruning=True,
     #     rollingout_turns=2
     # )
+    p1 = GomokuLib.Player.Bot(mcts_p1)
+
+    # p2 = GomokuLib.Player.Human(runner)
+    # mcts_p2 = getMCTSNjit(runner.engine, True)
+    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=runner.engine,
+        iter=10000,
+        hard_pruning=True,
+        rollingout_turns=2
+    )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
     if 'p1' not in locals():

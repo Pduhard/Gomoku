@@ -12,8 +12,8 @@ from GomokuLib.Algo.MCTSNjit import MCTSNjit
 class HumanHints:
 
     def __init__(self, game_engine: Gomoku,
-                 batch_iter: int = 500,
-                 max_iter: int = 42420
+                 batch_iter: int = 1000,
+                 max_iter: int = 42000
                  ) -> None:
         self.engine = game_engine.clone()
         self.batch_iter = batch_iter
@@ -23,8 +23,7 @@ class HumanHints:
         self.mcts = MCTSNjit(
             engine=self.engine,
             iter=self.batch_iter,
-            pruning=True,
-            rollingout_turns=10,
+            rollingout_turns=2,
         )
         print(f"HumanHints: Numba compilation of MCTSNjit start ...")
         ts = time.time()

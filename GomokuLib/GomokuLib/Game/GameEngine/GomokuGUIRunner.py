@@ -99,9 +99,6 @@ class GomokuGUIRunner(GomokuRunner):
             self.engine.apply_action(player_action)
             self.engine.next_turn()
 
-            # if is_bot:
-            #     algo_data.update(dict(p.algo.get_state_data_after_action(self.engine)))
-
             # Snapshot creation needs to be after next_turn
             self.update_UI(
                 **algo_data,

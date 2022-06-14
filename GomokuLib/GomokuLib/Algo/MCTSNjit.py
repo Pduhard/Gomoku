@@ -41,7 +41,6 @@ class MCTSNjit:
 
     engine: Gomoku
     mcts_iter: Typing.mcts_int_nb_dtype
-    is_pruning: nb.boolean
     rollingout_turns: Typing.mcts_int_nb_dtype
     amaf_policy: nb.boolean
 
@@ -60,18 +59,16 @@ class MCTSNjit:
     def __init__(self, 
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
-                 pruning: nb.boolean = True,
                  rollingout_turns: Typing.MCTSIntDtype = 10,
                  amaf_policy: nb.boolean = False
                  ):
 
         self.engine = engine.clone()
         self.mcts_iter = iter
-        self.is_pruning = pruning
         self.rollingout_turns = rollingout_turns
         self.amaf_policy = amaf_policy
         self.c = np.sqrt(2)
-        self.amaf_k = 1
+        self.amaf_k = np.sqrt(iter)
 
         self.init()
         self.path = np.zeros((361, 2), dtype=Typing.MCTSIntDtype)
@@ -91,7 +88,7 @@ class MCTSNjit:
         )
 
     def str(self):
-        return f"MCTSNjit ({self.mcts_iter} iter)"
+        return f"MCTSNjit ({self.mcts_iter} iter | {self.rollingout_turns} roll turns)"
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
@@ -340,12 +337,6 @@ class MCTSNjit:
 
             # Select randomly an action from actions/pruning
             action_number = len(actions)
-
-            if (action_number == 0):
-                with nb.objmode():
-                    print('rollingout action number 0')
-                    breakpoint()
-                return
 
             arr = np.arange(action_number)
             np.random.shuffle(arr)
