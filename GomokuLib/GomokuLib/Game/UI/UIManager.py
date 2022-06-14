@@ -243,6 +243,7 @@ class UIManager:
             elif code == 'end-game':
                 self.uisock.connected = False
                 self.humanHints.stop()
+                self.humanHints.mcts.init()
                 print(f"UIManager: Deconnection asked by GomokuGUIRunner.")
                 time.sleep(1)   # Very important and we will never talk about why ... Please.
 
@@ -250,6 +251,7 @@ class UIManager:
                 self.uisock.add_sending_queue({
                     'code': 'new-game'
                 })
+                self.humanHints.mcts.init()
 
             elif code == 'debug-mode':
                 self.is_debug_mode = input['state']

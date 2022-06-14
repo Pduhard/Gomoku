@@ -24,6 +24,8 @@ from fastcore._algo import lib as fastcore_algo
 """
 
         vectorize hprunning et get_policy/amaf
+        hprunning: enlever des cases pour les captures
+        award: 1 heuristic
 
         Pourquoi des fois le server casse la connectino immediatement
             quand le client se connecte en route ...
@@ -76,13 +78,14 @@ print(f"Device selected: {device}")
 # device = 'cpu'
 from GomokuLib.Algo import MCTSNjit
 
-def getMCTSNjit(engine):
+def getMCTSNjit(engine, amaf_policy=True):
 
     return MCTSNjit(
         engine=engine,
         iter=10000,
         pruning=True,
-        rollingout_turns=2
+        rollingout_turns=2,
+        amaf_policy=amaf_policy
     )
 
 def duel():
@@ -95,7 +98,7 @@ def duel():
     # )
 
     # p1 = GomokuLib.Player.Human(runner)
-    mcts_p1 = getMCTSNjit(runner.engine)
+    mcts_p1 = getMCTSNjit(runner.engine, False)
     # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
     #     iter=10000,
@@ -105,7 +108,7 @@ def duel():
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     # p2 = GomokuLib.Player.Human(runner)
-    mcts_p2 = getMCTSNjit(runner.engine)
+    mcts_p2 = getMCTSNjit(runner.engine, True)
     # p2 = GomokuLib.Player.Bot(mcts_p2)
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,

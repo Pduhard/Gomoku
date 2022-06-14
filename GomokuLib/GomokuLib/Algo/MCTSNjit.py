@@ -27,12 +27,13 @@ class MCTSNjit:
     mcts_iter: Typing.mcts_int_nb_dtype
     is_pruning: nb.boolean
     rollingout_turns: Typing.mcts_int_nb_dtype
+    amaf_policy: nb.boolean
 
     states: Typing.nbStateDict
     path: Typing.nbPathArray
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
-    new_heuristic: nb.boolean
+    amaf_k: Typing.mcts_float_nb_dtype
 
     depth: Typing.mcts_int_nb_dtype
     max_depth: Typing.mcts_int_nb_dtype
@@ -46,15 +47,17 @@ class MCTSNjit:
                  iter: Typing.MCTSIntDtype = 1000,
                  pruning: nb.boolean = True,
                  rollingout_turns: Typing.MCTSIntDtype = 10,
-                 new_heuristic: nb.boolean = True
+                 amaf_policy: nb.boolean = False
                  ):
 
         self.engine = engine.clone()
         self.mcts_iter = iter
         self.is_pruning = pruning
         self.rollingout_turns = rollingout_turns
+        self.amaf_policy = amaf_policy
         self.c = np.sqrt(2)
-        self.new_heuristic = new_heuristic
+        self.amaf_k = 1
+
         self.init()
         self.path = np.zeros((361, 2), dtype=Typing.MCTSIntDtype)
 
@@ -117,8 +120,8 @@ class MCTSNjit:
 
         state_data = self.states[self.gamestatehash][0]
         
-        # state_data['max_depth'] = self.max_depth
-        # print(state_data['max_depth'], self.max_depth)
+        state_data['max_depth'] = self.max_depth
+        print("Max depth: ", state_data['max_depth'])
 
         sa_v, sa_r = state_data['stateAction']
         arg = np.argmax(sa_r / (sa_v + 1))
@@ -131,6 +134,7 @@ class MCTSNjit:
 
     def do_n_iter(self, game_engine: Gomoku, iter: int):
 
+        self.amaf_k = np.sqrt(iter)
         self.max_depth = 0
         self.gamestatehash = self.fast_tobytes(game_engine.board)
 
@@ -141,7 +145,6 @@ class MCTSNjit:
             self.mcts(i)
             if self.depth + 1 > self.max_depth:
                 self.max_depth = self.depth + 1
-            # print(self.max_depth, " ", self.depth)
 
     def mcts(self, mcts_iter: Typing.MCTSIntDtype):
 
@@ -153,7 +156,7 @@ class MCTSNjit:
 
             state_data = self.states[self.current_statehash][0]
 
-            policy = self.get_policy(state_data, self.c)
+            policy = self.get_policy(state_data)
             pruning = self.dynamic_pruning(state_data['pruning'])
             best_action = self.lazy_selection(policy * pruning, state_data['actions'])
 
@@ -190,23 +193,30 @@ class MCTSNjit:
             # print(len(self.current_statehash))
             # self.current_statehash = self.fast_tobytes(self.engine.board)
 
+        # Some tasks need to be done before award, because rollingout transforms self.engine
         actions = self.engine.get_lazy_actions()
         pruning_arr = self.new_state_pruning()
-        self.reward = self.award_end_game() if self.end_game else self.award()  # After all engine data fetching
+
+        # After all engine data fetching
+        self.reward = self.award_end_game() if self.end_game else self.award()
 
         self.expand(self.current_statehash, actions, pruning_arr)
         self.backpropagation(statehashes)
 
-    def get_policy(self, state_data: Typing.nbState, mcts_iter: Typing.mcts_int_nb_dtype) -> Typing.nbPolicy:
+    def get_policy(self, state_data: Typing.nbState) -> Typing.nbPolicy:
         """
             ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
 
             exploitation_rate(s, a):
                 AMAFQuality(s, a) = beta * AMAF(s, a) + (1 - beta) * quality(s, a)
+                    
+                    beta = sqrt(amaf_k / (amaf_k + 3 * visits(s)))
+                        amaf_k: number of simulations at which the Monte-Carlo value and the
+                                AMAF value should be given equal weigh (beta=0.5)
+                        0 < beta < 1
 
                     quality(s, a) = rewards(s, a)     / (visits(s, a)     + 1)
                     AMAF(s, a)    = rewardsAMAF(s, a) / (visitsAMAF(s, a) + 1)
-                    0 < beta < 1
                 
             exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
 
@@ -216,12 +226,17 @@ class MCTSNjit:
         amaf_n, amaf_v = state_data['amaf']
 
         sa = sa_r / (sa_v + 1)
-        amaf = amaf_v / (amaf_n + 1)
-        beta = np.sqrt(1 / (1 + 3 * mcts_iter))
-
-        quality = beta * amaf + (1 - beta) * sa
         exploration = self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
-        return quality + exploration
+        if self.amaf_policy:
+
+            amaf = amaf_v / (amaf_n + 1)
+
+            beta = np.sqrt(self.amaf_k / (self.amaf_k + 3 * s_v))
+            quality = beta * amaf + (1 - beta) * sa
+            return quality + exploration
+
+        else:
+            return sa + exploration
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
         best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
@@ -271,7 +286,7 @@ class MCTSNjit:
 
         state[0]['max_depth'] = self.depth
         state[0]['visits'] = 1
-        state[0]['rewards'] = self.reward
+        state[0]['rewards'] = self.reward       # Useless data for MCTS, usefull for UI
         state[0]['stateAction'][...] = 0.
         state[0]['actions'][...] = actions
         state[0]['heuristic'] = self.reward
@@ -384,25 +399,28 @@ class MCTSNjit:
         
         # Start with the last play (Penultimate state/board)
         reward = 1 - self.reward
+        p_id = 0
         for i in range(self.depth - 1, -1, -1):
-            # print(f"Backprop path index {i}")
-            self.backprop_memory(self.path[i], reward, statehashes[i], amaf_masks)
+            # print("Backprop ", i, " reward ", reward)
+            self.backprop_memory(self.path[i], reward, statehashes[i], p_id, amaf_masks)
             reward = 1 - reward
+            p_id ^= 1
+
             # reward = 1 - (0.90 * reward)
 
-    def backprop_memory(self, best_action, reward: Typing.MCTSFloatDtype, statehash: string, amaf_masks: np.ndarray):
+    def backprop_memory(self, best_action, reward: Typing.MCTSFloatDtype, statehash: string, p_id: int, amaf_masks: np.ndarray):
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
+        stateAction_update[1] = reward
 
         r, c = best_action
         state_data = self.states[statehash][0]
 
         state_data['visits'] += 1                           # update n count
-        state_data['rewards'] += reward                     # update state value / Use for ?...
-        stateAction_update[1] = reward
+        state_data['rewards'] += reward                     # Useless data for MCTS, usefull for UI
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
 
-        amaf_masks[player_idx, ..., r, c] += stateAction_update  # update state-action count / value
-        state_data['amaf'] += amaf_masks[player_idx]
+        amaf_masks[p_id, ..., r, c] += stateAction_update  # update state-action count / value
+        state_data['amaf'] += amaf_masks[p_id]
 
     def fast_tobytes(self, arr: Typing.BoardDtype):
         byte_list = []

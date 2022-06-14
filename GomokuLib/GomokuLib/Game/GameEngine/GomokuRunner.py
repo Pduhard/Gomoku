@@ -48,14 +48,14 @@ class GomokuRunner:
         winners = []
         for i in range(n_games):
 
-            for p in self.players:
-                p.init()
-
             self.engine.init_game()
             if init_snapshot:
                 Snapshot.update_from_snapshot(self.engine, init_snapshot)
 
             self._run()
+            for p in self.players:
+                p.init()
+
             winner = players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
             winners.append(f"P{self.engine.winner}: {str(winner)}")
 
