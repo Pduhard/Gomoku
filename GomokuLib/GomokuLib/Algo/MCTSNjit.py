@@ -13,6 +13,22 @@ from numba.experimental import jitclass
 from numba.core.typing import cffi_utils
 
 
+@nb.vectorize('float32(int32, float32, float32, float32)')
+def _get_mc_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
+                     c: Typing.mcts_float_nb_dtype):
+    return (sa_r / (sa_v + 1)) + (c * np.sqrt(np.log(s_v) / (sa_v + 1)))
+
+
+@nb.vectorize('float32(int32, float32, float32, float32, float32, int32, float32)')
+def _get_amaf_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
+                     amaf_n: np.ndarray, amaf_v: np.ndarray, amaf_k: Typing.mcts_int_nb_dtype,
+                     c: Typing.mcts_float_nb_dtype):
+    sa = sa_r / (sa_v + 1)
+    amaf = amaf_v / (amaf_n + 1)
+    beta = np.sqrt(amaf_k / (amaf_k + 3 * s_v))
+    return (beta * amaf + (1 - beta) * sa) + (c * np.sqrt(np.log(s_v) / (sa_v + 1)))
+
+
 @nb.vectorize('float64(int8, float64)')
 def _valid_policy_action(actions, policy):
     if actions > 0:
@@ -33,7 +49,7 @@ class MCTSNjit:
     path: Typing.nbPathArray
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
-    amaf_k: Typing.mcts_float_nb_dtype
+    amaf_k: Typing.mcts_int_nb_dtype
 
     depth: Typing.mcts_int_nb_dtype
     max_depth: Typing.mcts_int_nb_dtype
@@ -192,22 +208,13 @@ class MCTSNjit:
             exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
 
         """
-        s_v = state_data['visits']
         sa_v, sa_r = state_data['stateAction']
-        amaf_n, amaf_v = state_data['amaf']
 
-        sa = sa_r / (sa_v + 1)
-        exploration = self.c * np.sqrt(np.log(s_v) / (sa_v + 1))
         if self.amaf_policy:
-
-            amaf = amaf_v / (amaf_n + 1)
-
-            beta = np.sqrt(self.amaf_k / (self.amaf_k + 3 * s_v))
-            quality = beta * amaf + (1 - beta) * sa
-            return quality + exploration
-
+            amaf_n, amaf_v = state_data['amaf']
+            return _get_amaf_policy(state_data['visits'], sa_v, sa_r, amaf_n, amaf_v, self.amaf_k, self.c)
         else:
-            return sa + exploration
+            return _get_mc_policy(state_data['visits'], sa_v, sa_r, self.c)
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
         best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)

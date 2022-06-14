@@ -24,7 +24,6 @@ from fastcore._algo import lib as fastcore_algo
 """
 
         depth graph
-        vectorize get_policy/amaf
         hprunning: enlever des cases pour les captures
         award: 1 heuristic
 
