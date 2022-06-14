@@ -113,17 +113,6 @@ class MCTSEval(MCTS):
     def __str__(self):
         return f"MCTSEval with: Pruning / Heuristics ({self.mcts_iter} iter)"
 
-    def get_state_data_after_action(self, engine):
-        """
-            Pour l'UI: Permet d'avoir l'heuristic avec la dernière action joué
-        """
-        data = super().get_state_data_after_action(engine)
-        data.update({
-            'heuristic': heuristic(engine)
-            # 'heuristic': self.states[byte_board]['Heuristic'] if byte_board in self.states else self.heuristic(engine)
-        })
-        return data
-
     def _pruning(self, engine: Gomoku):
         return njit_prunning(engine)
 

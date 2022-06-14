@@ -81,7 +81,7 @@ def getMCTSNjit(engine, amaf_policy=True):
 
     return MCTSNjit(
         engine=engine,
-        iter=10000,
+        iter=1000,
         rollingout_turns=2,
         amaf_policy=amaf_policy
     )
@@ -96,23 +96,23 @@ def duel():
     # )
 
     # p1 = GomokuLib.Player.Human(runner)
-    mcts_p1 = getMCTSNjit(runner.engine, True)
-    # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+    # mcts_p1 = getMCTSNjit(runner.engine, True)
+    mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
+        engine=runner.engine,
+        iter=1000,
+        hard_pruning=True,
+        rollingout_turns=2
+    )
+    p1 = GomokuLib.Player.Bot(mcts_p1)
+
+    # p2 = GomokuLib.Player.Human(runner)
+    mcts_p2 = getMCTSNjit(runner.engine, True)
+    # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
     #     iter=10000,
     #     hard_pruning=True,
     #     rollingout_turns=2
     # )
-    p1 = GomokuLib.Player.Bot(mcts_p1)
-
-    # p2 = GomokuLib.Player.Human(runner)
-    # mcts_p2 = getMCTSNjit(runner.engine, True)
-    mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
-        engine=runner.engine,
-        iter=10000,
-        hard_pruning=True,
-        rollingout_turns=2
-    )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
     if 'p1' not in locals():

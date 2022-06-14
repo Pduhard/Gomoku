@@ -35,18 +35,18 @@ class Display:
             else:
                 winner = '_'
 
-            if 'heuristic' in ss_data:
-                h = ss_data['heuristic']
-                max_depth = '_'
-            else:
+            try:
+                h = ss_data['mcts_state_data'][0]['heuristic']
+                max_depth = ss_data['mcts_state_data'][0]['max_depth']
+            except:
                 try:
-                    h = ss_data['mcts_state_data'][0]['heuristic']
-                    max_depth = ss_data['mcts_state_data'][0]['max_depth']
+                    h = ss_data['mcts_state_data']['Heuristic']
+                    max_depth = ss_data['mcts_state_data']['Max_depth']
                 except:
-                    try:
-                        h = ss_data['mcts_state_data']['heuristic']
-                        max_depth = ss_data['mcts_state_data']['max_depth']
-                    except:
+                    if 'heuristic' in ss_data:
+                        h = ss_data['heuristic']
+                        max_depth = '_'
+                    else:
                         h = -42
                         max_depth = -1
 

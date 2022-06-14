@@ -100,13 +100,11 @@ class MCTS(AbstractAlgorithm):
         return self.mcts_policy, self.gAction
 
     def get_state_data(self, game_engine):
+        state_data = self.states[game_engine.board.tobytes()]
+        state_data['Max_depth'] = self.max_depth
         return {
-            'mcts_state_data': self.states[game_engine.board.tobytes()],
-            'max_depth': self.max_depth
+            'mcts_state_data': state_data
         }
-
-    def get_state_data_after_action(self, game_engine):
-        return {}
 
     def mcts(self, mcts_iter: int):
 
@@ -184,6 +182,7 @@ class MCTS(AbstractAlgorithm):
             'Rewards': 0,
             'StateAction': np.zeros((2, self.brow, self.bcol)),
             'Actions': actions,
+            'Heuristic': self.reward
         }
 
     def new_memory(self, statehash: str):

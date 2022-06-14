@@ -30,20 +30,27 @@ class Graph:
             0: {
                 'axe': None,
                 'stateQualities': [],
-                'heuristics': []
+                'heuristics': [],
             },
             1: {
                 'axe': None,
                 'stateQualities': [],
-                'heuristics': []
-            }
+                'heuristics': [],
+            },
+            2: {
+                'axe': None,
+                'depth': [
+                    [],
+                    []
+                ]
+            },
         }
         self.show = False
         if self.show:
             self.init_graphs()
     
     def init_graphs(self):
-        self.fig, ((a0, a1), (_, _)) = plt.subplots(2, 2, sharey='row')
+        self.fig, ((a0, a1), (a2, _)) = plt.subplots(2, 2, sharey='row')
         # self.fig, ((a0, a1), (_, _)) = plt.subplots(2, 2)
 
         a0.set(title='Player 0 data', xlabel='Turns', ylabel='Qualities')
@@ -53,6 +60,7 @@ class Graph:
 
         self.graphs[0]['axe'] = a0
         self.graphs[1]['axe'] = a1
+        self.graphs[2]['axe'] = a2
 
         plt.ion()   # Interactive mode, draw is now in non blocking mode
         plt.draw()
@@ -77,12 +85,15 @@ class Graph:
             self.display_graphs()
 
     def del_mem(self, ss_i: int):
-        for _, p_mem in self.graphs.items():
-            del p_mem['stateQualities'][ss_i + 1:]
-            del p_mem['heuristics'][ss_i + 1:]
+        del self.graphs[0]['stateQualities'][ss_i + 1:]
+        del self.graphs[0]['heuristics'][ss_i + 1:]
+        del self.graphs[1]['stateQualities'][ss_i + 1:]
+        del self.graphs[1]['heuristics'][ss_i + 1:]
+        del self.graphs[2]['depth'][0][ss_i + 1:]
+        del self.graphs[2]['depth'][1][ss_i + 1:]
 
     def save_datas(self, ss_data: dict, ss_i: int, **kwargs):
-        player_idx = ss_data.get('player_idx', 0)
+        player_idx = ss_data.get('player_idx', 0) ^ 1
 
         try:
             state_data = ss_data['mcts_state_data'][0]
@@ -91,23 +102,17 @@ class Graph:
 
         if state_data:
             try:    
-                s_n, s_v, (sa_n, sa_v) = state_data['Visits'], state_data['Rewards'], state_data['StateAction']
+                s_n, s_v, h, max_depth = state_data['Visits'], state_data['Rewards'], state_data['Heuristic'], state_data['Max_depth']
             except:
-                s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
+                s_n, s_v, h, max_depth = state_data['visits'], state_data['rewards'], state_data['heuristic'], state_data['max_depth']
 
             if 'heuristic' in ss_data:
                 h = ss_data['heuristic']
-            else:
-                try:
-                    h = ss_data['mcts_state_data'][0]['heuristic']
-                except:
-                    try:
-                        h = ss_data['mcts_state_data']['heuristic']
-                    except:
-                        h = -42
+
             arr = [
                 (self.graphs[player_idx]['stateQualities'], s_v / s_n),
-                (self.graphs[player_idx]['heuristics'], h)
+                (self.graphs[player_idx]['heuristics'], h),
+                (self.graphs[2]['depth'][player_idx], max_depth)
             ]
             for mem, data in arr:
                 if ss_i >= len(mem):
@@ -117,7 +122,12 @@ class Graph:
 
     def display_graphs(self):
 
-        for player_idx, graph in self.graphs.items():
+        ## GAME graphs
+        arr = [
+            (0, self.graphs[0]),
+            (1, self.graphs[1]),
+        ]
+        for player_idx, graph in arr:
 
             graph['axe'].clear()
             graph['axe'].plot(
@@ -135,5 +145,31 @@ class Graph:
             )
             graph['axe'].set_ylim(0, 1)
             graph['axe'].legend()
+
+        ## DEPTH graph
+        axe = self.graphs[2]['axe']
+        axe.clear()
+
+        data_len = max(len(self.graphs[2]['depth'][0]), len(self.graphs[2]['depth'][1]))
+        axe.plot(
+            np.arange(data_len),
+            [10] * data_len,
+            color='darkgray',
+            label=f'Depth 10'
+        )
+
+        arr = [
+            (0, self.graphs[2]['depth'][0], 'darkred'),
+            (1, self.graphs[2]['depth'][1], 'darkorange'),
+        ]
+        for player_idx, data, color in arr:
+            axe.plot(
+                np.arange(len(data)),
+                data,
+                color=color,
+                label=f'Tree depth player {player_idx}'
+            )
+        axe.set_ylim(0, 15)
+        axe.legend()
 
         plt.pause(0.005)
