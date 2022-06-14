@@ -74,8 +74,13 @@ def _create_aligns_reward(board, graph, sr, sc, player_idx, pruning):
         graph_id = np.int32(np.dot(buf, p))
         reward = np.abs(graph[graph_id])
         # print(f"Coord {sr} {sc}: graph[{graph_id}] = {np.int32(graph[graph_id] * 10)} / !=0? {nb.int32(graph[graph_id] * 10 != 0)}")
-        if reward > 0:
-            for i in range(7):
+        if reward == 0.5:           # Capture
+            if pruning[r, c] == 0:  # Only if no reward already here, mark 2 cells witch can make the capture
+                pruning[mask_align_id[1][0], mask_align_id[1][1]] = reward
+                pruning[mask_align_id[4][0], mask_align_id[4][1]] = reward
+
+        else:                       # Prune the first cell of the 7-length mask
+            for i in range(1, 7):
                 # print(f"mask[{mask_align_id[i]}] = {mask[mask_align_id[i]]}")
                 r = mask_align_id[i][0]
                 c = mask_align_id[i][1]
