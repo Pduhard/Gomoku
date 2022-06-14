@@ -3,7 +3,7 @@ import string
 
 import numpy as np
 
-from GomokuLib.Algo import njit_classic_pruning, njit_create_hpruning, njit_dynamic_hpruning, njit_heuristic
+from GomokuLib.Algo import njit_classic_pruning, njit_create_hpruning, njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 
@@ -92,27 +92,6 @@ class MCTSNjit:
             mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
         return mcts_data
 
-    # def get_state_data_after_action(self, game_engine: Gomoku):
-    #     """
-    #         Useless function !
-    #     """
-    #     mcts_data = nb.typed.Dict.empty(
-    #         key_type=nb.types.unicode_type,
-    #         value_type=Typing.MCTSFloatDtype
-    #     )
-    #     statehash = self.fast_tobytes(game_engine.board)
-    #     if statehash in self.states:
-    #         statedata = self.states[statehash]
-    #         mcts_data['heuristic'] = statedata[0]['heuristic']
-    #     else:
-    #         # h = self.heuristic(game_engine, debug=True)
-    #         mcts_data['heuristic'] = Typing.MCTSFloatDtype(self.heuristic(game_engine, debug=True))
-
-    #     # return {
-    #     #     'heuristic': h
-    #     # }
-    #     return mcts_data
-
     def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
 
         print(f"\n[MCTSNjit __call__() for {self.mcts_iter} iter]\n")
@@ -125,11 +104,6 @@ class MCTSNjit:
 
         sa_v, sa_r = state_data['stateAction']
         arg = np.argmax(sa_r / (sa_v + 1))
-        # print(f"StateAction visits: {sa_v}")
-        # print(f"StateAction reward: {sa_r}")
-        # print(f"Qualities: {sa_r / sa_v}")
-
-        # print(f"coun to bytes: {self.count_tobytes} tt time: {13 * self.count_tobytes} us")
         return arg // 19, arg % 19
 
     def do_n_iter(self, game_engine: Gomoku, iter: int):
@@ -142,11 +116,11 @@ class MCTSNjit:
             self.current_statehash = self.gamestatehash
             self.engine.update(game_engine)
 
-            self.mcts(i)
+            self.mcts()
             if self.depth + 1 > self.max_depth:
                 self.max_depth = self.depth + 1
 
-    def mcts(self, mcts_iter: Typing.MCTSIntDtype):
+    def mcts(self):
 
         # print(f"\n[MCTSNjit mcts function iter {mcts_iter}]\n")
         self.depth = 0
@@ -158,9 +132,9 @@ class MCTSNjit:
 
             policy = self.get_policy(state_data)
             pruning = self.dynamic_pruning(state_data['pruning'])
+
             best_action = self.lazy_selection(policy * pruning, state_data['actions'])
 
-            # self.fill_path(self.current_statehash, best_action)
             statehashes.append(self.current_statehash)
             self.path[self.depth][:] = best_action
             rawidx = best_action[0] * 19 + best_action[1]
@@ -189,9 +163,6 @@ class MCTSNjit:
             #####
 
             self.end_game = self.engine.isover()
-
-            # print(len(self.current_statehash))
-            # self.current_statehash = self.fast_tobytes(self.engine.board)
 
         # Some tasks need to be done before award, because rollingout transforms self.engine
         actions = self.engine.get_lazy_actions()
@@ -313,7 +284,14 @@ class MCTSNjit:
         return njit_create_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx)
 
     def dynamic_pruning(self, pruning_arr: np.ndarray):
-        return njit_dynamic_hpruning(pruning_arr, self.depth)
+        # arr_i = njit_dynamic_hpruning(self.depth)
+        # return pruning_arr[arr_i]
+        if self.depth == 0:        # Depth 0
+            return pruning_arr[0]
+        if self.depth > 2:         # Depth 3 | ...
+            return pruning_arr[2]
+        else:                      # Depth 1 | 2
+            return pruning_arr[1]
 
     def classic_pruning(self):
         return njit_classic_pruning(self.engine.board)

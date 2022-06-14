@@ -120,12 +120,7 @@ def _keep_uppers(board, num):
 
 @njit()
 def njit_create_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
-    """
-        Create 3 ndarrays:
-            - Alignments rewards
-            - Alignments rewards + Captures rewards
-            - Alignments rewards + Classic pruning
-    """
+
     align_rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_h_graph, opp_h_graph)
     rmax = np.amax(align_rewards)
 
@@ -149,14 +144,14 @@ def njit_create_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, play
 
     return pruning_arr
 
-@njit()
-def njit_dynamic_hpruning(pruning_arr: np.ndarray, mcts_depth: int = 0):
-    if mcts_depth == 0:        # 0
-        return pruning_arr[0]
-    if mcts_depth > 2:         # 3 | ...
-        return pruning_arr[2]
-    else:                      # 1 | 2
-        return pruning_arr[1]
+# @njit()
+# def njit_dynamic_hpruning(mcts_depth: int = 0):
+#     if mcts_depth == 0:        # Depth 0
+#         return 0
+#     if mcts_depth > 2:         # Depth 3 | ...
+#         return 2
+#     else:                      # Depth 1 | 2
+#         return 1
 
 
 

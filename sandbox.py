@@ -23,7 +23,7 @@ from fastcore._algo import lib as fastcore_algo
 
 """
 
-        vectorize hprunning
+        depth graph
         vectorize get_policy/amaf
         hprunning: enlever des cases pour les captures
         award: 1 heuristic
@@ -109,7 +109,7 @@ def duel():
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     # p2 = GomokuLib.Player.Human(runner)
-    mcts_p2 = getMCTSNjit(runner.engine, True)
+    mcts_p2 = getMCTSNjit(runner.engine, False)
     # p2 = GomokuLib.Player.Bot(mcts_p2)
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
