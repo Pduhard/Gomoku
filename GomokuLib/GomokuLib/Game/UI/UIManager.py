@@ -20,7 +20,7 @@ from GomokuLib.Game.UI.HumanHints import HumanHints
 
 class UIManager:
 
-    def __init__(self, win_size: tuple, host: str = None, port: int = None):
+    def __init__(self, engine: Gomoku, win_size: tuple, host: str = None, port: int = None):
 
         print(f"UIManager: __init__(): START")
         assert len(win_size) == 2
@@ -29,7 +29,7 @@ class UIManager:
         self.host = host
         self.port = port
 
-        self.engine = Gomoku()
+        self.engine = engine.clone()
         self.board_size = self.engine.board_size
         self.humanHints = HumanHints(self.engine)
         print(f"UIManager: __init__(): DONE")
