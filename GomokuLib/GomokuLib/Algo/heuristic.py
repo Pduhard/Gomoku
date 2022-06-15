@@ -69,11 +69,6 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
     board_pad = np.ones((2, 26, 26), dtype=Typing.BoardDtype)
     board_pad[..., 2:21, 2:21] = board
 
-    # if c0 == 5 or c1 == 5:
-    #     with nb.objmode():
-    #         print("Heuristic: WTF capture = 5 and no end game here ???")
-    #         breakpoint()
-
     # More opponent has cap, the greater the possibilities where he can cap me 
     my_cap_coef = -7 if c1 == 4 else -c1
     opp_cap_coef = c0
@@ -93,3 +88,11 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.5 * x))
+
+"""
+
+    Param en plus:
+        ancienne rewards
+        action
+    
+"""

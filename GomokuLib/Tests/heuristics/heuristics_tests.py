@@ -32,26 +32,17 @@ def generate_rd_boards(n, mode):
                     board[loop, 1, y, x] = Typing.BoardDtype(0)
     return board.astype(Typing.BoardDtype)
 
-
 def time_benchmark():
 
     @njit()
     def old_loop(boards, _loops, mode):
         for i in range(_loops):
-<<<<<<< HEAD
-            old_njit_heuristic(boards[i], 0, 0, 0, 0, 18, 18)
-=======
             old_njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18, i % 2)
->>>>>>> 648b75b86adc366ee9e47c257b8435c7d378aaf4
 
     @njit()
     def new_loop(boards, _loops, mode):
         for i in range(_loops):
-<<<<<<< HEAD
-            njit_heuristic(boards[i], 0, 0, 0, 0, 18, 18)
-=======
             njit_heuristic(boards[i], my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18,  i % 2)
->>>>>>> 648b75b86adc366ee9e47c257b8435c7d378aaf4
 
     ### Time benchmark
 
@@ -93,22 +84,17 @@ def heuristics_comp():
 
     np.set_printoptions(threshold=np.inf)
 
+    p_id = 0
+    board = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
+    rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
+
     valids = 0
     loops = 20
     for i in range(loops):
-        # board = generate_rd_board(1)
-        board = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
-        # board[0, 1, 13] = 1
-        board[0, 1, 14] = 1
-        board[0, 1, 15] = 1
-        board[0, 1, 16] = 1
+        # board = generate_rd_boards(1, )
 
-        board[1, 0, 13] = 1
-        # board[1, 1, 2] = 1
-        board[1, 0, 15] = 1
-        board[1, 0, 16] = 1
-        # board[1, 1, 5] = 1
-        print(board)
+        id = np.random.randint(361)
+        board[p_id, id // 19, id % 19] = 1
 
         old_result = old_njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0,  i % 2)
         new_result = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18,  i % 2)
@@ -123,13 +109,13 @@ def heuristics_comp():
             valids += 1
             print(f"Same result ({i}/{loops})")
         # breakpoint()
+        p_id ^= 1
 
     print("valids / loops:", valids, loops)
     return True
 
 
 if __name__ == "__main__":
-
 
     for c1 in range(0, 5):
         for c2 in range(0, 5):
