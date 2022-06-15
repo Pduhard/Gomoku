@@ -110,13 +110,8 @@ def heuristics_comp():
         # board[1, 1, 5] = 1
         print(board)
 
-<<<<<<< HEAD
-        old_result = old_njit_heuristic(board, 0, 0)
-        new_result = njit_heuristic(board, 0, 0, 0, 0, 18, 18)
-=======
         old_result = old_njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0,  i % 2)
         new_result = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18,  i % 2)
->>>>>>> 648b75b86adc366ee9e47c257b8435c7d378aaf4
         # print(f"old_result={old_result}")
         # print(f"new_result={new_result}")
 

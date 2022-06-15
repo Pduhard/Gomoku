@@ -83,17 +83,22 @@ def parse():
 
 if __name__ == "__main__":
 
+    ## Parse
     args = parse()
+
+    ## Init
     runner = init_runner(args)
     p1 = init_player(runner, args.p1, args.p1_iter, args.p1_roll)
     p2 = init_player(runner, args.p2, args.p2_iter, args.p2_roll)
 
+    ## Run
     if args.UI:
         p = Process(target=UI_program, args=(args, runner))
         p.start()
 
     duel(runner, p1, p2)
 
+    ## Close
     if args.UI:
         print("gomoku.py: Waiting UI ending")
         p.join()
