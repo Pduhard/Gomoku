@@ -201,9 +201,6 @@ class MCTSParallel:
             'mcts_state_data': self.states[self.fast_tobytes(self.engine.board)],
         }
 
-    def get_state_data_after_action(self, engine):
-        return {}
-
     def reset(self):
         self.states = {}
 

@@ -50,7 +50,7 @@ def _get_heuristic_coefs():
         key_type=nb.types.unicode_type,
         value_type=Typing.heuristic_graph_nb_dtype
     )
-    heuristic_coefs_dict = {
+    heuristic_coefs_dict = {    # Same coef in hpruning ! Be careful
         'capture': 0.5,
 
         'opp_win_2_turn': -1,

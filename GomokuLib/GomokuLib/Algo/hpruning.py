@@ -79,8 +79,13 @@ def _create_aligns_reward(board, graph, sr, sc, player_idx, pruning):
         graph_id = np.int32(np.dot(buf, p))
         reward = np.abs(graph[graph_id])
         # print(f"Coord {sr} {sc}: graph[{graph_id}] = {np.int32(graph[graph_id] * 10)} / !=0? {nb.int32(graph[graph_id] * 10 != 0)}")
-        if reward > 0:
-            for i in range(7):
+        if reward == 0.5:           # Capture
+            if pruning[r, c] == 0:  # Only if no reward already here, mark 2 cells witch can make the capture
+                pruning[mask_align_id[1][0], mask_align_id[1][1]] = reward
+                pruning[mask_align_id[4][0], mask_align_id[4][1]] = reward
+
+        else:                       # Prune the first cell of the 7-length mask
+            for i in range(1, 7):
                 # print(f"mask[{mask_align_id[i]}] = {mask[mask_align_id[i]]}")
                 r = mask_align_id[i][0]
                 c = mask_align_id[i][1]
@@ -119,7 +124,7 @@ def _keep_uppers(board, num):
         return 0
 
 @njit()
-def njit_create_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
+def njit_dynamic_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
     my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph):
     """
         Create 3 ndarrays:
@@ -150,14 +155,14 @@ def njit_create_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, play
 
     return pruning_arr
 
-@njit()
-def njit_dynamic_hpruning(pruning_arr: np.ndarray, mcts_depth: int = 0):
-    if mcts_depth == 0:        # 0
-        return pruning_arr[0]
-    if mcts_depth > 2:         # 3 | ...
-        return pruning_arr[2]
-    else:                      # 1 | 2
-        return pruning_arr[1]
+# @njit()
+# def njit_dynamic_hpruning(mcts_depth: int = 0):
+#     if mcts_depth == 0:        # Depth 0
+#         return 0
+#     if mcts_depth > 2:         # Depth 3 | ...
+#         return 2
+#     else:                      # Depth 1 | 2
+#         return 1
 
 
 

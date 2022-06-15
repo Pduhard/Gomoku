@@ -1,5 +1,6 @@
 from ctypes import c_buffer
 import concurrent
+import os
 import time
 from time import sleep
 
@@ -23,6 +24,12 @@ from fastcore._algo import lib as fastcore_algo
 
 """
 
+        depth graph
+        NoDoubleThrees marche plus !!!
+
+        Probleme avec le tout dernier coup, gameEndingCapture
+            Une stone peut etre reposer au meme endroit sur le 0, 0 !!
+
         Pourquoi des fois le server casse la connectino immediatement
             quand le client se connecte en route ...
             BrokenPipeError
@@ -31,9 +38,6 @@ from fastcore._algo import lib as fastcore_algo
 
         Enlever les full_board = board0 | board1 qui sont de partout
         if pruning.any(): à enlever dans rollingout ?
-
-        Pourquoi self.states[statehash][0]['pruning'][...] = 0 ne marche pas ?
-
 
     TODO:
 
@@ -74,16 +78,18 @@ print(f"Device selected: {device}")
 # device = 'cpu'
 from GomokuLib.Algo import MCTSNjit
 
-def getMCTSNjit(engine):
+def getMCTSNjit(engine, amaf_policy=True):
 
     return MCTSNjit(
         engine=engine,
         iter=10000,
-        pruning=True,
-        rollingout_turns=0
+        rollingout_turns=0,
+        amaf_policy=amaf_policy
     )
 
 def duel():
+
+    print(f"Actual pid: {os.getpid()}")
 
     # runner = GomokuLib.Game.GameEngine.GomokuRunner()
     runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()
@@ -93,7 +99,7 @@ def duel():
     # )
 
     # p1 = GomokuLib.Player.Human(runner)
-    mcts_p1 = getMCTSNjit(runner.engine)
+    mcts_p1 = getMCTSNjit(runner.engine, True)
     # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
     #     iter=10000,
@@ -103,13 +109,12 @@ def duel():
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
     # p2 = GomokuLib.Player.Human(runner)
-    mcts_p2 = getMCTSNjit(runner.engine)
-    # p2 = GomokuLib.Player.Bot(mcts_p2)
+    mcts_p2 = getMCTSNjit(runner.engine, True)
     # mcts_p2 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
     #     iter=10000,
     #     hard_pruning=True,
-    #     rollingout_turns=0
+    #     rollingout_turns=2
     # )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 

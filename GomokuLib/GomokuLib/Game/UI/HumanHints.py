@@ -12,9 +12,11 @@ from GomokuLib.Algo.MCTSNjit import MCTSNjit
 class HumanHints:
 
     def __init__(self, game_engine: Gomoku,
-                 batch_iter: int = 500,
-                 max_iter: int = 42420
+                 batch_iter: int = 1000,
+                 max_iter: int = 42000
                  ) -> None:
+        print(f"\nHumanHints: __init__(): START")
+
         self.engine = game_engine.clone()
         self.batch_iter = batch_iter
         self.max_iter = max_iter
@@ -23,17 +25,18 @@ class HumanHints:
         self.mcts = MCTSNjit(
             engine=self.engine,
             iter=self.batch_iter,
-            pruning=True,
-            rollingout_turns=10,
+            rollingout_turns=2,
         )
-        print(f"HumanHints: Numba compilation of MCTSNjit start ...")
+        print(f"\nHumanHints: MCTSNjit: Numba compilation starting ...")
         ts = time.time()
-        # self.mcts.do_n_iter(self.engine, 1)
-        print(f"HumanHints: Numba compilation of MCTSNjit is finished.\tdtime: {time.time() - ts}")
+        self.mcts.compile(self.engine)
+        print(f"HumanHints: MCTSNjit: Numba compilation is finished (dtime={round(time.time() - ts, 1)})\n")
 
         self.thread = threading.Thread(
             target=self.compute_hints
         )
+
+        print(f"\nHumanHints: __init__(): DONE")
 
     def update_from_snapshot(self, snapshot: Snapshot):
         Snapshot.update_from_snapshot(
@@ -45,17 +48,15 @@ class HumanHints:
         if not self.thread.is_alive():
             self.is_running = True
             self.thread.start()
-        # print(f"HumanHints: Thread running ...")
 
     def stop(self):
         if self.thread.is_alive():
-            print(f"HumanHints: Thread stop order")
             self.is_running = False
             self.thread.join()
             self.thread = threading.Thread(
                 target=self.compute_hints
             )
-            print(f"HumanHints: Thread joined")
+            print(f"HumanHints: Thread joined.")
 
     def fetch_hints(self) -> tuple[np.ndarray, np.ndarray]:
 
@@ -63,17 +64,17 @@ class HumanHints:
 
         try:
             if mcts_data['mcts_state_data'][0]['visits'] >= self.max_iter:
+                # print(f"HumanHints: Automatic stop of MCTSNjit iterations")
                 self.stop()
             else:
                 self.start()
-        except:
-            print(f"HumanHints: Unable to control automatic stop of iterations")
+        except Exception as e:
+            print(f"HumanHints: Unable to control automatic stop of iterations:\n\t{e}")
 
-        # print(f"HumanHints: Succesfully fetch data")
         return mcts_data
 
     def compute_hints(self):
-        print(f"HumanHints: Start Thread for {self.batch_iter} mcts iterations")
+        print(f"HumanHints: Start Thread.")
 
         try:
             while self.is_running:
@@ -82,8 +83,6 @@ class HumanHints:
                 time.sleep(0.1)
         except Exception as e:
             print(f"HumanHints: Error while computing Human hints:\n\t{e}")
-
-        print(f"HumanHints: Thread finish")
 
 
 if __name__ == "__main__":

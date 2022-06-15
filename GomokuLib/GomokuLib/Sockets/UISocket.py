@@ -11,6 +11,7 @@ class UISocket:
 
         self.host = host or "localhost"
         self.port = port or 31415
+        print(f"\nUISocket: __init__(): host={self.host} & port={self.port}")
 
         self.sock = None
         self.addr = None
@@ -24,12 +25,13 @@ class UISocket:
             'send': 0,
             'recv': 0,
         }
+        print(f"UISocket: __init__(): DONE")
 
     def connect(self):
         raise NotImplementedError
 
     def add_sending_queue(self, data):
-        print(f"UISocket: {self.name}: Add sending queue")
+        # print(f"UISocket: {self.name}: Add sending queue")
         self.send_queue.append(data)
 
     def _serialize(self, data):
@@ -96,7 +98,7 @@ class UISocket:
                 if data:
                     data = self._deserialize(data)
                     self.stats['recv'] += 1
-                    print(f"UISocket: {self.name}: Data recv")
+                    # print(f"UISocket: {self.name}: Data recv")
                 return data
     
         except socket.error:

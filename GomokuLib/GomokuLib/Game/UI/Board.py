@@ -1,14 +1,9 @@
-from curses import echo
 import os
 import pygame
 import numpy as np
 import torch
 
 from GomokuLib.Game.UI.HumanHints import HumanHints
-from GomokuLib.Game.GameEngine.Snapshot import Snapshot
-from GomokuLib.Algo.hpruning import njit_dynamic_hpruning
-
-# from GomokuLib.Media import WoodBGBoard_img, WhiteStone_img, BlackStone_img
 
 class Board:
     """
@@ -197,7 +192,7 @@ class Board:
 
             try:
                 if pruning_arr is not None and len(pruning_arr.shape) == 3:
-                    self.draw_model_hints(njit_dynamic_hpruning(pruning_arr))
+                    self.draw_model_hints(pruning_arr[0])
                 else:
                     raise Exception()
             except:
@@ -319,7 +314,7 @@ class Board:
         if policy is not None:
             if policy.max() != policy.min():
 
-                print(f"Board: policy:\n{policy}")
+                # print(f"Board: policy:\n{policy}")
                 policy = np.abs(policy)
                 policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
                 policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()

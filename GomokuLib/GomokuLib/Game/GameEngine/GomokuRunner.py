@@ -9,24 +9,30 @@ from .Gomoku import Gomoku
 
 class GomokuRunner:
 
-    def __init__(self, rules: list[str] = ['Capture', 'Game-Ending-Capture', 'no-double-threes'],
-                 **kwargs) -> None:
-        self.rules = [r.lower() for r in rules]
-        is_capture_active = 'capture' in self.rules
-        is_game_ending_capture_active = 'game-ending-capture' in self.rules
-        is_no_double_threes_active = 'no-double-threes' in self.rules
+    def __init__(self, **kwargs) -> None:
 
         self.players = [None, None]
-        self.engine = Gomoku(
-            is_capture_active,
-            is_game_ending_capture_active,
-            is_no_double_threes_active,
-        )
+        self.engine = Gomoku(**kwargs)
+
+    # def __init__(self, rules: list[str] = ['Capture', 'Game-Ending-Capture', 'no-double-threes'],
+    #              **kwargs) -> None:
+    #     self.rules = [r.lower() for r in rules]
+    #     is_capture_active = 'capture' in self.rules
+    #     is_game_ending_capture_active = 'game-ending-capture' in self.rules
+    #     is_no_double_threes_active = 'no-double-threes' in self.rules
+
+    #     self.players = [None, None]
+    #     self.engine = Gomoku(
+    #         is_capture_active,
+    #         is_game_ending_capture_active,
+    #         is_no_double_threes_active,
+    #     )
 
     def _run(self):
 
         while not self.engine.isover():
 
+            print(f"\n--- Turn {self.engine.turn}. Player {self.engine.player_idx} is playing ...")
             p = self.players[self.engine.player_idx]
             time_before_turn = perf_counter()
 
@@ -38,9 +44,7 @@ class GomokuRunner:
 
             self.engine.apply_action(player_action)
             self.engine.next_turn()
-            print(f"Game board ([0] -> p1 / [1] -> p2):\n{self.engine.board}\n")
-
-        print(f"Player {self.engine.winner} win.")
+            print(f"Game board (np.ndarray shape: [0, ...] -> p1 / [1, ...] -> p2):\n{self.engine.board}\n")
 
     def run(self, players: list, init_snapshot: int = None, n_games: int = 1):
 
@@ -48,14 +52,16 @@ class GomokuRunner:
         winners = []
         for i in range(n_games):
 
-            for p in self.players:
-                p.init()
-
             self.engine.init_game()
             if init_snapshot:
                 Snapshot.update_from_snapshot(self.engine, init_snapshot)
 
             self._run()
+            print(f"\n\t[Player {self.engine.winner} win this game]\n")
+
+            for p in self.players:
+                p.init()
+
             winner = players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
             winners.append(f"P{self.engine.winner}: {str(winner)}")
 
