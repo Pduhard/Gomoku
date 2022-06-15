@@ -257,7 +257,8 @@ class MCTSNjit:
             arr = self.get_best_policy_actions(policy, actions)
 
             len = arr[-1, 0]
-            # if (len == 0):
+            if (len == 0):
+                return gAction
             #     with nb.objmode():
             #         print('aled lazy selection')
             #     return gAction
@@ -275,7 +276,8 @@ class MCTSNjit:
                 else:
                     actions[x, y] = 0
 
-    def expand(self, statehash: string, actions: np.ndarray, reward: Typing.heuristic_graph_nb_dtype, pruning_arr: np.ndarray):
+    def expand(self, statehash: string, actions: np.ndarray,
+        reward: Typing.heuristic_graph_nb_dtype, pruning_arr: np.ndarray):
         state = np.zeros(1, dtype=Typing.StateDataDtype)
 
         state[0]['max_depth'] = self.depth
@@ -389,7 +391,8 @@ class MCTSNjit:
             # print("Backprop ", i, " reward ", reward)
             self.backprop_memory(self.path[i], reward, statehashes[i], p_id, amaf_masks)
 
-    def backprop_memory(self, best_action, reward: Typing.heuristic_graph_nb_dtype, statehash: string, p_id: int, amaf_masks: np.ndarray):
+    def backprop_memory(self, best_action, reward: Typing.heuristic_graph_nb_dtype,
+        statehash: string, p_id: int, amaf_masks: np.ndarray):
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         stateAction_update[1] = reward
 

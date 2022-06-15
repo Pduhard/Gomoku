@@ -8,6 +8,7 @@ from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib import Typing
 import GomokuLib
 
+from GomokuLib.Algo.hpruning import _get_neighbors_mask as mcts_get_neighbors_mask
 test_ranges = [10, 1000, 10000]
 
 @njit()
@@ -24,7 +25,7 @@ def _get_neighbors_mask(n, mcts, boards):
     ret = 0
     for i in range(n):
         # this is a full board actually
-        mcts.get_neighbors_mask(boards[i][0])
+        mcts_get_neighbors_mask(boards[i][0])
     return ret
 
 @njit()
@@ -46,16 +47,16 @@ def _fast_tobytes(n, mcts, boards):
         mcts.fast_tobytes(boards[i])
 
 @njit()
-def _expand(n, mcts, boards, actions, prunings):
+def _expand(n, mcts, boards, actions, rewards, prunings):
     for i in range(n):
         mcts.engine.board = boards[i]
         statehash = mcts.fast_tobytes(mcts.engine.board)
-        mcts.expand(statehash, actions[i], prunings[i])
+        mcts.expand(statehash, actions[i], rewards[i], prunings[i])
 
 @njit()
-def _backprop_memory(n, mcts, boards, best_actions, rewards, statehashes):
+def _backprop_memory(n, mcts, boards, best_actions, rewards, statehashes, amafs):
     for i in range(n):
-        mcts.backprop_memory(best_actions[i], rewards[i], statehashes[i])
+        mcts.backprop_memory(best_actions[i], rewards[i], statehashes[i], i & 1, amafs[i])
 
 @njit()
 def _get_policy(n, mcts, state_data):
@@ -69,8 +70,9 @@ def _get_best_policy_actions(n, mcts, policies, actions):
         mcts.get_best_policy_actions(policies[i], actions[i])
 
 @njit()
-def _lazy_selection(n, mcts, policies, actions):
+def _lazy_selection(n, mcts, policies, actions, engine_ref):
     for i in range(n):
+        mcts.engine.update(engine_ref)
         mcts.lazy_selection(policies[i], actions[i])
 
 @njit()
@@ -86,7 +88,7 @@ def _heuristic(n, mcts, boards):
 
 def _log(fname, times, ranges):
     print('######################')
-    print('Gomoku', fname, ': ')
+    print('MCTS', fname, ': ')
     print('######################')
     avgt = 0
     avgc = 0
@@ -105,7 +107,6 @@ def _log(fname, times, ranges):
 
 
 def test_rollingout(mcts, boards, engine_ref):
-    boards = np.zeros((10000, 2, 19, 19), dtype=Typing.BoardDtype)
     old_rollingout = mcts.rollingout_turns
     mcts.rollingout_turns = 100
     _rollingout(10, mcts, boards, engine_ref)
@@ -180,12 +181,10 @@ def test_call(mcts, boards, engine_ref):
     _log('call', times, ranges)
 
 
-def test_expand(mcts, boards):
+def test_expand(mcts, boards, actions, rewards, prunings):
 
-    actions = np.random.randint(0, 2, (10000, 19, 19), dtype=Typing.ActionDtype)
-    prunings = np.random.randn(10000, 19, 19) * 2.
     mcts.init()
-    _expand(1, mcts, boards, actions, prunings)
+    _expand(1, mcts, boards, actions, rewards, prunings)
 
     times = []
     ranges = test_ranges
@@ -193,7 +192,7 @@ def test_expand(mcts, boards):
     times.append(time.perf_counter())
     for r in ranges:
         mcts.init()
-        _expand(r, mcts, boards, actions, prunings)
+        _expand(r, mcts, boards, actions, rewards, prunings)
         times.append(time.perf_counter())
 
     _log('expand', times, ranges)
@@ -227,8 +226,6 @@ def test_get_policy(mcts):
     _log('get_policy', times, ranges)
 
 def test_get_best_policy_actions(mcts):
-    policies = np.random.randn(10000, 19, 19).astype(np.float64)
-    actions = np.random.randint(0, 2, (10000, 19, 19), dtype=np.int8)
 
     _get_best_policy_actions(1, mcts, policies, actions)
 
@@ -241,17 +238,15 @@ def test_get_best_policy_actions(mcts):
 
     _log('get_best_policy_actions', times, ranges)
 
-def test_lazy_selection(mcts):
-    policies = np.around(np.random.randn(10000, 19, 19).astype(np.float64), decimals=2)
-    actions = np.random.randint(0, 2, (10000, 19, 19), dtype=np.int8)
+def test_lazy_selection(mcts, policies, actions, engine_ref):
 
-    _lazy_selection(1, mcts, policies, actions)
+    _lazy_selection(1, mcts, policies, actions, engine_ref)
 
     times = []
     ranges = test_ranges
     times.append(time.perf_counter())
     for r in ranges:
-        _lazy_selection(r, mcts, policies, actions)
+        _lazy_selection(r, mcts, policies, actions, engine_ref)
         times.append(time.perf_counter())
 
     _log('lazy_selection', times, ranges)
@@ -269,30 +264,33 @@ def test_heuristic(mcts, boards):
 
     _log('heuristic', times, ranges)
 
-def test_backprop_memory(mcts, boards):
+def test_backprop_memory(mcts, best_actions, amafs, rewards):
 
-    best_actions = np.random.randint(0, 18, (10000, 2), dtype=Typing.ActionDtype)
-    rewards = np.random.randn(10000) * 2.
     statehashes = [mcts.fast_tobytes(b) for b in boards]
-    _backprop_memory(1, mcts, boards, best_actions, rewards, statehashes)
+    _backprop_memory(1, mcts, boards, best_actions, rewards, statehashes, amafs)
 
     times = []
     ranges = test_ranges
     times.append(time.perf_counter())
     for r in ranges:
-        _backprop_memory(r, mcts, boards, best_actions, rewards, statehashes)
+        _backprop_memory(r, mcts, boards, best_actions, rewards, statehashes, amafs)
         times.append(time.perf_counter())
 
     _log('backprop_memory', times, ranges)
 
 if __name__ == "__main__":
     boards = np.random.randint(0, 2, (10000, 2, 19, 19), dtype=Typing.BoardDtype)
+    best_actions = np.random.randint(0, 18, (10000, 2), dtype=Typing.ActionDtype)
+    policies = np.around(np.random.randn(10000, 19, 19), decimals=2).astype(np.float64)
+    actions = np.random.randint(0, 2, (10000, 19, 19), dtype=Typing.ActionDtype)
+    amafs = np.random.randn(10000, 2, 2, 19, 19)
+    rewards = np.random.randn(10000)
+    prunings = np.random.randn(10000, 19, 19) * 2.
     engine = Gomoku()
     engine_ref = Gomoku()
     mcts = GomokuLib.Algo.MCTSNjit(
         engine=engine,
         iter=3000,
-        pruning=True,
         rollingout_turns=5
     )
     engine.game_zone = np.array((0, 0, 18, 18), dtype=Typing.GameZoneDtype)
@@ -300,12 +298,12 @@ if __name__ == "__main__":
     test_prunning(mcts, boards)
     test_get_neighbors_mask(mcts, boards)
     test_call(mcts, boards, engine_ref)
-    test_expand(mcts, boards)
-    test_backprop_memory(mcts, boards) # do it after expand
+    test_expand(mcts, boards, actions, rewards, prunings)
+    test_backprop_memory(mcts, best_actions, amafs, rewards) # do it after expand
     test_award(mcts, boards)
     test_rollingout(mcts, boards, engine_ref)
     test_get_policy(mcts)
     test_get_best_policy_actions(mcts)
-    test_lazy_selection(mcts)
+    test_lazy_selection(mcts, policies, actions, engine_ref)
     test_heuristic(mcts, boards)
     # test_backpropagation() ??
