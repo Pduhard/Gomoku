@@ -7,7 +7,7 @@ ffi = FFI()
 from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib import Typing
 
-test_ranges = [10, 1000, 1000000]
+test_ranges = [10, 1000, 10000, 1000000]
 
 @njit()
 def _get_actions(n, gomoku):

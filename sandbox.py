@@ -83,7 +83,7 @@ def getMCTSNjit(engine, amaf_policy=True):
     return MCTSNjit(
         engine=engine,
         iter=10000,
-        rollingout_turns=2,
+        rollingout_turns=0,
         amaf_policy=amaf_policy
     )
 

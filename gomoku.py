@@ -45,8 +45,9 @@ def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_it
             print(f"gomoku.py: MCTSNjit: Numba compilation is finished (dtime={round(time.time() - ts, 1)})\n")
         return GomokuLib.Player.Bot(mcts)
 
-def UI_program(args):
+def UI_program(args, runner: GomokuLib.Game.GameEngine.GomokuRunner):
     gui = GomokuLib.Game.UI.UIManager(
+        engine=runner.engine,
         win_size=args.win_size,
         host=args.host[0] if args.host else None,
         port=args.port[0] if args.port else None
@@ -82,17 +83,22 @@ def parse():
 
 if __name__ == "__main__":
 
+    ## Parse
     args = parse()
+
+    ## Init
     runner = init_runner(args)
     p1 = init_player(runner, args.p1, args.p1_iter, args.p1_roll)
     p2 = init_player(runner, args.p2, args.p2_iter, args.p2_roll)
 
+    ## Run
     if args.UI:
-        p = Process(target=UI_program, args=(args,))
+        p = Process(target=UI_program, args=(args, runner))
         p.start()
 
     duel(runner, p1, p2)
 
+    ## Close
     if args.UI:
         print("gomoku.py: Waiting UI ending")
         p.join()

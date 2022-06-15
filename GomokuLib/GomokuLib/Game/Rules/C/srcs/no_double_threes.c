@@ -52,8 +52,11 @@ static int is_threes(char *board, long ar, long ac, long dr, long dc, int player
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 4-i, lineidx[4 - i] / cmax, lineidx[4 - i] % cmax, map_edges[4 - i], map_edges[4 - i] ? -1 : board[lineidx[4 - i]]);
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 3+i, lineidx[3 + i] / cmax, lineidx[3 + i] % cmax, map_edges[3 + i], map_edges[3 + i] ? -1 : board[lineidx[3 + i]]);
     }
-    for (int i = 0; i < 8; i++)
-        fboards[i] = board[flineidx[i]] | board[361 + flineidx[i]];
+    for (int i = 0; i < 8; i++) {
+        if (flineidx[i] != -1) {
+            fboards[i] = board[flineidx[i]] | board[361 + flineidx[i]];
+        }
+    }
 
     if (map_edges[3] || map_edges[4])
         return 0;

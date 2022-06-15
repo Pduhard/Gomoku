@@ -1,9 +1,14 @@
 import GomokuLib.Typing as Typing
-from GomokuLib.Algo.aligns_graphs import my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph
 
 import numba as nb
 import numpy as np
 from numba import njit
+from GomokuLib.Algo.aligns_graphs import (
+    init_my_heuristic_graph,
+    init_opp_heuristic_graph,
+    init_my_captures_graph,
+    init_opp_captures_graph
+)
 
 @njit()
 def _get_neighbors_mask(board):
@@ -119,8 +124,14 @@ def _keep_uppers(board, num):
         return 0
 
 @njit()
-def njit_create_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx):
-
+def njit_dynamic_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
+    my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph):
+    """
+        Create 3 ndarrays:
+            - Alignments rewards
+            - Alignments rewards + Captures rewards
+            - Alignments rewards + Classic pruning
+    """
     align_rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_h_graph, opp_h_graph)
     rmax = np.amax(align_rewards)
 
@@ -157,11 +168,15 @@ def njit_create_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, play
 
 if __name__ == "__main__":
 
+    my_h_graph = init_my_heuristic_graph()
+    opp_h_graph = init_opp_heuristic_graph()
+    my_cap_graph = init_my_captures_graph()
+    opp_cap_graph = init_opp_captures_graph()
     while True:
         board = np.random.randint(0, 10, size=(2, 19, 19), dtype=Typing.BoardDtype)
         board = _keep_uppers(board.astype(Typing.PruningDtype), Typing.PruningDtype(9)).astype(Typing.BoardDtype)
         print(board)
-        pruning_arr = njit_create_hpruning(board, 0, 0, 18, 18, 0)
+        pruning_arr = njit_create_hpruning(board, 0, 0, 18, 18, 0, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph)
         
         for depth in range(6):
             pruning = njit_dynamic_hpruning(pruning_arr, depth)

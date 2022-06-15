@@ -2,8 +2,15 @@ from time import perf_counter
 import numpy as np
 import numba as nb
 
-from GomokuLib.Algo import _compute_capture_coef, njit_heuristic, old_njit_heuristic
 import GomokuLib.Typing as Typing
+
+from GomokuLib.Algo import njit_heuristic, old_njit_heuristic
+from GomokuLib.Algo.aligns_graphs import (
+    init_my_heuristic_graph,
+    init_opp_heuristic_graph,
+    init_my_captures_graph,
+    init_opp_captures_graph
+)
 
 from numba import njit
 from numba.core.typing import cffi_utils
@@ -12,6 +19,26 @@ import fastcore._algo as _fastcore
 cffi_utils.register_module(_fastcore)
 _algo = _fastcore.lib
 ffi = _fastcore.ffi
+
+
+my_h_graph = init_my_heuristic_graph()
+opp_h_graph = init_opp_heuristic_graph()
+my_cap_graph = init_my_captures_graph()
+opp_cap_graph = init_opp_captures_graph()
+heuristic_pows = np.array([
+        [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+        [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+        [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+        [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+    ], dtype=Typing.MCTSIntDtype
+)
+heuristic_dirs = np.array([
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+        [1, 0]
+    ], dtype=Typing.MCTSIntDtype
+)
 
 
 @njit()
@@ -85,31 +112,42 @@ def heuristics_comp():
     np.set_printoptions(threshold=np.inf)
 
     p_id = 0
+    ar, ac = 0, 0
     board = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
+    board[p_id, ar, ac] = 1
     rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
 
     valids = 0
-    loops = 20
+    loops = 100
     for i in range(loops):
         # board = generate_rd_boards(1, )
 
-        id = np.random.randint(361)
-        board[p_id, id // 19, id % 19] = 1
+        while np.any(board[:, ar, ac]):
+            id = np.random.randint(361)
+            ar, ac = id // 19, id % 19
 
-        old_result = old_njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0,  i % 2)
-        new_result = njit_heuristic(board, my_heuristic_graph, opp_heuristic_graph, 0, 0, 0, 0, 18, 18,  i % 2)
+        board[p_id, ar, ac] = 1
+        print("\n\nApply ", p_id, ar, ac)
+        print(board)
+        p_id ^= 1
+
+        old_result = old_njit_heuristic(board, 0, 0, 0, 0, 18, 18, p_id,
+            my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, heuristic_pows, heuristic_dirs)
+        new_result = njit_heuristic(board, 0, 0, 0, 0, 18, 18, p_id,
+            my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, heuristic_pows, heuristic_dirs,
+            rewards, ar, ac)
         # print(f"old_result={old_result}")
         # print(f"new_result={new_result}")
 
+        print("\n\nApply ", p_id, ar, ac)
         if old_result != new_result:
             print(f"Diff result ({i}/{loops}): old_h={old_result} / new_h={new_result}")
             # print("board->\n", board)
             # return False
+            breakpoint()
         else:
             valids += 1
-            print(f"Same result ({i}/{loops})")
-        # breakpoint()
-        p_id ^= 1
+            print(f"Same result ({i}/{loops}) = {new_result}")
 
     print("valids / loops:", valids, loops)
     return True
@@ -117,12 +155,12 @@ def heuristics_comp():
 
 if __name__ == "__main__":
 
-    for c1 in range(0, 5):
-        for c2 in range(0, 5):
-            print(c1, c2, " = ", _compute_capture_coef(c1, c2))
-        print()
+    # for c1 in range(0, 5):
+    #     for c2 in range(0, 5):
+    #         print(c1, c2, " = ", _compute_capture_coef(c1, c2))
+    #     print()
 
-    # valid = heuristics_com)
+    valid = heuristics_comp()
     # time_benchmark()
     # if valid:
     #     print(f"Heuristics returns same results ! :)")
