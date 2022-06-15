@@ -257,7 +257,8 @@ class MCTSNjit:
             arr = self.get_best_policy_actions(policy, actions)
 
             len = arr[-1, 0]
-            # if (len == 0):
+            if (len == 0):
+                return gAction
             #     with nb.objmode():
             #         print('aled lazy selection')
             #     return gAction
