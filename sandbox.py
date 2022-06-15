@@ -99,7 +99,7 @@ def duel():
     # )
 
     # p1 = GomokuLib.Player.Human(runner)
-    mcts_p1 = getMCTSNjit(runner.engine, True)
+    mcts_p1 = getMCTSNjit(runner.engine, False)
     # mcts_p1 = GomokuLib.Algo.MCTSEvalLazy(
     #     engine=runner.engine,
     #     iter=10000,
