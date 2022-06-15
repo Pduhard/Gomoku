@@ -31,7 +31,7 @@ def _get_neighbors_mask(n, mcts, boards):
 def _prunning(n, mcts, boards):
     for i in range(n):
         mcts.engine.board = boards[i]
-        mcts.pruning()        
+        mcts.new_state_pruning()        
 
 @njit()
 def _rollingout(n, mcts, boards, engine_ref):
