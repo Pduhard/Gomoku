@@ -1,7 +1,10 @@
+import os
 import GomokuLib
 import argparse
 
 if __name__ == "__main__":
+
+    print(f"Actual pid: {os.getpid()}")
 
     parser = argparse.ArgumentParser(description='Start data fetching from GomokuGUIRunner for User Interface.')
     parser.add_argument('--host', action='store', nargs=1, default=None, type=str, help="Ip address of machine running GomokuGUIRunner")

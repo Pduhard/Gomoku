@@ -25,10 +25,6 @@ class HumanHints:
             iter=self.batch_iter,
             rollingout_turns=2,
         )
-        print(f"HumanHints: Numba compilation of MCTSNjit start ...")
-        ts = time.time()
-        # self.mcts.do_n_iter(self.engine, 1)
-        print(f"HumanHints: Numba compilation of MCTSNjit is finished.\tdtime: {time.time() - ts}")
 
         self.thread = threading.Thread(
             target=self.compute_hints

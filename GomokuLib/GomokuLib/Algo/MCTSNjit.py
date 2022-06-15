@@ -60,7 +60,8 @@ class MCTSNjit:
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
                  rollingout_turns: Typing.MCTSIntDtype = 10,
-                 amaf_policy: nb.boolean = False
+                 amaf_policy: nb.boolean = False,
+                 compile: nb.boolean = True
                  ):
 
         self.engine = engine.clone()
@@ -80,12 +81,19 @@ class MCTSNjit:
 
         print(f"{self.str()}: end __init__()\n")
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
+        if compile:
+            self.compile(self.engine)
 
     def init(self):
         self.states = nb.typed.Dict.empty(
             key_type=Typing.nbStrDtype,
             value_type=Typing.nbState
         )
+
+    def compile(self, game_engine: Gomoku):
+        print(f"MCTSNjit: Numba compilation starting ...")
+        self.do_your_fck_work(game_engine, iter=1)
+        print(f"MCTSNjit: Numba compilation is finished.")
 
     def str(self):
         return f"MCTSNjit ({self.mcts_iter} iter | {self.rollingout_turns} roll turns)"
@@ -104,10 +112,10 @@ class MCTSNjit:
             mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
         return mcts_data
 
-    def do_your_fck_work(self, game_engine: Gomoku) -> tuple:
+    def do_your_fck_work(self, game_engine: Gomoku, iter: int = None) -> tuple:
 
-        print(f"\n[MCTSNjit __call__() for {self.mcts_iter} iter]\n")
-        self.do_n_iter(game_engine, self.mcts_iter)
+        print(f"\n[MCTSNjit __call__() for {self.mcts_iter if iter is None else iter} iter]\n")
+        self.do_n_iter(game_engine, self.mcts_iter if iter is None else iter)
 
         state_data = self.states[self.gamestatehash][0]
         
@@ -124,7 +132,7 @@ class MCTSNjit:
         self.max_depth = 0
         self.gamestatehash = self.fast_tobytes(game_engine.board)
 
-        for i in range(iter):
+        for _ in range(iter):
             self.current_statehash = self.gamestatehash
             self.engine.update(game_engine)
 

@@ -13,6 +13,8 @@ from GomokuLib.Game.GameEngine.GomokuRunner import GomokuRunner
 import time
 from time import perf_counter
 
+# class UIShutdown(Exception):
+#     pass
 
 class GomokuGUIRunner(GomokuRunner):
 
@@ -27,7 +29,7 @@ class GomokuGUIRunner(GomokuRunner):
         if start_UI:
             print(f"GomokuGUIRunner.__init__() start UIManager client")
             self.gui = UIManager(
-                engine=GomokuLib.Game.GameEngine.Gomoku(),
+                engine=self.engine,
                 win_size=(1500, 1000),
                 host=host,
                 port=port
@@ -119,9 +121,9 @@ class GomokuGUIRunner(GomokuRunner):
                     winners.extend(w)
                     self.play = False
                     self.init_snapshot = None
+                    print(f"Waiting for a new game ...")
 
                 self.UIManager_exchanges()
-                print(f"Waiting for a new game ...")
                 time.sleep(1)
 
         except KeyboardInterrupt:

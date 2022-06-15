@@ -1,5 +1,6 @@
 from ctypes import c_buffer
 import concurrent
+import os
 import time
 from time import sleep
 
@@ -87,6 +88,8 @@ def getMCTSNjit(engine, amaf_policy=True):
     )
 
 def duel():
+
+    print(f"Actual pid: {os.getpid()}")
 
     # runner = GomokuLib.Game.GameEngine.GomokuRunner()
     runner = GomokuLib.Game.GameEngine.GomokuGUIRunner()

@@ -65,6 +65,9 @@ class MCTS(AbstractAlgorithm):
     def __str__(self):
         return f"Classic MCTS ({self.mcts_iter} iter)"
 
+    def compile(self):
+        pass
+
     def init(self):
         self.reset()
 
