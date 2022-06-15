@@ -10,8 +10,12 @@ class UISocketClient(UISocket):
     """
 
     def __init__(self, name: str = None, *args, **kwargs):
+        print(f"\nUISocketClient: __init__(): START")
+
         super().__init__(*args, **kwargs)
         self.name = name or "UISocketClient"
+
+        print(f"UISocketClient: __init__(): DONE")
 
     def _init_socket(self):
 

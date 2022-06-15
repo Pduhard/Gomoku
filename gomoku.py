@@ -27,7 +27,7 @@ def init_runner(args):
         is_no_double_threes_active=args.rule3,
     )
 
-def init_player(runner, p_str: str, p_iter: int, p_roll: int):
+def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_iter: int, p_roll: int):
 
     if p_str == "human":
         return GomokuLib.Player.Human(runner)
@@ -38,10 +38,14 @@ def init_player(runner, p_str: str, p_iter: int, p_roll: int):
             iter=p_iter,
             rollingout_turns=p_roll
         )
+        if hasattr(mcts, 'compile'):
+            print(f"\ngomoku.py: MCTSNjit: Numba compilation starting ...")
+            ts = time.time()
+            mcts.compile(runner.engine)
+            print(f"gomoku.py: MCTSNjit: Numba compilation is finished (dtime={round(time.time() - ts, 1)})\n")
         return GomokuLib.Player.Bot(mcts)
 
 def UI_program(args):
-    print(f"\nGomoku: Start UIManager")
     gui = GomokuLib.Game.UI.UIManager(
         win_size=args.win_size,
         host=args.host[0] if args.host else None,
@@ -50,7 +54,7 @@ def UI_program(args):
     gui()
 
 def duel(runner, p1, p2):
-    print(f"Gomoku:\n\tRunner: {runner}\n\tPlayer 0: {p1}\n\tPlayer 1: {p2}\n")
+    print(f"\ngomoku.py start with:\n\tRunner: {runner}\n\tPlayer 0: {p1}\n\tPlayer 1: {p2}\n")
     runner.run([p1, p2])
 
 def parse():
@@ -90,7 +94,7 @@ if __name__ == "__main__":
     duel(runner, p1, p2)
 
     if args.UI:
-        print("Gomoku: Waiting UI ending")
+        print("gomoku.py: Waiting UI ending")
         p.join()
 
-    print("Gomoku: OVER")
+    print("gomoku.py: OVER")

@@ -29,7 +29,7 @@ class Button:
         if (event.pos[0] < self.ox or event.pos[0] > self.ox + self.dx
             or event.pos[1] < self.oy or event.pos[1] > self.oy + self.dy):
             return None
-        print(f"Click ! Code: {self.event_code}")
+        print(f"Button: Mouse click ! Code: {self.event_code}")
 
         self.state += 1
         if self.state == self.state_max:

@@ -122,7 +122,7 @@ def init_my_heuristic_graph():
 
     fill_graph = np.nonzero(my_graph)
     # print(fill_graph)
-    print("My heuristic init parse ", len(fill_graph[0]), " alignments")
+    print("MCTS alignments graphs: ", len(fill_graph[0]), " alignments for the current player")
     return my_graph
 
 def init_opp_heuristic_graph():
@@ -153,7 +153,7 @@ def init_opp_heuristic_graph():
 
     fill_graph = np.nonzero(opp_graph)
     # print(fill_graph)
-    print("Opponent heuristic init parse ", len(fill_graph[0]), " alignments")
+    print("MCTS alignments graphs: ", len(fill_graph[0]), " alignments for the oppponent player")
     return opp_graph
 
 def init_my_captures_graph():
@@ -169,7 +169,7 @@ def init_my_captures_graph():
     _parse_align(my_cap_graph, 0b10, coefs['capture'], "X_##$XX", 0, 0)
 
     fill_graph = np.nonzero(my_cap_graph)
-    print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
+    print("MCTS alignments graphs: ", len(fill_graph[0]), " alignments for captures of current player")
     return my_cap_graph
 
 def init_opp_captures_graph():
@@ -184,13 +184,15 @@ def init_opp_captures_graph():
     _parse_align(opp_cap_graph, 0b01, coefs['capture'], "X_##$XX", 0, 0)
 
     fill_graph = np.nonzero(opp_cap_graph)
-    print("Captures heuristic init parse ", len(fill_graph[0]), " alignments")
+    print("MCTS alignments graphs: ", len(fill_graph[0]), " alignments for captures of opponent player")
     return opp_cap_graph
 
 
 ## Init graphs
 
+print(f"MCTS alignments graphs: START")
 my_h_graph = init_my_heuristic_graph()
 opp_h_graph = init_opp_heuristic_graph()
 my_cap_graph = init_my_captures_graph()
 opp_cap_graph = init_opp_captures_graph()
+print(f"MCTS alignments graphs: DONE")

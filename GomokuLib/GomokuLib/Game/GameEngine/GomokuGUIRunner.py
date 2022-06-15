@@ -13,21 +13,20 @@ from GomokuLib.Game.GameEngine.GomokuRunner import GomokuRunner
 import time
 from time import perf_counter
 
-# class UIShutdown(Exception):
-#     pass
+class UIShutdown(Exception):
+    pass
 
 class GomokuGUIRunner(GomokuRunner):
 
     def __init__(self, start_UI: bool = False, host: str = None, port: int = None,
                  *args, **kwargs) -> None:
+        print(f"GomokuGUIRunner: __init__(): START")
 
         super().__init__(*args, **kwargs)
 
-        print(f"GomokuGUIRunner.__init__() start UISocketServer server, ")
         self.uisock = UISocketServer(host=host, port=port, name="Runner")
 
         if start_UI:
-            print(f"GomokuGUIRunner.__init__() start UIManager client")
             self.gui = UIManager(
                 engine=self.engine,
                 win_size=(1500, 1000),
@@ -41,14 +40,12 @@ class GomokuGUIRunner(GomokuRunner):
         self.socket_queue = []
         self.init_snapshot = False
 
-        print("END __init__() GomokuGUIRunner\n")
+        print("GomokuGUIRunner: __init__(): DONE\n")
 
     def update_UI(self, **kwargs):
         """
             All kwargs information will be sent to UIManager with new snapshot
         """
-        print(f"New snapshot add to socket queue")
-
         self.uisock.add_sending_queue({
             'code': 'game-snapshot',
             'data': {
@@ -81,7 +78,7 @@ class GomokuGUIRunner(GomokuRunner):
 
         while not self.engine.isover():
 
-            print(f"\nTurn {self.engine.turn}. Player {self.engine.player_idx} to play ...")
+            print(f"\n--- Turn {self.engine.turn}. Player {self.engine.player_idx} is playing ...")
             self.UIManager_exchanges()
 
             p = self.players[self.engine.player_idx]
@@ -107,8 +104,6 @@ class GomokuGUIRunner(GomokuRunner):
                 **self.get_game_data(dtime_turn),
             )
 
-        print(f"Player {self.engine.winner} win.")
-
     def run(self, *args, **kwargs):
 
         winners = []
@@ -121,19 +116,25 @@ class GomokuGUIRunner(GomokuRunner):
                     winners.extend(w)
                     self.play = False
                     self.init_snapshot = None
-                    print(f"Waiting for a new game ...")
+                    print(f"GomokuGUIRunner: run(): Waiting for a new game ...\n")
 
                 self.UIManager_exchanges()
                 time.sleep(1)
 
         except KeyboardInterrupt:
-            print(f"\nKeyboardInterrupt !")
+            print(f"\nGomokuGUIRunner: run(): Keyboard interruption !")
+        
+        except UIShutdown:
+            print(f"\nGomokuGUIRunner: run(): Shutdown by UIManager.")
+            self.GUI_quit(shutdown_UI=False)
+            return winners
 
         except Exception as e:
-            print(f"\nException:\n\t{e}\n")
+            print(f"\nGomokuGUIRunner: run(): Exception:\n\t{e}\n")
 
-        self.GUI_quit(False)
-        return winners
+        finally:
+            self.GUI_quit()
+            return winners
 
     def UIManager_exchanges(self):
 
@@ -144,7 +145,7 @@ class GomokuGUIRunner(GomokuRunner):
                 self.player_action = inpt['data']
 
             elif inpt['code'] == 'shutdown':
-                raise Exception(f"Shutdown by UIManager.")
+                raise UIShutdown()
 
             elif inpt['code'] == 'game-snapshot':
                 if self.play:
@@ -172,14 +173,16 @@ class GomokuGUIRunner(GomokuRunner):
                 self.uisock.add_sending_queue({
                     'code': 'request-player-action'
                 })
-                print(f"GUI send request-player-action ->")
+                print(f"\nGomokuGUIRunner: Send 'request-player-action' order")
                 ts = time.time()
 
-    def GUI_quit(self, send_all_ss):
-        print(f"\nGomokuGUIRunner: Send disconnection order to UIManager.")
-        self.uisock.add_sending_queue({
-            'code': 'end-game'
-        })
-        self.uisock.send_all(force=send_all_ss)
+    def GUI_quit(self, shutdown_UI: bool = True):
+        if shutdown_UI:
+            print(f"\nGomokuGUIRunner: Send disconnection order to UIManager.")
+            self.uisock.add_sending_queue({
+                'code': 'end-game'
+            })
+
+        self.uisock.send_all()
         self.uisock.disconnect()
         print(f"GomokuGUIRunner: DISCONNECTION.\n")

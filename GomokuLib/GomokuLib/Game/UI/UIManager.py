@@ -22,6 +22,7 @@ class UIManager:
 
     def __init__(self, win_size: tuple, host: str = None, port: int = None):
 
+        print(f"UIManager: __init__(): START")
         assert len(win_size) == 2
         self.ox, self.oy = 0, 0
         self.dx, self.dy = win_size
@@ -31,6 +32,7 @@ class UIManager:
         self.engine = Gomoku()
         self.board_size = self.engine.board_size
         self.humanHints = HumanHints(self.engine)
+        print(f"UIManager: __init__(): DONE")
 
     def init(self):
 
@@ -54,9 +56,6 @@ class UIManager:
         
     def initUI(self):
 
-        print(f"board_size: {self.board_size}")
-
-        print("init GUI")
         pygame.init()
 
         # self.win = pygame.display.set_mode((self.dx, self.dy), pygame.RESIZABLE)
@@ -127,8 +126,7 @@ class UIManager:
 
     def __call__(self): # Thread function
 
-        print("UIManager __call__()\n")
-        self.init()
+        self.init() # Call that in the threaded function
 
         self.cross_shutdown = False
         while not self.cross_shutdown:
@@ -190,13 +188,13 @@ class UIManager:
             code = input['code']
 
             if code == 'request-player-action':
-                print(f"-> UI Recv request-player-action")
+                print(f"UIManager: process_inputs(): 'request-player-action' order received")
                 self.request_player_action = True
 
             elif code == 'game-snapshot':
 
                 self.runner_snapshots_queue.append(input['data'])
-                print(f"New snapshot receive, pause={self.pause}\t, dtime={input['data']['ss_data'].get('dtime', '_')}")
+                print(f"UIManager: process_inputs(): New snapshot received")
 
                 if not self.pause:
                     # if not self.current_snapshot_idx < len(self.game_snapshots) - 1:
@@ -212,14 +210,13 @@ class UIManager:
             elif code == 'board-click':
                 x, y = input['data']
                 self.board_clicked_action = (x, y)
-                print(f"Request Human={self.request_player_action} | Receive action: {self.board_clicked_action}")
+                print(f"Request Human ?= {self.request_player_action} | Receive action: {self.board_clicked_action}")
 
             elif code == 'pause-play':
                 self.pause = input['state']
                 if not self.pause:
                     self.game_snapshots.extend(self.runner_snapshots_queue)
                     self.runner_snapshots_queue = []
-                print(f"Pause={self.pause}")
 
             elif code == 'step-back' and self.current_snapshot_idx > 0:
                 self.current_snapshot_idx -= 1
@@ -256,7 +253,6 @@ class UIManager:
             elif code == 'debug-mode':
                 self.is_debug_mode = input['state']
                 self.pause = input['state']
-                print(f"Debug mode={self.is_debug_mode}")
 
             elif code == 'send-snapshot':
                 self.send_snapshot(self.current_snapshot_idx)
@@ -264,7 +260,6 @@ class UIManager:
     def update_engines(self):
 
         if len(self.game_snapshots):
-            print(f"Update engines with ss: {self.current_snapshot_idx}")
             snapshot = self.game_snapshots[self.current_snapshot_idx]['snapshot']
             Snapshot.update_from_snapshot(
                 self.engine,
@@ -276,7 +271,6 @@ class UIManager:
 
     def update_components(self):
 
-        # print(f"UIManager: Update: self.current_snapshot_idx: {self.current_snapshot_idx}")
         if len(self.game_snapshots):
             ss = self.game_snapshots[self.current_snapshot_idx]
         else:
@@ -311,9 +305,9 @@ class UIManager:
     def handle_human_click(self):
 
         if self.request_player_action and not self.pause:
-            print(f"Player action catch")
+            # print(f"UIManager: handle_human_click(): Player action catch")
             if self.engine.is_valid_action(self.board_clicked_action):
-                print(f"Player action valid !")
+                print(f"UIManager: handle_human_click(): Player action is valid")
 
                 if self.current_snapshot_idx != len(self.game_snapshots) - 1: # New state never seen
 
@@ -324,7 +318,9 @@ class UIManager:
                     if current_ss['player_idx'] == lastest_ss['player_idx']:    # Human can only play at its turns 
                         self.send_snapshot(self.current_snapshot_idx)
                         self.del_futures_snapshots(self.current_snapshot_idx)
+
                     else:
+                        print(f"UIManager: handle_human_click(): Human can only play at its turns !")
                         return
 
                 self.humanHints.stop()
@@ -333,10 +329,9 @@ class UIManager:
                     'code': 'response-player-action',
                     'data': self.board_clicked_action,
                 })
-                # print(f"-> UI Send response-player-action")
             
             else:
-                print(f"Not a valid action ! -> {self.board_clicked_action}")
+                print(f"UIManager: handle_human_click(): Player action is not valid ! (-> {self.board_clicked_action})")
 
     def get_debug_data(self):
         return {
@@ -351,13 +346,6 @@ class UIManager:
         }
 
     def debug_mode(self):
-        """
-            while on larrete pas:
-                Poser ou enlever une stone
-                update les autres composents de l'UI
-                Utiliser Humanhints
-            update le GomokuGUIRunner
-        """
         if self.engine.is_valid_action(self.board_clicked_action):
             self.engine.apply_action(self.board_clicked_action)
             self.engine.next_turn()
@@ -371,7 +359,6 @@ class UIManager:
                 'ss_data': self.get_debug_data()
             })
             self.current_snapshot_idx += 1
-            print(f"New snapshot: {self.current_snapshot_idx}")
 
     def UI_quit(self):
         self.humanHints.stop()

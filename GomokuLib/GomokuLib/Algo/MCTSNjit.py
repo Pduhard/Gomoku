@@ -60,10 +60,10 @@ class MCTSNjit:
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
                  rollingout_turns: Typing.MCTSIntDtype = 10,
-                 amaf_policy: nb.boolean = False,
-                 compile: nb.boolean = True
+                 amaf_policy: nb.boolean = False
                  ):
 
+        print(f"MCTSNjit: __init__(): START")
         self.engine = engine.clone()
         self.mcts_iter = iter
         self.rollingout_turns = rollingout_turns
@@ -79,10 +79,7 @@ class MCTSNjit:
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
 
-        print(f"{self.str()}: end __init__()\n")
-        # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
-        if compile:
-            self.compile(self.engine)
+        print(f"MCTSNjit: __init__(): DONE")
 
     def init(self):
         self.states = nb.typed.Dict.empty(
@@ -91,9 +88,7 @@ class MCTSNjit:
         )
 
     def compile(self, game_engine: Gomoku):
-        print(f"MCTSNjit: Numba compilation starting ...")
         self.do_your_fck_work(game_engine, iter=1)
-        print(f"MCTSNjit: Numba compilation is finished.")
 
     def str(self):
         return f"MCTSNjit ({self.mcts_iter} iter | {self.rollingout_turns} roll turns)"
@@ -114,13 +109,12 @@ class MCTSNjit:
 
     def do_your_fck_work(self, game_engine: Gomoku, iter: int = None) -> tuple:
 
-        print(f"\n[MCTSNjit __call__() for {self.mcts_iter if iter is None else iter} iter]\n")
+        print(f"\n[MCTSNjit: Does {self.mcts_iter if iter is None else iter} iter]\n")
         self.do_n_iter(game_engine, self.mcts_iter if iter is None else iter)
 
         state_data = self.states[self.gamestatehash][0]
         
         state_data['max_depth'] = self.max_depth
-        print("Max depth: ", state_data['max_depth'])
 
         sa_v, sa_r = state_data['stateAction']
         arg = np.argmax(sa_r / (sa_v + 1))

@@ -36,12 +36,18 @@ class Gomoku:
 
     def __init__(self, is_capture_active: bool = True,
                  is_game_ending_capture_active: bool = True,
-                 is_no_double_threes_active: bool = True) -> None:
+                 is_no_double_threes_active: bool = True,
+                 verbose: bool = True) -> None:
+        if verbose:
+            print(f"\nGomoku: __init__(): START")
+
         self.board_size = np.array([19, 19], dtype=Typing.TupleDtype)
         self.is_capture_active = is_capture_active
         self.is_game_ending_capture_active = is_game_ending_capture_active
         self.is_no_double_threes_active = is_no_double_threes_active
         self.init_game()
+        if verbose:
+            print(f"Gomoku: __init__(): DONE")
 
     def init_game(self):
         self.board = np.zeros(shape=(2, 19, 19), dtype=Typing.BoardDtype)
@@ -178,7 +184,11 @@ class Gomoku:
         self._update_rules(engine)
 
     def clone(self) -> Gomoku:
-        engine = Gomoku(self.is_capture_active,
-            self.is_game_ending_capture_active, self.is_no_double_threes_active)
+        engine = Gomoku(
+            self.is_capture_active,
+            self.is_game_ending_capture_active,
+            self.is_no_double_threes_active,
+            False
+        )
         engine.update(self)
         return engine

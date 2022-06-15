@@ -32,6 +32,7 @@ class GomokuRunner:
 
         while not self.engine.isover():
 
+            print(f"\n--- Turn {self.engine.turn}. Player {self.engine.player_idx} is playing ...")
             p = self.players[self.engine.player_idx]
             time_before_turn = perf_counter()
 
@@ -43,9 +44,7 @@ class GomokuRunner:
 
             self.engine.apply_action(player_action)
             self.engine.next_turn()
-            print(f"Game board ([0] -> p1 / [1] -> p2):\n{self.engine.board}\n")
-
-        print(f"Player {self.engine.winner} win.")
+            print(f"Game board (np.ndarray shape: [0, ...] -> p1 / [1, ...] -> p2):\n{self.engine.board}\n")
 
     def run(self, players: list, init_snapshot: int = None, n_games: int = 1):
 
@@ -58,6 +57,8 @@ class GomokuRunner:
                 Snapshot.update_from_snapshot(self.engine, init_snapshot)
 
             self._run()
+            print(f"\n\t[Player {self.engine.winner} win this game]\n")
+
             for p in self.players:
                 p.init()
 

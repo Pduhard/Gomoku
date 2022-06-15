@@ -24,4 +24,5 @@ __all__ = [
 
     'njit_heuristic',
     'njit_classic_pruning',
+    'njit_create_hpruning'
 ]
