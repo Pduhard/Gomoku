@@ -42,7 +42,7 @@ def _valid_policy_action(actions, policy):
     else:
         return 0
 
-# @jitclass()
+@jitclass()
 class MCTSNjit:
 
     engine: Gomoku
@@ -354,29 +354,27 @@ class MCTSNjit:
         if self.engine.isover():
             return 1 if self.engine.winner == self.engine.player_idx else 0
         else:
-            # if self.new_heuristic:
-            #     dh = self.dynamic_heuristic(old_statehash, best_action, old_best_action)
-            # else:
-            #     h = self.heuristic()
+            if self.new_heuristic:  # Func ptr set in __init__
+                return self.dynamic_heuristic(old_statehash, best_action, old_best_action)
+            else:
+                return self.heuristic()
 
-            dh = self.dynamic_heuristic(old_statehash, best_action, old_best_action)
-            h = self.heuristic()
-            if h != dh:
-
-                print("depth ", self.depth, " dh != h:", dh, h)
-                print(self.tmp_h_rewards)
-
-                old_state_data = self.states[old_statehash][0]
-                self.tmp_h_rewards[...] = old_state_data['h_rewards']    # Data from 2 turns.
-                old_c0 = old_state_data['h_captures'][self.engine.player_idx]        # Same player_idx
-                old_c1 = old_state_data['h_captures'][self.engine.player_idx ^ 1]
-                print(self.tmp_h_rewards)
-
-                print(old_c0, old_c1)
-                print(self.engine.get_captures())
-                breakpoint()
-
-            return h
+            # dh = self.dynamic_heuristic(old_statehash, best_action, old_best_action)
+            # h = self.heuristic()
+            # if h != dh:
+            #
+            #     print("depth ", self.depth, " dh != h:", dh, h)
+            #     # print(self.tmp_h_rewards)
+            #     old_state_data = self.states[old_statehash][0]
+            #     old_c0 = old_state_data['h_captures'][self.engine.player_idx]        # Same player_idx
+            #     old_c1 = old_state_data['h_captures'][self.engine.player_idx ^ 1]
+            #     print(self.tmp_h_rewards)
+            #
+            #     print(old_c0, old_c1)
+            #     print(self.engine.get_captures())
+            #     # breakpoint()
+            #
+            # return h
 
     def dynamic_heuristic(self, old_statehash, best_action, old_best_action):
         board = self.engine.board
