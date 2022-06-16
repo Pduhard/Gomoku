@@ -3,8 +3,6 @@ import pygame
 import numpy as np
 import torch
 
-from GomokuLib.Game.UI.HumanHints import HumanHints
-
 class Board:
     """
         Ecoute:
@@ -14,8 +12,7 @@ class Board:
 
     def __init__(self, win: pygame.Surface,
                  origin: tuple, size: tuple,
-                 board_size: tuple,
-                 humanHints: HumanHints):
+                 board_size: tuple):
                 #  win_size: tuple,
                 #  ox_prop: int, oy_prop: int,
                 #  wx_prop: int, wy_prop: int,
@@ -27,7 +24,6 @@ class Board:
         self.dx, self.dy = self.size
         # self.dx, self.dy = min(self.dx, self.dy), min(self.dx, self.dy)     # To square that thing
         self.board_size = board_size
-        self.humanHints = humanHints
 
         folder_name = os.path.basename(os.path.abspath("."))
         assert folder_name == "Gomoku"

@@ -83,8 +83,7 @@ def getMCTSNjit(engine, amaf_policy=True):
     return MCTSNjit(
         engine=engine,
         iter=10000,
-        rollingout_turns=0,
-        amaf_policy=amaf_policy
+        rollingout_turns=0
     )
 
 def duel():

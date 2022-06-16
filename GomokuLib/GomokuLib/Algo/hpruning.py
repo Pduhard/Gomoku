@@ -132,6 +132,7 @@ def njit_dynamic_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pla
             - Alignments rewards + Captures rewards
             - Alignments rewards + Classic pruning
     """
+    # return np.ones((3, 19, 19), dtype=Typing.PruningDtype)
     align_rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_h_graph, opp_h_graph)
     rmax = np.amax(align_rewards)
 
@@ -166,20 +167,20 @@ def njit_dynamic_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pla
 
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    my_h_graph = init_my_heuristic_graph()
-    opp_h_graph = init_opp_heuristic_graph()
-    my_cap_graph = init_my_captures_graph()
-    opp_cap_graph = init_opp_captures_graph()
-    while True:
-        board = np.random.randint(0, 10, size=(2, 19, 19), dtype=Typing.BoardDtype)
-        board = _keep_uppers(board.astype(Typing.PruningDtype), Typing.PruningDtype(9)).astype(Typing.BoardDtype)
-        print(board)
-        pruning_arr = njit_create_hpruning(board, 0, 0, 18, 18, 0, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph)
+    # my_h_graph = init_my_heuristic_graph()
+    # opp_h_graph = init_opp_heuristic_graph()
+    # my_cap_graph = init_my_captures_graph()
+    # opp_cap_graph = init_opp_captures_graph()
+    # while True:
+    #     board = np.random.randint(0, 10, size=(2, 19, 19), dtype=Typing.BoardDtype)
+    #     board = _keep_uppers(board.astype(Typing.PruningDtype), Typing.PruningDtype(9)).astype(Typing.BoardDtype)
+    #     print(board)
+    #     pruning_arr = njit_create_hpruning(board, 0, 0, 18, 18, 0, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph)
         
-        for depth in range(6):
-            pruning = njit_dynamic_hpruning(pruning_arr, depth)
-            print(f"pruning depth {depth}:\n{pruning}\n\n")
+    #     for depth in range(6):
+    #         pruning = njit_dynamic_hpruning(pruning_arr, depth)
+    #         print(f"pruning depth {depth}:\n{pruning}\n\n")
         
-        breakpoint()
+    #     breakpoint()
