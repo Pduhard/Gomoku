@@ -79,12 +79,14 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
 
     if last_c0 != c0 or last_c1 != c1:
         update_condition = _capture_condition
+        cap_update = True
     else:
         update_condition = _no_capture_condition
+        cap_update = False
 
     # More opponent has cap, the greater the possibilities where he can cap me 
     my_cap_coef = -7 if c1 == 4 else -c1
-    opp_cap_coef = 7 if c0 == 4 else c0
+    opp_cap_coef = c0
 
     ar += 2
     ac += 2
@@ -93,16 +95,20 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
     for y in range(2 + gz_start_r, 3 + gz_end_r):
         for x in range(2 + gz_start_c, 3 + gz_end_c):
 
-            # pointeur fonction
-            if board_pad[player_idx, y, x] and update_condition(ar, ac, old_ar, old_ac, y, x):
-                old_rewards[y, x] = (_find_align_reward(board_pad, my_h_graph, y, x, player_idx, pows, dirs)
-                    + my_cap_coef * _find_align_reward(board_pad, my_cap_graph, y, x, player_idx, pows, dirs))
+            if board_pad[player_idx, y, x]:
+                if update_condition(ar, ac, old_ar, old_ac, y, x):
+                    old_rewards[y, x] = (_find_align_reward(board_pad, my_h_graph, y, x, player_idx, pows, dirs)
+                        + my_cap_coef * _find_align_reward(board_pad, my_cap_graph, y, x, player_idx, pows, dirs))
 
-            elif board_pad[player_idx ^ 1, y, x] and update_condition(ar, ac, old_ar, old_ac, y, x):
-                old_rewards[y, x] = (_find_align_reward(board_pad, opp_h_graph, y, x, player_idx, pows, dirs)
-                    + opp_cap_coef * _find_align_reward(board_pad, opp_cap_graph, y, x, player_idx, pows, dirs))
+            elif board_pad[player_idx ^ 1, y, x]:
+                if update_condition(ar, ac, old_ar, old_ac, y, x):
+                    old_rewards[y, x] = (_find_align_reward(board_pad, opp_h_graph, y, x, player_idx, pows, dirs)
+                        + opp_cap_coef * _find_align_reward(board_pad, opp_cap_graph, y, x, player_idx, pows, dirs))
 
-    # print("All rewards ->" ,rewards)
+            elif cap_update:
+                old_rewards[y, x] = 0
+
+                # print("All rewards ->" ,rewards)
     x = np.sum(old_rewards) + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.5 * x))
     return x

@@ -161,7 +161,7 @@ if __name__ == "__main__":
     #     print()
 
     n = 10
-    valids = [heuristics_comp() for _ in range(100)]
+    valids = [heuristics_comp() for _ in range(n)]
     print("valids games / n:", sum(valids), n)
     # time_benchmark()
     # if valid:
