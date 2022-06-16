@@ -12,8 +12,12 @@ with open(os.path.join(PATH, 'srcs/algo.c'), 'r') as f:
         libraries=['c'],
         sources=[
             os.path.join(PATH, 'srcs/mcts_lazy.c'),
+            os.path.join(PATH, 'srcs/time.c'),
         ],
-        include_dirs=[os.path.join(PATH, 'includes')])
+        include_dirs=[
+            os.path.join(PATH, 'includes')
+        ]
+    )
     
 
 ffibuilder.cdef(
@@ -21,6 +25,7 @@ ffibuilder.cdef(
         void    init_random();
         void    init_random_buffer(int *random_buffer, int size);
         int     mcts_lazy_selection(double *policy, int *best_actions);
+        int     gettime();
     """
 )
 

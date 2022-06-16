@@ -195,7 +195,7 @@ class MCTSNjit:
 
             old_best_action[:] = best_action
             best_action = self.lazy_selection(policy * pruning, state_data['actions'])
-            
+
             statehashes.append(self.current_statehash)
             self.path[self.depth][:] = best_action
             rawidx = best_action[0] * 19 + best_action[1]
