@@ -27,7 +27,7 @@ def init_runner(args):
         is_no_double_threes_active=args.rule3,
     )
 
-def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_iter: int, p_roll: int, p_new: int):
+def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_iter: int, p_time: int, p_new: int):
 
     if p_str == "human":
         return GomokuLib.Player.Human(runner)
@@ -36,7 +36,6 @@ def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_it
         mcts = players_tab[p_str](
             engine=runner.engine,
             iter=p_iter,
-            rollingout_turns=p_roll,
             new_heuristic=p_new
         )
         if hasattr(mcts, 'compile'):
@@ -44,7 +43,7 @@ def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_it
             ts = time.time()
             mcts.compile(runner.engine)
             print(f"gomoku.py: MCTSNjit: Numba compilation is finished (dtime={round(time.time() - ts, 1)})\n")
-        return GomokuLib.Player.Bot(mcts)
+        return GomokuLib.Player.Bot(mcts, time_requested=p_time)
 
 def UI_program(args, runner: GomokuLib.Game.GameEngine.GomokuRunner):
     gui = GomokuLib.Game.UI.UIManager(
@@ -67,12 +66,12 @@ def parse():
     parser.add_argument('-p1_iter', action='store', type=int, default=5000, help="Bot 1: Number of MCTS iterations")
     parser.add_argument('-p2_iter', action='store', type=int, default=5000, help="Bot 2: Number of MCTS iterations")
 
-    parser.add_argument('-p1_roll', action='store', type=int, default=2, help="Bot 1: Number of random rollingout turns in MCTS evaluation part")
-    parser.add_argument('-p2_roll', action='store', type=int, default=2, help="Bot 2: Number of random rollingout turns in MCTS evaluation part")
+    parser.add_argument('-p1_time', action='store', type=int, default=None, help="Bot 1: Time allowed for one turn of Monte-Carlo, in milli-seconds")
+    parser.add_argument('-p2_time', action='store', type=int, default=None, help="Bot 2: Time allowed for one turn of Monte-Carlo, in milli-seconds")
 
     parser.add_argument('--p1_new', action='store_true', help="Enable new MCTS version")
     parser.add_argument('--p2_new', action='store_true', help="Enable new MCTS version")
- 
+
     parser.add_argument('--disable-UI', action='store_false', dest='UI', help="Disable gomoku user interface")
     parser.add_argument('--disable-Capture', action='store_false', dest='rule1', help="Disable gomoku rule 'Capture'")
     parser.add_argument('--disable-GameEndingCapture', action='store_false', dest='rule2', help="Disable gomoku rule 'GameEndingCapture'")
@@ -92,8 +91,8 @@ if __name__ == "__main__":
 
     ## Init
     runner = init_runner(args)
-    p1 = init_player(runner, args.p1, args.p1_iter, args.p1_roll, args.p1_new)
-    p2 = init_player(runner, args.p2, args.p2_iter, args.p2_roll, args.p2_new)
+    p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time, args.p1_new)
+    p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time, args.p2_new)
 
     ## Run
     if args.UI:

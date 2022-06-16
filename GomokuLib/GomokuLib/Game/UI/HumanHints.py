@@ -79,7 +79,7 @@ class HumanHints:
         try:
             while self.is_running:
                 # print(f"HumanHints: do_n_iter: {self.batch_iter}")
-                self.mcts.do_n_iter(self.engine, self.batch_iter)
+                self.mcts.do_your_fck_work(self.engine, self.batch_iter, 0)
                 time.sleep(0.1)
         except Exception as e:
             print(f"HumanHints: Error while computing Human hints:\n\t{e}")

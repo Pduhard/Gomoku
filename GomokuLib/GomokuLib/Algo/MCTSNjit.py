@@ -18,6 +18,13 @@ from numba import njit
 from numba.experimental import jitclass
 from numba.core.typing import cffi_utils
 
+import fastcore._algo as _fastcore
+cffi_utils.register_module(_fastcore)
+_algo = _fastcore.lib
+ffi = _fastcore.ffi
+
+gettime_ctype = cffi_utils.make_function_type(_algo.gettime)
+
 
 @nb.vectorize('float32(int32, float32, float32, float32)')
 def _get_mc_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
@@ -54,6 +61,7 @@ class MCTSNjit:
     path: Typing.nbPathArray
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
+    get_time_cfunc: gettime_ctype
     amaf_k: Typing.mcts_int_nb_dtype
 
     depth: Typing.mcts_int_nb_dtype
@@ -88,6 +96,7 @@ class MCTSNjit:
 
         self.c = np.sqrt(2)
         self.amaf_k = np.sqrt(iter)
+        self.get_time_cfunc = _algo.gettime
 
         self.init()
         self.path = np.zeros((361, 2), dtype=Typing.MCTSIntDtype)
@@ -129,7 +138,7 @@ class MCTSNjit:
         )
 
     def compile(self, game_engine: Gomoku):
-        self.do_your_fck_work(game_engine, iter=1)
+        self.do_your_fck_work(game_engine, 1, 0)
 
     def str(self):
         return f"MCTSNjit ({self.mcts_iter} iter | newh={1 if self.new_heuristic else 0} | {self.rollingout_turns} roll turns)"
@@ -148,13 +157,31 @@ class MCTSNjit:
             mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
         return mcts_data
 
-    def do_your_fck_work(self, game_engine: Gomoku, iter: int = None) -> tuple:
+    def do_your_fck_work(self, game_engine: Gomoku, iter: int, time: int) -> tuple:
 
-        if iter is None:
+        if iter <= 0:
             iter = self.mcts_iter
 
-        print(f"\n[MCTSNjit: Does {iter} iter]\n")
-        self.do_n_iter(game_engine, iter)
+        self.max_depth = 0
+        self.amaf_k = np.sqrt(iter)
+        self.gamestatehash = self.fast_tobytes(game_engine.board)
+
+        if time > 0:
+            print(f"\n[MCTSNjit: Does {time} ms]\n")
+
+            ts = self.get_time_cfunc()
+            time = ts
+            while time - ts < time:
+                self._do_one_iter(game_engine)
+                time = self.get_time_cfunc()
+
+        else:
+            print(f"\n[MCTSNjit: Does {iter} iter]\n")
+
+            i = 0
+            while i < iter:
+                self._do_one_iter(game_engine)
+                i += 1
 
         state_data = self.states[self.gamestatehash][0]
         state_data['max_depth'] = self.max_depth
@@ -163,19 +190,14 @@ class MCTSNjit:
         arg = np.argmax(sa_r / (sa_v + 1))
         return arg // 19, arg % 19
 
-    def do_n_iter(self, game_engine: Gomoku, iter: int):
+    def _do_one_iter(self, game_engine: Gomoku):
 
-        self.amaf_k = np.sqrt(iter)
-        self.max_depth = 0
-        self.gamestatehash = self.fast_tobytes(game_engine.board)
+        self.current_statehash = self.gamestatehash
+        self.engine.update(game_engine)
 
-        for _ in range(iter):
-            self.current_statehash = self.gamestatehash
-            self.engine.update(game_engine)
-
-            self.mcts()
-            if self.depth + 1 > self.max_depth:
-                self.max_depth = self.depth + 1
+        self.mcts()
+        if self.depth + 1 > self.max_depth:
+            self.max_depth = self.depth + 1
 
     def mcts(self):
 
