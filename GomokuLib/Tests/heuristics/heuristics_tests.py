@@ -160,7 +160,7 @@ if __name__ == "__main__":
     #         print(c1, c2, " = ", _compute_capture_coef(c1, c2))
     #     print()
 
-    n = 100
+    n = 10
     valids = [heuristics_comp() for _ in range(100)]
     print("valids games / n:", sum(valids), n)
     # time_benchmark()
