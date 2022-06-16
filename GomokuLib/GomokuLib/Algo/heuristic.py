@@ -2,7 +2,7 @@ import GomokuLib.Typing as Typing
 # from .aligns_graphs import my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph
 
 import numba as nb
-from numba import njit
+from numba import njit, prange
 
 import numpy as np
 
@@ -15,7 +15,7 @@ def _find_align_reward(board, graph, sr, sc, player_idx, pows, dirs):
     buf = np.zeros((4, 14), dtype=Typing.MCTSIntDtype)
 
     way = -1 if player_idx == 1 else 1
-    for di in range(4):
+    for di in prange(4):
         dr = dirs[di][0]
         dc = dirs[di][1]
         r = sr - 2 * dr
@@ -96,7 +96,7 @@ def _capture_update(player_idx, y, x, ar, ac, old_ar, old_ac, old_rewards, board
         old_rewards[y, x] = 0
 
 
-@njit() # PArallelize !
+@njit()
 def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
                     my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs,
                     old_rewards, ar, ac, old_ar, old_ac, last_c0, last_c1):
@@ -122,7 +122,7 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
     ac += 2
     old_ar += 2
     old_ac += 2
-    for y in range(2 + gz_start_r, 3 + gz_end_r):
+    for y in prange(2 + gz_start_r, 3 + gz_end_r):
         for x in range(2 + gz_start_c, 3 + gz_end_c):
             update_func(player_idx, y, x, ar, ac, old_ar, old_ac, old_rewards, board_pad,
                        my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, my_cap_coef, opp_cap_coef,
@@ -130,7 +130,6 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
 
     x = np.sum(old_rewards) + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.5 * x))
-    return x
 
 
 @njit()
@@ -146,7 +145,7 @@ def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c
     opp_cap_coef = c0
 
     rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
-    for y in range(2 + gz_start_r, 3 + gz_end_r):
+    for y in prange(2 + gz_start_r, 3 + gz_end_r):
         for x in range(2 + gz_start_c, 3 + gz_end_c):
 
             if board_pad[player_idx, y, x]:
@@ -160,7 +159,7 @@ def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.5 * x))
-    return x
+
 
 """
 

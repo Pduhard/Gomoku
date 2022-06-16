@@ -98,16 +98,14 @@ def test_njit_heuristic(boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp
     old_rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)      # Balek des 10000 c'est du write only. Impact pas le temps
     actions = np.random.randint(0, 19, (10000, 4), dtype=Typing.TupleDtype)
 
-    _njit_heuristic(1, boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs,
-        old_rewards, actions)
+    _njit_heuristic(1, boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs, old_rewards, actions)
 
     times = []
     ranges = test_ranges
 
     times.append(time.perf_counter())
     for r in ranges:
-        _njit_heuristic(r, boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs,
-        old_rewards, actions)
+        _njit_heuristic(r, boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs, old_rewards, actions)
         times.append(time.perf_counter())
 
     _log('njit heuristic', times, ranges)
