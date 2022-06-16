@@ -32,7 +32,7 @@ StateDataDtype = np.dtype([
     ('amaf', MCTSFloatDtype, (2, 19, 19)),
 
     ('h_rewards', HeuristicGraphDtype, (21, 21)),
-    ('h_captures', MCTSIntDtype, (2, ))
+    ('h_captures', TupleDtype, (2, ))
 ], align=True)
 
 
@@ -47,7 +47,6 @@ mcts_int_nb_dtype = nb.from_dtype(MCTSIntDtype)
 state_data_nb_dtype = nb.from_dtype(StateDataDtype)
 
 nbTuple = tuple_nb_dtype[:]
-nbHeuristicGraph = nb.types.Array(dtype=heuristic_graph_nb_dtype, ndim=1, layout="C")
 nbBoard = nb.types.Array(dtype=board_nb_dtype, ndim=3, layout="C")
 nbAction = nb.types.Array(dtype=action_nb_type, ndim=2, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
@@ -56,7 +55,10 @@ nbGraph = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
 nbCapturedBuf = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=3, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
 nbPathArray = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=2, layout="C")
+nbHeuristicGraph = nb.types.Array(dtype=heuristic_graph_nb_dtype, ndim=1, layout="C")
+nbHeuristicRewards = nb.types.Array(dtype=heuristic_graph_nb_dtype, ndim=2, layout="C")
 nbHeuristicData = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=2, layout="C")
+
 nbBoardFFI = nb.types.CPointer(board_nb_dtype)
 nbCapturedBufFFI = nb.types.CPointer(mcts_int_nb_dtype)
 

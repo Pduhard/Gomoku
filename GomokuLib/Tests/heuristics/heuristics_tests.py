@@ -115,42 +115,42 @@ def heuristics_comp():
     ar, ac = 0, 0
     board = np.zeros((2, 19, 19), dtype=Typing.BoardDtype)
     board[p_id, ar, ac] = 1
-    rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
+
+    rewards = np.zeros((2, 21, 21), dtype=Typing.HeuristicGraphDtype)
 
     valids = 0
     loops = 100
     for i in range(loops):
         # board = generate_rd_boards(1, )
 
+        old_ar = ar
+        old_ac = ac
         while np.any(board[:, ar, ac]):
             id = np.random.randint(361)
             ar, ac = id // 19, id % 19
 
         board[p_id, ar, ac] = 1
-        print("\n\nApply ", p_id, ar, ac)
-        print(board)
         p_id ^= 1
 
         old_result = old_njit_heuristic(board, 0, 0, 0, 0, 18, 18, p_id,
             my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, heuristic_pows, heuristic_dirs)
         new_result = njit_heuristic(board, 0, 0, 0, 0, 18, 18, p_id,
             my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, heuristic_pows, heuristic_dirs,
-            rewards, ar, ac)
+            rewards[p_id], ar, ac, old_ar, old_ac, 0, 0)
         # print(f"old_result={old_result}")
         # print(f"new_result={new_result}")
 
-        print("\n\nApply ", p_id, ar, ac)
         if old_result != new_result:
+            print("\n\nApply ", p_id ^ 1, ar, ac, " and ", p_id, old_ar, old_ac, " before")
+            print("board->\n", board)
             print(f"Diff result ({i}/{loops}): old_h={old_result} / new_h={new_result}")
-            # print("board->\n", board)
-            # return False
             breakpoint()
         else:
             valids += 1
             print(f"Same result ({i}/{loops}) = {new_result}")
 
     print("valids / loops:", valids, loops)
-    return True
+    return valids == loops
 
 
 if __name__ == "__main__":
@@ -160,7 +160,9 @@ if __name__ == "__main__":
     #         print(c1, c2, " = ", _compute_capture_coef(c1, c2))
     #     print()
 
-    valid = heuristics_comp()
+    n = 100
+    valids = [heuristics_comp() for _ in range(100)]
+    print("valids games / n:", sum(valids), n)
     # time_benchmark()
     # if valid:
     #     print(f"Heuristics returns same results ! :)")
