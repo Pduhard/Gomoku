@@ -36,7 +36,7 @@ def _njit_heuristic(n, boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp_
 
 def _log(fname, times, ranges):
     print('######################')
-    print('BasicRule', fname, ': ')
+    print('heuristic', fname, ': ')
     print('######################')
     avgt = 0
     avgc = 0

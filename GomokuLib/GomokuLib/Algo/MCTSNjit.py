@@ -233,7 +233,7 @@ class MCTSNjit:
             return _get_mc_policy(state_data['visits'], sa_v, sa_r, self.c)
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
-        best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
+        best_actions = np.empty((362, 2), dtype=Typing.TupleDtype)
 
         # action_policy = np.where(actions > 0, policy, 0) # Replace by @nb.vectorize ?
         action_policy = _valid_policy_action(actions, policy)
