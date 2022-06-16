@@ -3,7 +3,7 @@ import string
 
 import numpy as np
 
-from GomokuLib.Algo import njit_classic_pruning, njit_dynamic_hpruning, njit_heuristic
+from GomokuLib.Algo import njit_classic_pruning, njit_dynamic_hpruning, njit_heuristic, old_njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib.Algo.aligns_graphs import (
@@ -66,12 +66,17 @@ class MCTSNjit:
     opp_h_graph: Typing.nbHeuristicGraph
     my_cap_graph: Typing.nbHeuristicGraph
     opp_cap_graph: Typing.nbHeuristicGraph
+    new_heuristic: nb.boolean
+    heuristic_pows: Typing.nbHeuristicData
+    heuristic_dirs: Typing.nbHeuristicData
+    tmp_h_rewards: Typing.nbHeuristicRewards
 
     def __init__(self, 
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
                  rollingout_turns: Typing.MCTSIntDtype = 10,
-                 amaf_policy: nb.boolean = False
+                 amaf_policy: nb.boolean = False,
+                 new_heuristic: nb.boolean = False
                  ):
 
         print(f"MCTSNjit: __init__(): START")
@@ -79,6 +84,8 @@ class MCTSNjit:
         self.mcts_iter = iter
         self.rollingout_turns = rollingout_turns
         self.amaf_policy = amaf_policy
+        self.new_heuristic = new_heuristic
+
         self.c = np.sqrt(2)
         self.amaf_k = np.sqrt(iter)
 
@@ -89,12 +96,28 @@ class MCTSNjit:
         for i in range(19):
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
+        # Juste cast à la fin ..
 
-        #init graph for heuristic
+        # Init data for heuristic
         self.my_h_graph = init_my_heuristic_graph()
         self.opp_h_graph = init_opp_heuristic_graph()
         self.my_cap_graph = init_my_captures_graph()
         self.opp_cap_graph = init_opp_captures_graph()
+        self.heuristic_pows = np.array([
+                [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+                [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+                [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+                [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+            ], dtype=Typing.MCTSIntDtype
+        )
+        self.heuristic_dirs = np.array([
+                [-1, 1],
+                [0, 1],
+                [1, 1],
+                [1, 0]
+            ], dtype=Typing.MCTSIntDtype
+        )
+        self.tmp_h_rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
 
         # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
         print(f"MCTSNjit: __init__(): DONE")
@@ -109,7 +132,7 @@ class MCTSNjit:
         self.do_your_fck_work(game_engine, iter=1)
 
     def str(self):
-        return f"MCTSNjit ({self.mcts_iter} iter | {self.rollingout_turns} roll turns)"
+        return f"MCTSNjit ({self.mcts_iter} iter | newh={1 if self.new_heuristic else 0} | {self.rollingout_turns} roll turns)"
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
@@ -127,11 +150,13 @@ class MCTSNjit:
 
     def do_your_fck_work(self, game_engine: Gomoku, iter: int = None) -> tuple:
 
-        print(f"\n[MCTSNjit: Does {self.mcts_iter if iter is None else iter} iter]\n")
-        self.do_n_iter(game_engine, self.mcts_iter if iter is None else iter)
+        if iter is None:
+            iter = self.mcts_iter
+
+        print(f"\n[MCTSNjit: Does {iter} iter]\n")
+        self.do_n_iter(game_engine, iter)
 
         state_data = self.states[self.gamestatehash][0]
-        
         state_data['max_depth'] = self.max_depth
 
         sa_v, sa_r = state_data['stateAction']
@@ -154,6 +179,9 @@ class MCTSNjit:
 
     def mcts(self):
 
+        old_best_action = np.zeros(2, dtype=Typing.TupleDtype)
+        best_action = np.zeros(2, dtype=Typing.TupleDtype)
+
         # print(f"\n[MCTSNjit mcts function iter {mcts_iter}]\n")
         self.depth = 0
         self.end_game = self.engine.isover()
@@ -165,14 +193,15 @@ class MCTSNjit:
             policy = self.get_policy(state_data)
             pruning = self.dynamic_pruning(state_data['pruning'])
 
+            old_best_action[:] = best_action
             best_action = self.lazy_selection(policy * pruning, state_data['actions'])
-
+            
             statehashes.append(self.current_statehash)
             self.path[self.depth][:] = best_action
             rawidx = best_action[0] * 19 + best_action[1]
             newStone = '1' if self.engine.player_idx == 0 else '2'
             self.current_statehash = self.current_statehash[:rawidx] + newStone + self.current_statehash[rawidx + 1:]
-            
+
             self.engine.apply_action(best_action)
             self.engine.next_turn()
             self.depth += 1
@@ -201,12 +230,16 @@ class MCTSNjit:
         pruning_arr = self.new_state_pruning()
 
         # After all engine data fetching
-        reward = self.award()
+        if self.depth > 1:
+            old_statehash = statehashes[-2]
+        else:
+            old_statehash = None
+        reward = self.award(old_statehash, best_action, old_best_action)
 
-        self.expand(self.current_statehash, actions, reward, pruning_arr)
+        self.expand(actions, reward, pruning_arr)
         self.backpropagation(statehashes, reward)
 
-    def get_policy(self, state_data: Typing.nbState) -> Typing.nbPolicy:
+    def get_policy(self, state_data: Typing.StateDataDtype) -> Typing.nbPolicy:
         """
             ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
 
@@ -276,8 +309,7 @@ class MCTSNjit:
                 else:
                     actions[x, y] = 0
 
-    def expand(self, statehash: string, actions: np.ndarray,
-        reward: Typing.heuristic_graph_nb_dtype, pruning_arr: np.ndarray):
+    def expand(self, actions: np.ndarray, reward: Typing.heuristic_graph_nb_dtype, pruning_arr: np.ndarray):
         state = np.zeros(1, dtype=Typing.StateDataDtype)
 
         state[0]['max_depth'] = self.depth
@@ -289,7 +321,10 @@ class MCTSNjit:
         state[0]['pruning'][...] = pruning_arr
         state[0]['amaf'][...] = 0.
 
-        self.states[statehash] = state
+        state[0]['h_rewards'][...] = self.tmp_h_rewards
+        state[0]['h_captures'][...] = self.engine.capture.get_captures()
+
+        self.states[self.current_statehash] = state
 
     def new_state_pruning(self, engine: Gomoku = None):
 
@@ -315,18 +350,61 @@ class MCTSNjit:
     def classic_pruning(self):
         return njit_classic_pruning(self.engine.board)
 
-    def award(self):
-        self.rollingout()
+    def award(self, old_statehash, best_action, old_best_action):
 
         if self.engine.isover():
-            # if self.engine.winner == -1: # Draw
-            #     return 0.5
             return 1 if self.engine.winner == self.engine.player_idx else 0
         else:
-            h = self.heuristic()
-            return 1 - h if self.rollingout_turns % 2 else h
+            if self.new_heuristic:  # Func ptr set in __init__
+                return self.dynamic_heuristic(old_statehash, best_action, old_best_action)
+            else:
+                return self.heuristic()
 
-    def heuristic(self, engine: Gomoku = None, debug=False):
+            # dh = self.dynamic_heuristic(old_statehash, best_action, old_best_action)
+            # h = self.heuristic()
+            # if h != dh:
+            #
+            #     print("depth ", self.depth, " dh != h:", dh, h)
+            #     # print(self.tmp_h_rewards)
+            #     old_state_data = self.states[old_statehash][0]
+            #     old_c0 = old_state_data['h_captures'][self.engine.player_idx]        # Same player_idx
+            #     old_c1 = old_state_data['h_captures'][self.engine.player_idx ^ 1]
+            #     print(self.tmp_h_rewards)
+            #
+            #     print(old_c0, old_c1)
+            #     print(self.engine.get_captures())
+            #     # breakpoint()
+            #
+            # return h
+
+    def dynamic_heuristic(self, old_statehash, best_action, old_best_action):
+        board = self.engine.board
+
+        cap = self.engine.get_captures()
+        c0 = cap[self.engine.player_idx]
+        c1 = cap[self.engine.player_idx ^ 1]
+
+        game_zone = self.engine.get_game_zone()
+        g0 = game_zone[0]
+        g1 = game_zone[1]
+        g2 = game_zone[2]
+        g3 = game_zone[3]
+
+        if self.depth > 1:
+            old_state_data = self.states[old_statehash][0]
+            self.tmp_h_rewards[...] = old_state_data['h_rewards']    # Data from 2 turns.
+            old_c0 = old_state_data['h_captures'][self.engine.player_idx]        # Same player_idx
+            old_c1 = old_state_data['h_captures'][self.engine.player_idx ^ 1]
+        else:
+            self.tmp_h_rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
+            old_c0 = 0
+            old_c1 = 0
+
+        return njit_heuristic(board, c0, c1, g0, g1, g2, g3, self.engine.player_idx,
+            self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph, self.heuristic_pows, self.heuristic_dirs,
+            self.tmp_h_rewards, best_action[0], best_action[1], old_best_action[0], old_best_action[1], old_c0, old_c1)
+
+    def heuristic(self, engine: Gomoku = None):
         if engine is None:
             engine = self.engine
 
@@ -342,8 +420,8 @@ class MCTSNjit:
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        return njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx, self.my_h_graph, self.opp_h_graph,
-            self.my_cap_graph, self.opp_cap_graph)
+        return old_njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx,
+            self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph, self.heuristic_pows, self.heuristic_dirs)
 
     def rollingout(self):
         turn = 0

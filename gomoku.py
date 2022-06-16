@@ -27,7 +27,7 @@ def init_runner(args):
         is_no_double_threes_active=args.rule3,
     )
 
-def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_iter: int, p_roll: int):
+def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_iter: int, p_roll: int, p_new: int):
 
     if p_str == "human":
         return GomokuLib.Player.Human(runner)
@@ -36,7 +36,8 @@ def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_it
         mcts = players_tab[p_str](
             engine=runner.engine,
             iter=p_iter,
-            rollingout_turns=p_roll
+            rollingout_turns=p_roll,
+            new_heuristic=p_new
         )
         if hasattr(mcts, 'compile'):
             print(f"\ngomoku.py: MCTSNjit: Numba compilation starting ...")
@@ -69,6 +70,9 @@ def parse():
     parser.add_argument('-p1_roll', action='store', type=int, default=2, help="Bot 1: Number of random rollingout turns in MCTS evaluation part")
     parser.add_argument('-p2_roll', action='store', type=int, default=2, help="Bot 2: Number of random rollingout turns in MCTS evaluation part")
 
+    parser.add_argument('--p1_new', action='store_true', help="Enable new MCTS version")
+    parser.add_argument('--p2_new', action='store_true', help="Enable new MCTS version")
+ 
     parser.add_argument('--disable-UI', action='store_false', dest='UI', help="Disable gomoku user interface")
     parser.add_argument('--disable-Capture', action='store_false', dest='rule1', help="Disable gomoku rule 'Capture'")
     parser.add_argument('--disable-GameEndingCapture', action='store_false', dest='rule2', help="Disable gomoku rule 'GameEndingCapture'")
@@ -83,17 +87,22 @@ def parse():
 
 if __name__ == "__main__":
 
+    ## Parse
     args = parse()
-    runner = init_runner(args)
-    p1 = init_player(runner, args.p1, args.p1_iter, args.p1_roll)
-    p2 = init_player(runner, args.p2, args.p2_iter, args.p2_roll)
 
+    ## Init
+    runner = init_runner(args)
+    p1 = init_player(runner, args.p1, args.p1_iter, args.p1_roll, args.p1_new)
+    p2 = init_player(runner, args.p2, args.p2_iter, args.p2_roll, args.p2_new)
+
+    ## Run
     if args.UI:
         p = Process(target=UI_program, args=(args, runner))
         p.start()
 
     duel(runner, p1, p2)
 
+    ## Close
     if args.UI:
         print("gomoku.py: Waiting UI ending")
         p.join()

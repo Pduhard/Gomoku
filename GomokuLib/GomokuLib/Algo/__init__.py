@@ -1,4 +1,4 @@
-from .heuristic import njit_heuristic
+from .heuristic import njit_heuristic, old_njit_heuristic
 from .hpruning import njit_classic_pruning, njit_dynamic_hpruning, _get_neighbors_mask
 
 from .MCTS import MCTS

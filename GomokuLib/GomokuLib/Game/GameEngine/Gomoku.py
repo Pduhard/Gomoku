@@ -100,7 +100,7 @@ class Gomoku:
         self.last_action[1] = action[1]
 
     def get_captures(self) -> list:
-        if self.is_capture_active:
+        if self.is_capture_active:     # Useless if ? self.capture always exist
             return self.capture.get_captures()
         return np.array([0, 0], dtype=Typing.TupleDtype)
 
