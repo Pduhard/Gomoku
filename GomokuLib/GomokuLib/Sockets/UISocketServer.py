@@ -27,13 +27,11 @@ class UISocketServer(UISocket):
     def connect(self):
         """ Server looks for new connections to accept """
 
-        # print(f"self.connected: {self.connected}")
         if not self.connected:
 
             try:
                 self._init_socket()
 
-                # print(F"Wait for accept connection to the server: {self.sock}.accept({(self.host, self.port)}")
                 self.sock.listen()
                 self.connection, self.addr = self.sock.accept()
                 print(f"UISocketServer: {self.name}: New connection from client at {self.host} (addr {self.addr}, port {self.port})")
@@ -46,7 +44,6 @@ class UISocketServer(UISocket):
 
             except socket.error:
                 print(f"UISocketServer: {self.name}: Attempt to connect at {(self.host, self.port)}")
-                # time.sleep(0.1)
                 return False
         
         return self.connected
