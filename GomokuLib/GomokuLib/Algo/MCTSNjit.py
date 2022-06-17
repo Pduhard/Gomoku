@@ -64,7 +64,7 @@ class MCTSNjit:
     new_heuristic: nb.boolean
     heuristic_pows: Typing.nbHeuristicData
     heuristic_dirs: Typing.nbHeuristicData
-    tmp_h_rewards: Typing.nbHeuristicRewards
+    tmp_h_rewards: Typing.nbHeuristicrewards
 
     def __init__(self, 
                  engine: Gomoku,
@@ -249,22 +249,11 @@ class MCTSNjit:
         """
             ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
 
-            exploitation_rate(s, a):
-                AMAFQuality(s, a) = beta * AMAF(s, a) + (1 - beta) * quality(s, a)
-                    
-                    beta = sqrt(amaf_k / (amaf_k + 3 * visits(s)))
-                        amaf_k: number of simulations at which the Monte-Carlo value and the
-                                AMAF value should be given equal weigh (beta=0.5)
-                        0 < beta < 1
-
-                    quality(s, a) = rewards(s, a)     / (visits(s, a)     + 1)
-                    AMAF(s, a)    = rewardsAMAF(s, a) / (visitsAMAF(s, a) + 1)
-                
-            exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
+                exploitation_rate(s, a) = rewards(s, a)     / (visits(s, a)     + 1)
+                exploration_rate(s, a) =  c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
 
         """
         sa_v, sa_r = state_data['stateAction']
-
         return _get_mc_policy(state_data['visits'], sa_v, sa_r, self.c)
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
@@ -360,23 +349,6 @@ class MCTSNjit:
                 return self.dynamic_heuristic(old_statehash, best_action, old_best_action)
             else:
                 return self.heuristic()
-
-            # dh = self.dynamic_heuristic(old_statehash, best_action, old_best_action)
-            # h = self.heuristic()
-            # if h != dh:
-            #
-            #     print("depth ", self.depth, " dh != h:", dh, h)
-            #     # print(self.tmp_h_rewards)
-            #     old_state_data = self.states[old_statehash][0]
-            #     old_c0 = old_state_data['h_captures'][self.engine.player_idx]        # Same player_idx
-            #     old_c1 = old_state_data['h_captures'][self.engine.player_idx ^ 1]
-            #     print(self.tmp_h_rewards)
-            #
-            #     print(old_c0, old_c1)
-            #     print(self.engine.get_captures())
-            #     # breakpoint()
-            #
-            # return h
 
     def dynamic_heuristic(self, old_statehash, best_action, old_best_action):
         board = self.engine.board

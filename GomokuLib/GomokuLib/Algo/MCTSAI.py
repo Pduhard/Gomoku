@@ -44,7 +44,7 @@ class MCTSAI(MCTSEvalLazy):
                     State visit
                     State reward
                     State/actions visit/reward for each cells (2*19*19)
-                    Actions (19*19)
+                    actions (19*19)
                     State/actions amaf visit/reward for each cells (2*19*19)
                     model_policy/model_value [(19*19), (1,)]
         """
@@ -60,7 +60,7 @@ class MCTSAI(MCTSEvalLazy):
         # self.neutral_p, self.neutral_v = np.ones_like(self.engine.state.full_board), 0.5
 
     def __str__(self):
-        return f"MCTSAI with: Pruning / Heuristics | Action-Move As First | Progressive/Lazy valid action checking | Deep Neural Network for policy and rewards ({self.mcts_iter} iter)"
+        return f"MCTSAI with: Pruning / heuristics | Action-Move As First | Progressive/Lazy valid action checking | Deep Neural Network for policy and rewards ({self.mcts_iter} iter)"
 
     def set_model_confidence(self, beta):
         self.model_confidence = beta
@@ -101,7 +101,7 @@ class MCTSAI(MCTSEvalLazy):
 
         memory = super().expand()
 
-        policy = self.model_confidence * policy + self.model_confidence_inv * memory['Pruning']
+        policy = self.model_confidence * policy + self.model_confidence_inv * memory['pruning']
         self.reward = self.model_confidence * value + self.model_confidence_inv * self.reward
 
         memory.update({
@@ -113,7 +113,7 @@ class MCTSAI(MCTSEvalLazy):
     def _expand_without_model(self):
         memory = super().expand()
         memory.update({
-            'Policy': memory['Pruning']
+            'Policy': memory['pruning']
         })
         return memory
 

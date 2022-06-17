@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from GomokuLib.Algo import njit_heuristic
+from GomokuLib.Algo import njit_heuristic, old_njit_heuristic
 from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib import Typing
 from numba import njit
@@ -10,6 +10,12 @@ from numba import njit
 from numba.core.typing import cffi_utils
 import fastcore._algo as _fastcore
 
+from GomokuLib.Algo.aligns_graphs import (
+    init_my_heuristic_graph,
+    init_opp_heuristic_graph,
+    init_my_captures_graph,
+    init_opp_captures_graph
+)
 
 cffi_utils.register_module(_fastcore)
 _algo = _fastcore.lib
@@ -17,7 +23,7 @@ ffi = _fastcore.ffi
 from .MCTS import MCTS
 
 @njit()
-def heuristic(engine: Gomoku):
+def heuristic(engine: Gomoku, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, heuristic_pows, heuristic_dirs):
     board = engine.board
 
     cap = engine.get_captures()
@@ -30,7 +36,8 @@ def heuristic(engine: Gomoku):
     g2 = game_zone[2]
     g3 = game_zone[3]
 
-    return njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx)
+    return old_njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx,
+            my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, heuristic_pows, heuristic_dirs)
 
 
 @njit()
@@ -109,6 +116,25 @@ class MCTSEval(MCTS):
         all_actions = np.meshgrid(np.arange(self.brow), np.arange(self.bcol))
         self.all_actions = np.array(all_actions).T.reshape(self.cells_count, 2).astype(np.int32) # Shape (361, 2): [(x, y), ...]
 
+        # Init data for heuristic
+        self.my_h_graph = init_my_heuristic_graph()
+        self.opp_h_graph = init_opp_heuristic_graph()
+        self.my_cap_graph = init_my_captures_graph()
+        self.opp_cap_graph = init_opp_captures_graph()
+        self.heuristic_pows = np.array([
+                [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+                [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+                [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+                [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+            ], dtype=Typing.MCTSIntDtype
+        )
+        self.heuristic_dirs = np.array([
+                [-1, 1],
+                [0, 1],
+                [1, 1],
+                [1, 0]
+            ], dtype=Typing.MCTSIntDtype
+        )
 
     def __str__(self):
         return f"MCTSEval with: Pruning / Heuristics ({self.mcts_iter} iter)"
@@ -116,24 +142,12 @@ class MCTSEval(MCTS):
     def _pruning(self, engine: Gomoku):
         return njit_prunning(engine)
 
-        # full_board =(engine.board[0] | engine.board[1]).astype(np.int8)
-        # n1 = get_neighbors_mask(full_board)                      # Get neightbors, depth=1
-
-        # if self.hard_pruning:
-        #     non_pruned = n1
-        # else:
-        #     n2 = get_neighbors_mask(n1)                         # Get neightbors, depth=2
-        #     non_pruned = np.logical_or(n1, n2)
-
-        # non_pruned = (non_pruned ^ full_board) & non_pruned  # Remove neighbors stones already placed
-        # return non_pruned
-
     def _get_exp_rate_pruned(self, state_data: list, **kwargs) -> np.ndarray:
         """
             exploration_rate(s, a) =
                 pruning(s, a) * exploration_rate(s, a)
         """
-        return state_data['Pruning'] * super().get_exp_rate(state_data)
+        return state_data['pruning'] * super().get_exp_rate(state_data)
 
     def expand(self):
         pruning = self._pruning(self.engine)
@@ -141,47 +155,25 @@ class MCTSEval(MCTS):
         memory = super().expand()
 
         memory.update({
-            'Pruning': pruning,
+            'pruning': pruning,
         })
         return memory
 
     def award(self):
 
-        h_leaf = heuristic(self.engine)
-        if self.rollingout_turns:
-            self._random_rollingout(self.rollingout_turns)
-            if self.engine.isover():
-                if self.engine.winner == -1: # DRAW
-                    h_leaf = 0.5
-                else:
-                    h_leaf = 1 if self.engine.winner == self.engine.player_idx else 0
+        self._random_rollingout(self.rollingout_turns)
+
+        if self.engine.isover():
+            if self.engine.winner == -1: # DRAW
+                h_leaf = 0.5
             else:
-                h = heuristic(self.engine)
-                h_leaf = (h_leaf + (1 - h if self.rollingout_turns % 2 else h)) / 2
+                h_leaf = 1 if self.engine.winner == self.engine.player_idx else 0
+        else:
+            h_leaf = heuristic(self.engine, self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph, self.heuristic_pows, self.heuristic_dirs)
+            h_leaf = 1 - h_leaf if self.rollingout_turns % 2 else h_leaf
 
         return h_leaf
 
     def _random_rollingout(self, n_turns):
         njit_rollingout(n_turns, self.engine, self.all_actions)
         return
-        # self.engine.update(self.engine)
-        # self.end_game = self.engine.isover()
-        # turn = 0
-        # while not self.engine.isover() and turn < n_turns:
-
-        #     pruning = self._pruning(self.engine).flatten()
-        #     if pruning.any():
-        #         actions = self.all_actions[pruning > 0]
-        #     else:
-        #         actions = self.all_actions.copy()
-
-        #     i = np.random.randint(len(actions))
-        #     gAction = np.array(actions[i], dtype=Typing.TupleDtype)
-        #     while not self.engine.is_valid_action(gAction):
-        #         i = np.random.randint(len(actions))
-        #         gAction[:] = np.array(actions[i], dtype=Typing.TupleDtype)
-
-        #     self.engine.apply_action(gAction)
-        #     self.engine.next_turn()
-        #     self.end_game = self.engine.isover() # For MCTS.evaluate()
-        #     turn += 1

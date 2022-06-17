@@ -303,7 +303,7 @@ class UIManager:
     def handle_human_click(self):
 
         if self.request_player_action and not self.pause:
-            # print(f"UIManager: handle_human_click(): Player action catch")
+            print(f"UIManager: handle_human_click(): Player action catch")
             if self.engine.is_valid_action(self.board_clicked_action):
                 print(f"UIManager: handle_human_click(): Player action is valid")
 

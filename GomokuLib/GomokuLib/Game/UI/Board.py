@@ -24,7 +24,7 @@ class Board:
         self.dx, self.dy = self.size
         # self.dx, self.dy = min(self.dx, self.dy), min(self.dx, self.dy)     # To square that thing
         self.board_size = board_size
-        self.text_size = int(self.dx // 50)
+        self.text_size = int(self.dx / 50)
 
         folder_name = os.path.basename(os.path.abspath("."))
         assert folder_name == "Gomoku"
@@ -39,6 +39,9 @@ class Board:
         self.hint_type = 0
         self.hint_mouse = None
         self.init_ui()
+
+    def switch_hint(self, state):
+        self.hint_type = state
 
     def get_action_from_mouse_pos(self, mouse_pos):
         if (mouse_pos[0] < self.ox or mouse_pos[0] > self.ox + self.dx
@@ -107,19 +110,27 @@ class Board:
 
         board = ss_data.get('board', np.zeros((2, 19, 19)))
         player_idx = ss_data.get('player_idx', 0)
+
         self.win.blit(self.bg, (self.ox, self.oy))
 
         if ss_data:
             self.draw_hints(ss_data)
+        # try:
+        #     if ss_data:
+        #         self.draw_hints(ss_data)
+        # except Exception as e:
+        #     print("Board: Unable to draw MCTS hints correctly:\n\t", e)
 
-        self.draw_stones(board, player_idx)
+        try:
+            self.draw_stones(board, player_idx)
+        except Exception as e:
+            print("Board: Unable to draw the board correctly:\n\t", e)
 
-        if ss_data and 'mcts_state_data' in ss_data:
-            self.draw_stats(board, ss_data)
-
-    def switch_hint(self, state):
-        self.hint_type = state
-        print(f"Swith hint_type to {self.hint_type}")
+        try:
+            if ss_data and 'mcts_state_data' in ss_data:
+                self.draw_stats(board, ss_data)
+        except Exception as e:
+            print("Board: Unable to draw MCTS stats correctly:\n\t", e)
 
     def draw_stones(self, board: np.ndarray, player_idx: int):
 
@@ -142,77 +153,47 @@ class Board:
 
     def draw_hints(self, ss_data: dict):
 
-        try:
-            state_data = ss_data['mcts_state_data'][0]
-        except:
-            state_data = ss_data.get('mcts_state_data', None)
-
-        if state_data is None:
-            return
-
         if self.hint_type == 0:
-            pass
-            # self.draw_model_hints(state_data.get('Policy', None))
-        
+            pass                    # No hints
+
         elif self.hint_type == 1:
             try:
-                sa_n, sa_v = state_data['StateAction']
+                state_data = ss_data['mcts_state_data'][0]
+                sa_n, sa_v = state_data['stateAction']
             except:
-                try:
-                    sa_n, sa_v = state_data['stateAction']
-                except:
-                    sa_n, sa_v = None, None
+                return
 
-            if sa_n is not None:
-                policy = np.nan_to_num(sa_v / sa_n)
-                self.draw_mcts_hints(policy, 0, 0, 200)
+            policy = np.nan_to_num(sa_v / sa_n)
+            self.draw_mcts_hints(policy, 0, 0, 200)
 
         elif self.hint_type == 2:
             try:
-                actions = state_data['Actions']
+                state_data = ss_data['mcts_state_data'][0]
+                actions = state_data['actions']
             except:
-                try:
-                    actions = state_data['actions']
-                except:
-                    actions = None
+                return
 
-            if actions is not None:
-                self.draw_actions(actions ^ 1)
+            self.draw_actions(actions ^ 1)
 
         elif self.hint_type == 3:
             try:
                 pruning_arr = ss_data['pruning']
             except:
                 try:
+                    state_data = ss_data['mcts_state_data'][0]
                     pruning_arr = state_data['pruning']
                 except:
-                    pruning_arr = state_data.get('Pruning', None)
+                    return
 
-            try:
-                if pruning_arr is not None and len(pruning_arr.shape) == 3:
-                    self.draw_mcts_hints(pruning_arr[0], 0, 200, 0, show_max=False)
-                else:
-                    raise Exception()
-            except:
-                print(f"Board: pruning failed: {pruning_arr.shape}")
+            pruning = pruning_arr[0] if len(pruning_arr.shape) > 2 else pruning_arr
+            self.draw_mcts_hints(pruning, 0, 200, 0, show_max=False)
 
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):
 
-        try:
-            state_data = ss_data['mcts_state_data'][0]
-        except:
-            state_data = ss_data['mcts_state_data']
-
-        try:
-           s_n, s_v, (sa_n, sa_v) = state_data['Visits'], state_data['Rewards'], state_data['StateAction']
-        except:
-           s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
-
-        try:
-            mcts_value = np.nan_to_num(s_v / s_n)
-        except:
-            pass
+        state_data = ss_data['mcts_state_data'][0]
+        s_n, s_v, (sa_n, sa_v) = state_data['visits'], state_data['rewards'], state_data['stateAction']
+        mcts_value = np.nan_to_num(s_v / s_n)
 
         if self.hint_mouse:
             rsa = round(float(sa_v[self.hint_mouse[0], self.hint_mouse[1]]), 3)
@@ -229,18 +210,11 @@ class Board:
         if i == self.board_size[0]:
             y = 0
 
-        if 'Value' in ss_data:
-            self.blit_text(
-                "P(s)[-1,1]= " + str(round(ss_data['Value'], 3)),
-                1,
-                y
-            )
-        else:
-            self.blit_text(
-                "Mouse pos= " + str(self.hint_mouse),
-                1,
-                y
-            )
+        self.blit_text(
+            "Mouse pos= " + str(self.hint_mouse),
+            1,
+            y
+        )
         self.blit_text(
             "Q(s)[-1,1]= " + str(round(mcts_value * 2 - 1, 3)),
             1 * self.dx / 5,
@@ -257,11 +231,10 @@ class Board:
             y
         )
         self.blit_text(
-            f"R(s,a)= {rsa}/{round(s_v, 3)}",
+            f"R(s,a)= {rsa}/{round(s_v, 1)}",
             4 * self.dx / 5,
             y
         )
-        # print(f"hint_mouse -> {self.hint_mouse}")
 
     def draw_mcts_hints(self, policy: np.ndarray, r, g, b, show_max: bool = True):
         """
@@ -288,7 +261,7 @@ class Board:
                 for y, x in args:
                     pygame.draw.ellipse(
                         surface=self.win,
-                        color=(100, 50, 50),
+                        color=(150, 0, 0),
                         rect=pygame.Rect((
                                 self.ox + self.cells_coord[0, y, x] - self.csx,
                                 self.oy + self.cells_coord[1, y, x] - self.csy
@@ -297,34 +270,6 @@ class Board:
                         ),
                         width=4
                 )
-
-    # def draw_model_hints(self, policy: np.ndarray):
-    #     """
-    #         Always almost around 0 (At least at the beginning of training)
-    #             -> Use normalization to spread data
-
-    #         Transform model policy (-inf, +inf) to range (0, 1) and sigmoid
-    #             Opaque black green          if policy tends to big negative (= sigmoid close to 0)
-    #             Transparent middle green    if policy close to 0            (= sigmoid close to 0.5)
-    #             Opaque lime green           if policy tends to big positive (= sigmoid close to 1)
-    #     """
-    #     if policy is not None:
-    #         if policy.max() != policy.min():
-
-    #             # print(f"Board: policy:\n{policy}")
-    #             policy = np.abs(policy)
-    #             policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
-    #             policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
-
-    #             for y in range(self.board_size[1]):
-    #                 for x in range(self.board_size[0]):
-
-    #                     alpha = int(255 * policyAlpha[y, x])
-    #                     green = int(255 * policyGreen[y, x])
-    #                     color = pygame.Color(0, green, 0, alpha)
-
-    #                     self.hint_surface.fill(color)
-    #                     self.win.blit(self.hint_surface, (self.ox + self.cells_coord[0, y, x] - self.csx, self.oy + self.cells_coord[1, y, x] - self.csy))
 
     def draw_actions(self, actions: np.array):
 

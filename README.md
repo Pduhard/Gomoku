@@ -16,6 +16,4 @@ conda install --file requirements.txt
 
 ## Usage
 
-```python
-print('coucou')
-```
+make -C GomokuLib && python gomoku.py

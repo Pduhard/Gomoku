@@ -97,20 +97,13 @@ class Graph:
 
     def save_datas(self, ss_data: dict, ss_i: int, **kwargs):
         try:
-            player_idx = ss_data.get('player_idx', 0) ^ 1
+            if 'mcts_state_data' in ss_data:
 
-            try:
+                player_idx = ss_data.get('player_idx', 0)
                 state_data = ss_data['mcts_state_data'][0]
-            except:
-                state_data = ss_data.get('mcts_state_data', None)
+                s_n, s_v, h, max_depth = state_data['visits'], state_data['rewards'], state_data['heuristic'], state_data['max_depth']
 
-            if state_data:
-                try:    
-                    s_n, s_v, h, max_depth = state_data['Visits'], state_data['Rewards'], state_data['Heuristic'], state_data['Max_depth']
-                except:
-                    s_n, s_v, h, max_depth = state_data['visits'], state_data['rewards'], state_data['heuristic'], state_data['max_depth']
-
-                if 'heuristic' in ss_data:
+                if 'heuristic' in ss_data:  # MCTSNjit instance from UIManager has the priority
                     h = ss_data['heuristic']
 
                 arr = [
@@ -120,11 +113,11 @@ class Graph:
                 ]
                 try:
                     for mem, data in arr:
-                        if mem:
-                            if ss_i >= len(mem):
-                                mem.append(data)
-                            else:
-                                mem[ss_i] = data
+                        if ss_i >= len(mem):
+                            mem.append(data)
+                        else:
+                            mem[ss_i] = data
+                        # print(mem)
                 except Exception as e:
                     print("Graph: Unable to save data:\n\t", e)
                     return

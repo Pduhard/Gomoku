@@ -55,7 +55,7 @@ nbCapturedBuf = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=3, layout="C")
 nbByteArray = nb.types.Array(dtype=nb.uint8, ndim=1, layout="C")
 nbPathArray = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=2, layout="C")
 nbHeuristicGraph = nb.types.Array(dtype=heuristic_graph_nb_dtype, ndim=1, layout="C")
-nbHeuristicRewards = nb.types.Array(dtype=heuristic_graph_nb_dtype, ndim=2, layout="C")
+nbHeuristicrewards = nb.types.Array(dtype=heuristic_graph_nb_dtype, ndim=2, layout="C")
 nbHeuristicData = nb.types.Array(dtype=mcts_int_nb_dtype, ndim=2, layout="C")
 
 nbBoardFFI = nb.types.CPointer(board_nb_dtype)

@@ -60,7 +60,8 @@ def UI_program(args, runner: GomokuLib.Game.GameEngine.GomokuRunner):
 
 def duel(runner, p1, p2):
     print(f"\ngomoku.py start with:\n\tRunner: {runner}\n\tPlayer 0: {p1}\n\tPlayer 1: {p2}\n")
-    runner.run([p1, p2])
+    winners = runner.run([p1, p2])
+    print(f"Winners:\n\t{winners}")
 
 def parse():
     parser = argparse.ArgumentParser(description='GomokuLib main script')

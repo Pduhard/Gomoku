@@ -21,15 +21,25 @@ class MCTSAMAF(MCTS):
 
     def get_quality(self, state_data: list, mcts_iter: int, **kwargs) -> np.ndarray:
         """
-            quality(s, a) = rewards(s, a)     / (visits(s, a)     + 1)
-            AMAF(s, a)    = rewardsAMAF(s, a) / (visitsAMAF(s, a) + 1)
-            0 < beta < 1
+            ucb(s, a) = exploitation_rate(s, a) + exploration_rate(s, a)
 
-            AMAFQuality(s, a) = beta * AMAF(s, a) + (1 - beta) * quality(s, a)
+            exploitation_rate(s, a):
+                AMAFQuality(s, a) = beta * AMAF(s, a) + (1 - beta) * quality(s, a)
+                    
+                    beta = sqrt(amaf_k / (amaf_k + 3 * visits(s)))
+                        amaf_k: number of simulations at which the Monte-Carlo value and the
+                                AMAF value should be given equal weigh (beta=0.5)
+                        0 < beta < 1
+
+                    quality(s, a) = rewards(s, a)     / (visits(s, a)     + 1)
+                    AMAF(s, a)    = rewardsAMAF(s, a) / (visitsAMAF(s, a) + 1)
+                
+            exploration_rate(s, a) =    c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
+
         """
-        return get_amaf_quality(*state_data['StateAction'], *state_data['AMAF'], mcts_iter)
+        return get_amaf_quality(*state_data['stateAction'], *state_data['AMAF'], mcts_iter)
 
-        # sa_n, sa_v = state_data['StateAction']
+        # sa_n, sa_v = state_data['stateAction']
         # amaf_n, amaf_v = state_data['AMAF']
         # sa = sa_v / (sa_n + 1)
         # amaf = amaf_v / (amaf_n + 1)
@@ -53,13 +63,13 @@ class MCTSAMAF(MCTS):
 
         state_data = self.states[statehash]
 
-        state_data['Visits'] += 1  # update n count
-        state_data['Rewards'] += reward  # update state value
+        state_data['visits'] += 1  # update n count
+        state_data['rewards'] += reward  # update state value
         if bestaction is None:
             return
 
         r, c = bestaction.action
-        state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
+        state_data['stateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
         self.amaf_masks[player_idx, ..., r, c] += [1, reward]
         state_data['AMAF'] += self.amaf_masks[player_idx]    # update amaf count / value

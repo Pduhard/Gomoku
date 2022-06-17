@@ -21,6 +21,7 @@ class Button:
 
         self.ox, self.oy = self.origin
         self.dx, self.dy = self.size
+        self.text_size = int(self.dx / 9)
         self.color = color
         self.state = 0
         self.init_ui()
@@ -50,7 +51,7 @@ class Button:
         pygame.draw.rect(self.win, self.color, self.button)
         self.blit_text(f"{self.name}: {self.state}")
 
-    def blit_text(self, text, size=16):
-        font = pygame.font.SysFont('arial', size)
+    def blit_text(self, text):
+        font = pygame.font.SysFont('arial', self.text_size)
         txt = font.render(text, True, (0, 0, 0))
-        self.win.blit(txt, (self.ox + self.dx / 10, self.oy + self.dy / 2 - size / 2))
+        self.win.blit(txt, (self.ox + self.dx / 10, self.oy + self.dy / 2 - self.text_size / 2))

@@ -15,8 +15,9 @@ class Display:
         self.ox, self.oy = self.origin
         self.dx, self.dy = self.size
         self.square = pygame.Rect(self.origin, self.size)
+        self.text_size = int(self.dx / 25)
 
-    def init_event(self, manager):
+    def init_event(self, *args):
         pass
 
     def init_ui(self):
@@ -40,8 +41,8 @@ class Display:
                 max_depth = ss_data['mcts_state_data'][0]['max_depth']
             except:
                 try:
-                    h = ss_data['mcts_state_data']['Heuristic']
-                    max_depth = ss_data['mcts_state_data']['Max_depth']
+                    h = ss_data['mcts_state_data']['heuristic']
+                    max_depth = ss_data['mcts_state_data']['max_depth']
                 except:
                     if 'heuristic' in ss_data:
                         h = ss_data['heuristic']
@@ -66,7 +67,7 @@ class Display:
                 'Turn': ss_data.get('turn', '_'),
                 'dtime (ms)': ss_data.get('dtime', '_'),
                 'Waiting': waiting,
-                'Heuristic': h,
+                'heuristic': h,
                 'Tree depth': max_depth,
                 'Captures': ss_data.get('captures', '_'),
                 'Award': ss_data.get('award', '_'),
@@ -87,7 +88,7 @@ class Display:
                 self.blit_text(f"{k}: {v}", 10, y)
                 y += dy
 
-    def blit_text(self, text, x, y, size=20):
-        font = pygame.font.SysFont('arial', size)
+    def blit_text(self, text, x, y):
+        font = pygame.font.SysFont('arial', self.text_size)
         txt = font.render(text, True, (0, 0, 0))
         self.win.blit(txt, (self.ox + x, self.oy + y))

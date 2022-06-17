@@ -132,8 +132,8 @@ class MCTSParallel:
         sa_v, sa_r = state_data.stateAction
         sa_v += 1
         arg = np.argmax(sa_r / sa_v)
-        # print(f"StateAction visits: {sa_v}")
-        # print(f"StateAction reward: {sa_r}")
+        # print(f"stateAction visits: {sa_v}")
+        # print(f"stateAction reward: {sa_r}")
         # print(f"Qualities: {sa_r / sa_v}")
         print(f"argmax: {arg} / {int(arg / 19)} {arg % 19}")
         return int(arg / 19), arg % 19

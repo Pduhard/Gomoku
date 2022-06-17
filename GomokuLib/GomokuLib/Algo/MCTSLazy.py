@@ -78,7 +78,7 @@ class MCTSLazy(MCTS):
 
     def selection(self, policy: np.ndarray, state_data: list) -> tuple[int]:
 
-        actions = state_data['Actions']
+        actions = state_data['actions']
         return njit_selection_test(actions, policy, self.engine)
         gAction = np.zeros(2, dtype=Typing.TupleDtype)
         # action_policy = action_policy.astype(np.float64)

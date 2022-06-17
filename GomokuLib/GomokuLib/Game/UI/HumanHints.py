@@ -85,22 +85,3 @@ class HumanHints:
                 time.sleep(0.1)     # Very, very important. Unless that, UI cannot respond
         except Exception as e:
             print(f"HumanHints: Error while computing Human hints:\n\t{e}")
-
-
-if __name__ == "__main__":
-    engine = Gomoku()
-    hh = HumanHints(engine, 50)
-
-    hints = hh.fetch_hints()    
-    print(f"First hints: ", hints.dtype)
-    # print(f"threading.main_thread: {threading.main_thread()}")
-
-    i = 0
-    ts = time.time()
-    while time.time() < ts + 3:
-        hints = hh.fetch_hints()    
-        print(f"Hints {i}:\t", hints.dtype)
-        time.sleep(0.5)
-        i += 1
-
-    hh.stop()

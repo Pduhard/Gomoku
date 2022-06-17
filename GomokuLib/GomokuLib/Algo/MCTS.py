@@ -35,8 +35,7 @@ class MCTS(AbstractAlgorithm):
 
     def __init__(self,
                  engine: Gomoku,
-                 c: float = np.sqrt(2),
-                 iter: int = 1000,
+                 iter: int = 0,
                  *args, **kwargs
                  ) -> None:
         """
@@ -45,7 +44,7 @@ class MCTS(AbstractAlgorithm):
                     State visit
                     State reward
                     State/actions: visit/reward for each cells (2*19*19)
-                    Actions (1*19*19)
+                    actions (1*19*19)
 
         """
         super().__init__()
@@ -54,8 +53,8 @@ class MCTS(AbstractAlgorithm):
         if not engine:
             raise Exception("[MCTS error] No engine passed")
         self.engine = engine.clone()
-        self.c = c
-        self.mcts_iter = iter
+        self.c = np.sqrt(2)
+        self.mcts_iter = iter if iter else 5000
 
         # breakpoint()
         self.board_size = self.engine.board_size
@@ -88,7 +87,7 @@ class MCTS(AbstractAlgorithm):
                 self.max_depth = self.depth + 1
 
         state_data = self.states[game_engine.board.tobytes()]
-        sa_n, sa_v = state_data['StateAction']
+        sa_n, sa_v = state_data['stateAction']
         # sa_n, sa_v = state_data[2]
 
         self.mcts_policy = sa_v / (sa_n + 1)
@@ -100,11 +99,15 @@ class MCTS(AbstractAlgorithm):
         return self.mcts_policy, self.gAction
 
     def get_state_data(self, game_engine):
-        state_data = self.states[game_engine.board.tobytes()]
-        state_data['Max_depth'] = self.max_depth
-        return {
-            'mcts_state_data': state_data
-        }
+        statehash = game_engine.board.tobytes()
+        if statehash in self.states:
+            state_data = self.states[game_engine.board.tobytes()]
+            state_data['max_depth'] = self.max_depth
+            return {
+                'mcts_state_data': [state_data]
+            }
+        else:
+            return {}
 
     def mcts(self, mcts_iter: int):
 
@@ -112,11 +115,9 @@ class MCTS(AbstractAlgorithm):
 
         self.depth = 0
         path = []
-        # self.mcts_idx = self.engine.player_idx
         self.current_board = self.engine.board
         statehash = self.current_board.tobytes()
         self.bestGAction = None
-        # print(f"statehash: {statehash.hex()}")
         self.end_game = self.engine.isover()
         while statehash in self.states and not self.end_game:
 
@@ -152,14 +153,14 @@ class MCTS(AbstractAlgorithm):
         """
             quality(s, a) = reward(s, a) / (visits(s, a) + 1)
         """
-        sa_n, sa_v = state_data['StateAction']
+        sa_n, sa_v = state_data['stateAction']
         return sa_v / (sa_n + 1)
 
     def get_exp_rate(self, state_data: list, **kwargs) -> np.ndarray:
         """
             exploration_rate(s, a) = c * sqrt( log( visits(s) ) / (1 + visits(s, a)) )
         """
-        return self.c * np.sqrt(np.log(state_data['Visits']) / (state_data['StateAction'][0] + 1))
+        return self.c * np.sqrt(np.log(state_data['visits']) / (state_data['stateAction'][0] + 1))
 
     def get_policy(self, state_data: list, **kwargs) -> np.ndarray:
         """
@@ -169,7 +170,7 @@ class MCTS(AbstractAlgorithm):
 
     def selection(self, policy: np.ndarray, state_data, *args) -> tuple:
 
-        policy *= state_data['Actions']     # Avaible actions
+        policy *= state_data['actions']     # Avaible actions
         bestactions = np.argwhere(policy == np.amax(policy))
         bestaction = bestactions[np.random.randint(len(bestactions))]
         return np.array(bestaction, dtype=Typing.TupleDtype)
@@ -178,11 +179,11 @@ class MCTS(AbstractAlgorithm):
         actions = self.get_actions()
         self.reward = self.award_end_game() if self.end_game else self.award()
         return {
-            'Visits': 1,
-            'Rewards': 0,
-            'StateAction': np.zeros((2, self.brow, self.bcol)),
-            'Actions': actions,
-            'Heuristic': self.reward
+            'visits': 1,
+            'rewards': 0,
+            'stateAction': np.zeros((2, self.brow, self.bcol)),
+            'actions': actions,
+            'heuristic': self.reward
         }
 
     def new_memory(self, statehash: str):
@@ -200,13 +201,13 @@ class MCTS(AbstractAlgorithm):
 
         state_data = self.states[statehash]
 
-        state_data['Visits'] += 1                           # update n count
-        state_data['Rewards'] += reward                     # update state value
+        state_data['visits'] += 1                           # update n count
+        state_data['rewards'] += reward                     # update state value
         if bestaction is None:
             return
 
         r, c = bestaction
-        state_data['StateAction'][..., r, c] += [1, reward]  # update state-action count / value
+        state_data['stateAction'][..., r, c] += [1, reward]  # update state-action count / value
 
     def award(self):
         return 0.5
