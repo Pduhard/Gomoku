@@ -35,20 +35,49 @@ static int is_threes(char *board, long ar, long ac, long dr, long dc, int player
     long pc = ac;
     long nr = ar;
     long nc = ac;
+    int tmp_4i;
+    int tmp_3i;
 //    fprintf(stderr, "\nar, ac | dr, dc = %d, %d | %d, %d\n", ar, ac, dr, dc);
     for (int i = 1; i < 5; ++i) // 2 for avec un break selon map edge (init map edge a 1)
     {
+        tmp_4i = 4 - i;
+        tmp_3i = 3 + i;
+
         pr -= dr;
         pc -= dc;
         nr += dr;
         nc += dc;
-        map_edges[4 - i] = pr < 0 || rmax <= pr || pc < 0 || cmax <= pc;
-        map_edges[3 + i] = nr < 0 || rmax <= nr || nc < 0 || cmax <= nc;
-        lineidx[4 - i] = map_edges[4 - i] ? -1 : player_idx + pr * cmax + pc;
-        lineidx[3 + i] = map_edges[3 + i] ? -1 : player_idx + nr * cmax + nc;
+        map_edges[tmp_4i] = pr < 0 || rmax <= pr || pc < 0 || cmax <= pc;
+        map_edges[tmp_3i] = nr < 0 || rmax <= nr || nc < 0 || cmax <= nc;
 
-        flineidx[4 - i] = map_edges[4 - i] ? -1 : pr * cmax + pc;
-        flineidx[3 + i] = map_edges[3 + i] ? -1 : nr * cmax + nc;
+        // NEW CODE
+        if (map_edges[tmp_4i])
+        {
+            lineidx[tmp_4i] = -1;
+            flineidx[tmp_4i] = -1;
+        }
+        else
+        {
+            flineidx[tmp_4i] = pr * cmax + pc;
+            lineidx[tmp_4i] = player_idx + flineidx[tmp_4i];
+        }
+        if (map_edges[tmp_3i])
+        {
+            lineidx[tmp_3i] = -1;
+            flineidx[tmp_3i] = -1;    
+        }
+        else
+        {
+            flineidx[tmp_3i] = nr * cmax + nc;
+            lineidx[tmp_3i] = player_idx + flineidx[tmp_3i];
+        }
+
+        // // OLD CODE
+        // flineidx[tmp_4i] = map_edges[tmp_4i] ? -1 : pr * cmax + pc;
+        // lineidx[tmp_4i] = map_edges[tmp_4i] ? -1 : player_idx + pr * cmax + pc;
+        // flineidx[tmp_3i] = map_edges[tmp_3i] ? -1 : nr * cmax + nc;
+        // lineidx[tmp_3i] = map_edges[tmp_3i] ? -1 : player_idx + nr * cmax + nc;
+
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 4-i, lineidx[4 - i] / cmax, lineidx[4 - i] % cmax, map_edges[4 - i], map_edges[4 - i] ? -1 : board[lineidx[4 - i]]);
 //        fprintf(stderr, "lineid %d = %d %d |\tedge=%d |\tboard=%d\n", 3+i, lineidx[3 + i] / cmax, lineidx[3 + i] % cmax, map_edges[3 + i], map_edges[3 + i] ? -1 : board[lineidx[3 + i]]);
     }
@@ -166,7 +195,7 @@ static char count_threes(char *board, long ar, long ac, int player_idx)
 int is_double_threes(char *board, long ar, long ac, int player_idx)
 {
     int old_value = 1;
-    long  cell_i = player_idx + ar * 19 + ac;
+    long  cell_i = player_idx * 361 + ar * 19 + ac;
 
     old_value ^= board[cell_i]; // Place a stone and save old value
     board[cell_i] ^= old_value;
