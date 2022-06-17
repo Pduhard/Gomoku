@@ -24,8 +24,7 @@ class HumanHints:
 
         self.mcts = MCTSNjit(
             engine=self.engine,
-            iter=self.batch_iter,
-            rollingout_turns=2,
+            iter=self.batch_iter
         )
         print(f"\nHumanHints: MCTSNjit: Numba compilation starting ...")
         ts = time.time()

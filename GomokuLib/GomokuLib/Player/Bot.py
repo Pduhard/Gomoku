@@ -2,7 +2,7 @@ from GomokuLib.Algo.MCTSNjit import MCTSNjit
 
 class Bot:
 
-    def __init__(self, algorithm, time_requested: int = None) -> None:
+    def __init__(self, algorithm, time_requested: int = 0) -> None:
         self.algo = algorithm
         self.play_turn = self._play_njit_turn if isinstance(self.algo, MCTSNjit) else self._play_turn
         self.time_requested = time_requested

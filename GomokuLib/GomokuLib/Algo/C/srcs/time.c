@@ -2,5 +2,8 @@
 
 int     gettime()
 {
-    return (int)time(NULL);
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    return (((int)tv.tv_sec) * 1000) + (int)(tv.tv_usec / 1000);
 }

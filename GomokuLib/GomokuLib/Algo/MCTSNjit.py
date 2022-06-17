@@ -82,7 +82,7 @@ class MCTSNjit:
     def __init__(self, 
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
-                 rollingout_turns: Typing.MCTSIntDtype = 10,
+                 rollingout_turns: Typing.MCTSIntDtype = 0,
                  amaf_policy: nb.boolean = False,
                  new_heuristic: nb.boolean = False
                  ):
@@ -166,22 +166,27 @@ class MCTSNjit:
         self.amaf_k = np.sqrt(iter)
         self.gamestatehash = self.fast_tobytes(game_engine.board)
 
+        i = 0
+        ts = self.get_time_cfunc()
         if time > 0:
-            print(f"\n[MCTSNjit: Does {time} ms]\n")
+            print(f"\n[MCTSNjit: Start for {time} ms]")
 
-            ts = self.get_time_cfunc()
-            time = ts
-            while time - ts < time:
+            ti = ts
+            while ti - ts < time - 1:
                 self._do_one_iter(game_engine)
-                time = self.get_time_cfunc()
+                ti = self.get_time_cfunc()
+                i += 1
 
+            print(f"[MCTSNjit: Done in {i} iterations]\n")
         else:
-            print(f"\n[MCTSNjit: Does {iter} iter]\n")
+            print(f"\n[MCTSNjit: Start {iter} iterations]\n")
 
-            i = 0
             while i < iter:
                 self._do_one_iter(game_engine)
                 i += 1
+
+            ti = self.get_time_cfunc()
+            print(f"\n[MCTSNjit: Done in {ti - ts} ms]\n")
 
         state_data = self.states[self.gamestatehash][0]
         state_data['max_depth'] = self.max_depth

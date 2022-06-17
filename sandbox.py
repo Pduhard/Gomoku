@@ -18,9 +18,10 @@ import GomokuLib
 
 import cProfile, pstats
 
-import fastcore
-from fastcore._rules import ffi, lib as fastcore
-from fastcore._algo import lib as fastcore_algo
+
+import fastcore._algo as _fastcore
+_algo = _fastcore.lib
+ffi = _fastcore.ffi
 
 """
 
@@ -174,6 +175,17 @@ def RLmain():
         epochs=2
     )
 
+def time_test():
+
+    ts = _algo.gettime()
+    print(f"Time: ", ts)
+    t = ts
+    while t - ts < 5000:
+        time.sleep(0.01)
+        t = _algo.gettime()
+        print(f"Time: ", t - ts)
+
 
 if __name__ == '__main__':
-    duel()
+    # duel()
+    time_test()

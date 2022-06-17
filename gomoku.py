@@ -66,8 +66,8 @@ def parse():
     parser.add_argument('-p1_iter', action='store', type=int, default=5000, help="Bot 1: Number of MCTS iterations")
     parser.add_argument('-p2_iter', action='store', type=int, default=5000, help="Bot 2: Number of MCTS iterations")
 
-    parser.add_argument('-p1_time', action='store', type=int, default=None, help="Bot 1: Time allowed for one turn of Monte-Carlo, in milli-seconds")
-    parser.add_argument('-p2_time', action='store', type=int, default=None, help="Bot 2: Time allowed for one turn of Monte-Carlo, in milli-seconds")
+    parser.add_argument('-p1_time', action='store', type=int, default=0, help="Bot 1: Time allowed for one turn of Monte-Carlo, in milli-seconds")
+    parser.add_argument('-p2_time', action='store', type=int, default=0, help="Bot 2: Time allowed for one turn of Monte-Carlo, in milli-seconds")
 
     parser.add_argument('--p1_new', action='store_true', help="Enable new MCTS version")
     parser.add_argument('--p2_new', action='store_true', help="Enable new MCTS version")
