@@ -20,7 +20,7 @@ class Gomoku:
     is_game_ending_capture_active: nb.types.boolean
     is_no_double_threes_active: nb.types.boolean
     board: Typing.nbBoard
-    turn: nb.types.int8
+    turn: nb.types.int32
     last_action: Typing.nbTuple
     _isover: nb.types.boolean
     winner: nb.types.int32

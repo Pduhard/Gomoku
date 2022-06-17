@@ -10,6 +10,7 @@ from multiprocessing import Process
 players_tab = {
     'mcts': GomokuLib.Algo.MCTSNjit,
     'pymcts': GomokuLib.Algo.MCTSEvalLazy,
+    'random': GomokuLib.Player.RandomPlayer,
     'human': GomokuLib.Player.Human
 }
 players_str = list(players_tab.keys())
@@ -31,6 +32,9 @@ def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_it
 
     if p_str == "human":
         return GomokuLib.Player.Human(runner)
+
+    elif p_str == "random":
+        return GomokuLib.Player.RandomPlayer()
 
     else:
         print(f"\ngomoku.py: MCTS: __init__(): START")
@@ -61,7 +65,7 @@ def UI_program(args, runner: GomokuLib.Game.GameEngine.GomokuRunner):
 def duel(runner, p1, p2):
     print(f"\ngomoku.py start with:\n\tRunner: {runner}\n\tPlayer 0: {p1}\n\tPlayer 1: {p2}\n")
     winners = runner.run([p1, p2])
-    print(f"Winners:\n\t{winners}")
+    print(f"Winners:\t{winners}")
 
 def parse():
     parser = argparse.ArgumentParser(description='GomokuLib main script')
