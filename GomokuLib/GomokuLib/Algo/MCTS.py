@@ -48,8 +48,6 @@ class MCTS(AbstractAlgorithm):
                     Actions (1*19*19)
 
         """
-        print(f"MCTS: __init__(): iter={iter}")
-
         super().__init__()
 
         self.states: dict = {}
@@ -63,7 +61,6 @@ class MCTS(AbstractAlgorithm):
         self.board_size = self.engine.board_size
         self.brow, self.bcol = self.engine.board_size
         self.cells_count = self.brow * self.bcol
-        print(f"MCTS: __init__(): DONE")
 
     def __str__(self):
         return f"Classic MCTS ({self.mcts_iter} iter)"

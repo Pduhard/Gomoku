@@ -33,17 +33,21 @@ def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_it
         return GomokuLib.Player.Human(runner)
 
     else:
+        print(f"\ngomoku.py: MCTS: __init__(): START")
         mcts = players_tab[p_str](
             engine=runner.engine,
             iter=p_iter,
+            time=p_time,
             new_heuristic=p_new
         )
+        print(f"gomoku.py: MCTS: __init__(): DONE")
+
         if hasattr(mcts, 'compile'):
-            print(f"\ngomoku.py: MCTSNjit: Numba compilation starting ...")
+            print(f"gomoku.py: MCTSNjit: Numba compilation starting ...")
             ts = time.time()
             mcts.compile(runner.engine)
             print(f"gomoku.py: MCTSNjit: Numba compilation is finished (dtime={round(time.time() - ts, 1)})\n")
-        return GomokuLib.Player.Bot(mcts, time_requested=p_time)
+        return GomokuLib.Player.Bot(mcts)
 
 def UI_program(args, runner: GomokuLib.Game.GameEngine.GomokuRunner):
     gui = GomokuLib.Game.UI.UIManager(
@@ -63,8 +67,8 @@ def parse():
     parser.add_argument('-p1', choices=players_str, default=players_str[0], help="Player 1 type")
     parser.add_argument('-p2', choices=players_str, default=players_str[0], help="Player 2 type")
 
-    parser.add_argument('-p1_iter', action='store', type=int, default=5000, help="Bot 1: Number of MCTS iterations")
-    parser.add_argument('-p2_iter', action='store', type=int, default=5000, help="Bot 2: Number of MCTS iterations")
+    parser.add_argument('-p1_iter', action='store', type=int, default=0, help="Bot 1: Number of MCTS iterations")
+    parser.add_argument('-p2_iter', action='store', type=int, default=0, help="Bot 2: Number of MCTS iterations")
 
     parser.add_argument('-p1_time', action='store', type=int, default=0, help="Bot 1: Time allowed for one turn of Monte-Carlo, in milli-seconds")
     parser.add_argument('-p2_time', action='store', type=int, default=0, help="Bot 2: Time allowed for one turn of Monte-Carlo, in milli-seconds")
@@ -72,14 +76,13 @@ def parse():
     parser.add_argument('--p1_new', action='store_true', help="Enable new MCTS version")
     parser.add_argument('--p2_new', action='store_true', help="Enable new MCTS version")
 
-    parser.add_argument('--onlyUI', action='store_true', help="Only start tha User Interface")
-    parser.add_argument('--enable-UI', action='store_true', dest='UI', help="Start tha User Interface")
-
     parser.add_argument('--disable-GUI', action='store_false', dest='GUI', help="Disable potential connection with an user interface")
     parser.add_argument('--disable-Capture', action='store_false', dest='rule1', help="Disable gomoku rule 'Capture'")
     parser.add_argument('--disable-GameEndingCapture', action='store_false', dest='rule2', help="Disable gomoku rule 'GameEndingCapture'")
     parser.add_argument('--disable-NoDoubleThrees', action='store_false', dest='rule3', help="Disable gomoku rule 'NoDoubleThrees'")
 
+    parser.add_argument('--onlyUI', action='store_true', help="Only start the User Interface")
+    parser.add_argument('--enable-UI', action='store_true', dest='UI', help="Start the User Interface")
     parser.add_argument('--host', action='store', nargs=1, default=None, type=str, help="Ip address of machine running GomokuGUIRunner")
     parser.add_argument('--port', action='store', nargs=1, default=None, type=int, help="An avaible port of machine running GomokuGUIRunner")
     parser.add_argument('--win_size', action='store', nargs=2, default=(1500, 1000), type=int, help="Set the size of the window: width & height")

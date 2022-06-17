@@ -85,40 +85,52 @@ class Graph:
             self.display_graphs()
 
     def del_mem(self, ss_i: int):
-        del self.graphs[0]['stateQualities'][ss_i + 1:]
-        del self.graphs[0]['heuristics'][ss_i + 1:]
-        del self.graphs[1]['stateQualities'][ss_i + 1:]
-        del self.graphs[1]['heuristics'][ss_i + 1:]
-        del self.graphs[2]['depth'][0][ss_i + 1:]
-        del self.graphs[2]['depth'][1][ss_i + 1:]
+        try:
+            del self.graphs[0]['stateQualities'][ss_i + 1:]
+            del self.graphs[0]['heuristics'][ss_i + 1:]
+            del self.graphs[1]['stateQualities'][ss_i + 1:]
+            del self.graphs[1]['heuristics'][ss_i + 1:]
+            del self.graphs[2]['depth'][0][ss_i + 1:]
+            del self.graphs[2]['depth'][1][ss_i + 1:]
+        except Exception as e:
+            print("Graph: Unable to delete graph memory:\n\t", e)
 
     def save_datas(self, ss_data: dict, ss_i: int, **kwargs):
-        player_idx = ss_data.get('player_idx', 0) ^ 1
-
         try:
-            state_data = ss_data['mcts_state_data'][0]
-        except:
-            state_data = ss_data.get('mcts_state_data', None)
+            player_idx = ss_data.get('player_idx', 0) ^ 1
 
-        if state_data:
-            try:    
-                s_n, s_v, h, max_depth = state_data['Visits'], state_data['Rewards'], state_data['Heuristic'], state_data['Max_depth']
+            try:
+                state_data = ss_data['mcts_state_data'][0]
             except:
-                s_n, s_v, h, max_depth = state_data['visits'], state_data['rewards'], state_data['heuristic'], state_data['max_depth']
+                state_data = ss_data.get('mcts_state_data', None)
 
-            if 'heuristic' in ss_data:
-                h = ss_data['heuristic']
+            if state_data:
+                try:    
+                    s_n, s_v, h, max_depth = state_data['Visits'], state_data['Rewards'], state_data['Heuristic'], state_data['Max_depth']
+                except:
+                    s_n, s_v, h, max_depth = state_data['visits'], state_data['rewards'], state_data['heuristic'], state_data['max_depth']
 
-            arr = [
-                (self.graphs[player_idx]['stateQualities'], s_v / s_n),
-                (self.graphs[player_idx]['heuristics'], h),
-                (self.graphs[2]['depth'][player_idx], max_depth)
-            ]
-            for mem, data in arr:
-                if ss_i >= len(mem):
-                    mem.append(data)
-                else:
-                    mem[ss_i] = data
+                if 'heuristic' in ss_data:
+                    h = ss_data['heuristic']
+
+                arr = [
+                    (self.graphs[player_idx]['stateQualities'], s_v / s_n),
+                    (self.graphs[player_idx]['heuristics'], h),
+                    (self.graphs[2]['depth'][player_idx], max_depth)
+                ]
+                try:
+                    for mem, data in arr:
+                        if mem:
+                            if ss_i >= len(mem):
+                                mem.append(data)
+                            else:
+                                mem[ss_i] = data
+                except Exception as e:
+                    print("Graph: Unable to save data:\n\t", e)
+                    return
+
+        except Exception as e:
+            print("Graph: Unable to fetch MCTS data:\n\t", e)
 
     def display_graphs(self):
 

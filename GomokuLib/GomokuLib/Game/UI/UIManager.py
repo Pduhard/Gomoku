@@ -196,15 +196,9 @@ class UIManager:
                 print(f"UIManager: process_inputs(): New snapshot received")
 
                 if not self.pause:
-                    # if not self.current_snapshot_idx < len(self.game_snapshots) - 1:
-                    #     breakpoint()
                     self.game_snapshots.extend(self.runner_snapshots_queue)
                     self.runner_snapshots_queue = []
                     self.current_snapshot_idx += 1
-
-                # print(f"UIManager: self.current_snapshot_idx={self.current_snapshot_idx}")
-                # print(f"UIManager: len(game_snapshots)={len(self.game_snapshots)}")
-                # print(f"UIManager: len(runner_snapshots_queue)={len(self.runner_snapshots_queue)}")
 
             elif code == 'board-click':
                 x, y = input['data']
@@ -338,6 +332,9 @@ class UIManager:
                 print(f"UIManager: handle_human_click(): Player action is not valid ! (-> {self.board_clicked_action})")
 
     def get_debug_data(self):
+
+        if self.humanHints is None:
+            self.humanHints = HumanHints(self.engine)
         return {
             'mode': "Debug (Just-in-time heuristic)",
             'turn': self.engine.turn,

@@ -12,23 +12,25 @@ from GomokuLib.Algo.MCTSNjit import MCTSNjit
 class HumanHints:
 
     def __init__(self, game_engine: Gomoku,
-                 batch_iter: int = 1000,
-                 max_iter: int = 42000
+                 max_iter: int = 25000
                  ) -> None:
         print(f"\nHumanHints: __init__(): START")
 
         self.engine = game_engine.clone()
-        self.batch_iter = batch_iter
-        self.max_iter = max_iter
+        self.max_state_iter = max_iter
         self.is_running = False
 
+        print(f"\nHumanHints: MCTSNjit: Numba compilation starting ...")
+        print(f"HumanHints: MCTSNjit: __init__(): START")
+        ts = time.time()
         self.mcts = MCTSNjit(
             engine=self.engine,
-            iter=self.batch_iter
+            iter=0,
+            time=100,
         )
-        print(f"\nHumanHints: MCTSNjit: Numba compilation starting ...")
-        ts = time.time()
-        self.mcts.compile(self.engine)
+        print(f"HumanHints: MCTSNjit: __init__(): DONE")
+
+        # self.mcts.compile(self.engine)
         print(f"HumanHints: MCTSNjit: Numba compilation is finished (dtime={round(time.time() - ts, 1)})\n")
 
         self.thread = threading.Thread(
@@ -46,15 +48,15 @@ class HumanHints:
     def start(self):
         if not self.thread.is_alive():
             self.is_running = True
+            self.thread = threading.Thread(
+                target=self.compute_hints
+            )
             self.thread.start()
 
     def stop(self):
         if self.thread.is_alive():
             self.is_running = False
             self.thread.join()
-            self.thread = threading.Thread(
-                target=self.compute_hints
-            )
             print(f"HumanHints: Thread joined.")
 
     def fetch_hints(self) -> tuple[np.ndarray, np.ndarray]:
@@ -62,7 +64,7 @@ class HumanHints:
         mcts_data = dict(self.mcts.get_state_data(self.engine))
 
         try:
-            if mcts_data['mcts_state_data'][0]['visits'] >= self.max_iter:
+            if mcts_data['mcts_state_data'][0]['visits'] > self.max_state_iter:
                 # print(f"HumanHints: Automatic stop of MCTSNjit iterations")
                 self.stop()
             else:
@@ -76,10 +78,11 @@ class HumanHints:
         print(f"HumanHints: Start Thread.")
 
         try:
+            self.mcts.init()
             while self.is_running:
                 # print(f"HumanHints: do_n_iter: {self.batch_iter}")
-                self.mcts.do_your_fck_work(self.engine, self.batch_iter, 0)
-                time.sleep(0.1)
+                self.mcts.do_your_fck_work(self.engine)
+                time.sleep(0.1)     # Very, very important. Unless that, UI cannot respond
         except Exception as e:
             print(f"HumanHints: Error while computing Human hints:\n\t{e}")
 

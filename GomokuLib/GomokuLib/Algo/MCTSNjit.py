@@ -43,7 +43,8 @@ def _valid_policy_action(actions, policy):
 class MCTSNjit:
 
     engine: Gomoku
-    mcts_iter: Typing.mcts_int_nb_dtype
+    mcts_turn_iter: Typing.mcts_int_nb_dtype
+    mcts_turn_time: Typing.mcts_int_nb_dtype
     states: Typing.nbStateDict
     path: Typing.nbPathArray
     all_actions: Typing.nbAction
@@ -67,13 +68,14 @@ class MCTSNjit:
 
     def __init__(self, 
                  engine: Gomoku,
-                 iter: Typing.MCTSIntDtype = 1000,
+                 iter: Typing.MCTSIntDtype = 0,
+                 time: Typing.MCTSIntDtype = 0,
                  new_heuristic: nb.boolean = False
                  ):
 
-        print(f"MCTSNjit: __init__(): START")
         self.engine = engine.clone()
-        self.mcts_iter = iter
+        self.mcts_turn_iter = iter
+        self.mcts_turn_time = time
         self.new_heuristic = new_heuristic
 
         self.c = np.sqrt(2)
@@ -109,9 +111,6 @@ class MCTSNjit:
         )
         self.tmp_h_rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
 
-        # Return a class wrapper to allow player call __call__() and redirect here to do_your_fck_work()
-        print(f"MCTSNjit: __init__(): DONE")
-
     def init(self):
         self.states = nb.typed.Dict.empty(
             key_type=Typing.nbStrDtype,
@@ -122,7 +121,7 @@ class MCTSNjit:
         self.do_your_fck_work(game_engine, 1, 0)
 
     def str(self):
-        return f"MCTSNjit ({self.mcts_iter} iter | newh={1 if self.new_heuristic else 0})"
+        return f"MCTSNjit ({self.mcts_turn_iter} iter | {self.mcts_turn_time} ms)"
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
@@ -138,10 +137,11 @@ class MCTSNjit:
             mcts_data['mcts_state_data'] = np.zeros(1, dtype=Typing.StateDataDtype)
         return mcts_data
 
-    def do_your_fck_work(self, game_engine: Gomoku, iter: int, time: int) -> tuple:
+    def do_your_fck_work(self, game_engine: Gomoku, iter: int = 0, time: int = 0) -> tuple:
 
-        if iter <= 0:
-            iter = self.mcts_iter
+        if iter <= 0 and time <= 0:
+            time = self.mcts_turn_time
+            iter = self.mcts_turn_iter
 
         self.max_depth = 0
         self.gamestatehash = self.fast_tobytes(game_engine.board)
@@ -189,7 +189,7 @@ class MCTSNjit:
         old_best_action = np.zeros(2, dtype=Typing.TupleDtype)
         best_action = np.zeros(2, dtype=Typing.TupleDtype)
 
-        # print(f"\n[MCTSNjit mcts function iter {mcts_iter}]\n")
+        # print(f"\n[MCTSNjit mcts function iter]\n")
         self.depth = 0
         self.end_game = self.engine.isover()
         statehashes = []
