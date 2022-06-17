@@ -24,23 +24,18 @@ class NoDoubleThrees:
 	def __init__(self, board):
 		self.name = 'NoDoubleThrees'
 		self.restricting = True  # Imply existing methods get_valid() and is_valid()
-		# self.FT_IDENT = init_ft_ident()
 		self._is_double_threes_cfunc = _rules.is_double_threes
 		self._board_ptr = ffi.from_buffer(board)
 
 	def get_valid(self, full_board: np.ndarray, player_idx: int):
-		# return njit_get_valid(board, self.FT_IDENT)
 		a = np.zeros_like(full_board, dtype=full_board.dtype)
 		for r in range(19):
 			for c in range(19):
 				if self.is_valid(r, c, player_idx):
-					a[r, c] = 1
-				# maybe this over before two lines : a[r, c] = self.is_valid(full_board, r, c)
+					a[r, c] = 1 # maybe this over before two lines : a[r, c] = self.is_valid(full_board, r, c)
 		return a
 
 	def is_valid(self, ar: int, ac: int, player_idx: int):
-		# return 1
-		# return njit_is_valid(board, ac, ar, self.FT_IDENT)
 		ret = self._is_double_threes_cfunc(self._board_ptr, ar, ac, player_idx)
 		return False if ret else True
 

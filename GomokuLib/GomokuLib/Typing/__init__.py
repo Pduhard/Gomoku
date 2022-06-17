@@ -1,9 +1,7 @@
 import numba as nb
 import numpy as np
 
-from numba.core import types
-### Size definition
-
+### NumPy dtype definition
 BoardDtype = np.int8
 ActionDtype = np.int8
 GameZoneDtype = np.int8
@@ -13,12 +11,6 @@ HeuristicGraphDtype = np.float32
 TupleDtype = np.int32
 MCTSIntDtype = np.int32
 MCTSFloatDtype = np.float32
-
-# hpruning_dict = nb.typed.Dict.empty(
-#     key_type=nb.int8,
-#     value_type=nb.from_dtype(PruningDtype)
-# )
-# nbHpruningDict = nb.typeof(hpruning_dict)
 
 StateDataDtype = np.dtype([
     # ('worker_id', MCTSIntDtype),
@@ -35,6 +27,7 @@ StateDataDtype = np.dtype([
 ], align=True)
 
 
+### Numba dtype definition
 board_nb_dtype = nb.from_dtype(BoardDtype)
 action_nb_type = nb.from_dtype(ActionDtype)
 tuple_nb_dtype = nb.from_dtype(TupleDtype)
@@ -70,9 +63,9 @@ nbState = state_data_nb_dtype[:]
 nbStateBuff = state_data_nb_dtype[:, :]
 
 
+### 'Dict' definition
 state_dict = nb.typed.Dict.empty(
     key_type=nb.types.unicode_type,
-    ## obligé de mettre une recarray de taille 1 j'ai l'impression
     value_type=nbState,
 )
 nbStateDict = nb.typeof(state_dict)

@@ -1,7 +1,6 @@
 import socket
 import pickle
 import time
-import numpy as np
 
 class UISocket:
 
@@ -31,7 +30,6 @@ class UISocket:
         raise NotImplementedError
 
     def add_sending_queue(self, data):
-        # print(f"UISocket: {self.name}: Add sending queue")
         self.send_queue.append(data)
 
     def _serialize(self, data):
@@ -83,7 +81,6 @@ class UISocket:
 
     def recv(self):
 
-        # print(f"UISocket: {self.name}: recv() IN")
         try:
             if self.connect():
 
@@ -103,7 +100,6 @@ class UISocket:
     
         except socket.error:
             pass
-            # print(f"UISocket: {self.name}: socket.error: No data to recv")
 
         except Exception as e:
             print(f"UISocket: {self.name}: recv() failed: {type(e)}: {e}")
@@ -111,38 +107,5 @@ class UISocket:
         
         return None
 
-
-    # def recv_all(self):
-    #     """ Useless ?"""
-
-    #     queue = []
-    #     try:
-    #         data = True
-    #         while data:
-    #             data = self.recv()
-    #             if data:
-    #                 queue.append(data)
-
-    #     except Exception as e:
-    #         print(f"UISocket: {self.name}: {e}")
-
-    #     return queue
-
     def disconnect(self):
-        # self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
-
-
-
-
-
-
-# from GomokuLib.Sockets.UISocketClient import UISocketClient
-# from GomokuLib.Sockets.UISocketServer import UISocketServer
-
-# if __name__ == "__init__":
-
-#     sockclient = UISocketClient()
-#     sockserver = UISocketServer()
-
-#     sockclient.c

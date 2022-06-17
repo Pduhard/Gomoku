@@ -1,7 +1,3 @@
-from __future__ import annotations
-from typing import TYPE_CHECKING, Union
-
-import multiprocessing as mp
 from multiprocessing.dummy import Process
 
 import GomokuLib
@@ -13,8 +9,10 @@ from GomokuLib.Game.GameEngine.GomokuRunner import GomokuRunner
 import time
 from time import perf_counter
 
+
 class UIShutdown(Exception):
     pass
+
 
 class GomokuGUIRunner(GomokuRunner):
 

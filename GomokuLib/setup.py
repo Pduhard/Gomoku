@@ -27,7 +27,6 @@ setup(
         "./GomokuLib/Algo/C/_build.py:ffibuilder",
     ],
 
-    # long_description=open('README.md').read(),
     install_requires=[
     ]
 )

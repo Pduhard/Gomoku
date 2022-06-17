@@ -19,18 +19,14 @@ class UISocketClient(UISocket):
 
     def _init_socket(self):
 
-        # if self.sock:
-        #     self.sock.close()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setblocking(True)
         self._send = self.sock.sendall
         self._recv = self.sock.recv
-        # print(f"UISocketClient: {self.name}: New socket")
 
     def connect(self):
         """Try to establish a connection to the server"""
 
-        # print(f"self.connected: {self.connected}")
         if not self.connected:
             self._init_socket()
             print(f"UISocketClient: {self.name}: Attempt to connect at {(self.host, self.port)}")

@@ -1,23 +1,9 @@
-from ctypes import c_buffer
-import concurrent
 import os
 import time
-from time import sleep
-
-import numba
-from GomokuLib import Typing
-from numba import typed, njit, prange
-from numba.core import types
-import numba as nb
-
-import numpy as np
 import torch.cuda
-from numba.experimental import jitclass
 
 import GomokuLib
-
-import cProfile, pstats
-
+from GomokuLib.Algo import MCTSNjit
 
 import fastcore._algo as _fastcore
 _algo = _fastcore.lib
@@ -70,7 +56,6 @@ ffi = _fastcore.ffi
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Device selected: {device}")
 # device = 'cpu'
-from GomokuLib.Algo import MCTSNjit
 
 def getMCTSNjit(engine, amaf_policy=True):
 

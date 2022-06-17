@@ -5,7 +5,6 @@ import numba as nb
 from .MCTS import MCTS
 
 
-# @njit(vectorize=True)
 @nb.vectorize('float64(float64, float64, float64, float64, int8)')
 def get_amaf_quality(sa_n: np.ndarray, sa_v: np.ndarray, amaf_n: np.ndarray, amaf_v: np.ndarray, mcts_iter: int):
     sa = sa_v / (sa_n + 1)
@@ -38,13 +37,6 @@ class MCTSAMAF(MCTS):
 
         """
         return get_amaf_quality(*state_data['stateAction'], *state_data['AMAF'], mcts_iter)
-
-        # sa_n, sa_v = state_data['stateAction']
-        # amaf_n, amaf_v = state_data['AMAF']
-        # sa = sa_v / (sa_n + 1)
-        # amaf = amaf_v / (amaf_n + 1)
-        # beta = np.sqrt(1 / (1 + 3 * mcts_iter))
-        # return beta * amaf + (1 - beta) * sa
 
     def expand(self):
         memory = super().expand()

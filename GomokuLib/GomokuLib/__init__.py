@@ -3,7 +3,6 @@ from . import Game
 from . import AI
 from . import Player
 from . import Typing
-# from . import Media
 from . import Sockets
 
 import warnings
@@ -16,6 +15,5 @@ __all__ = [
     'Game',
     'Player',
     'Typing',
-    # 'Media',
     'Sockets',
 ]

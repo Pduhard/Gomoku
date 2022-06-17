@@ -1,10 +1,8 @@
 
 from time import perf_counter
-from typing import Union
-import time
 
+from GomokuLib.Game.GameEngine.Gomoku import Gomoku
 from GomokuLib.Game.GameEngine.Snapshot import Snapshot
-from .Gomoku import Gomoku
 
 
 class GomokuRunner:
@@ -13,20 +11,6 @@ class GomokuRunner:
 
         self.players = [None, None]
         self.engine = Gomoku(**kwargs)
-
-    # def __init__(self, rules: list[str] = ['Capture', 'Game-Ending-Capture', 'no-double-threes'],
-    #              **kwargs) -> None:
-    #     self.rules = [r.lower() for r in rules]
-    #     is_capture_active = 'capture' in self.rules
-    #     is_game_ending_capture_active = 'game-ending-capture' in self.rules
-    #     is_no_double_threes_active = 'no-double-threes' in self.rules
-
-    #     self.players = [None, None]
-    #     self.engine = Gomoku(
-    #         is_capture_active,
-    #         is_game_ending_capture_active,
-    #         is_no_double_threes_active,
-    #     )
 
     def _run(self):
 

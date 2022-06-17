@@ -1,7 +1,6 @@
 import os
 import pygame
 import numpy as np
-import torch
 
 class Board:
     """
@@ -13,25 +12,18 @@ class Board:
     def __init__(self, win: pygame.Surface,
                  origin: tuple, size: tuple,
                  board_size: tuple):
-                #  win_size: tuple,
-                #  ox_prop: int, oy_prop: int,
-                #  wx_prop: int, wy_prop: int,
 
         self.win = win
         self.origin = origin
         self.size = size
         self.ox, self.oy = self.origin
         self.dx, self.dy = self.size
-        # self.dx, self.dy = min(self.dx, self.dy), min(self.dx, self.dy)     # To square that thing
         self.board_size = board_size
         self.text_size = int(self.dx / 50)
 
         folder_name = os.path.basename(os.path.abspath("."))
         assert folder_name == "Gomoku"
 
-        # self.bg = WoodBGBoard_img.convert()
-        # self.whitestone = WhiteStone_img.convert_alpha()
-        # self.blackstone = BlackStone_img.convert_alpha()
         self.bg = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WoodBGBoard.jpg").convert()
         self.whitestone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WhiteStone.png").convert_alpha()
         self.blackstone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/BlackStone.png").convert_alpha()
@@ -47,13 +39,12 @@ class Board:
         if (mouse_pos[0] < self.ox or mouse_pos[0] > self.ox + self.dx
             or mouse_pos[1] < self.oy or mouse_pos[1] > self.oy + self.dy):
             return None
-        # mouse_pos -= np.ndarray(self.ox, self.oy)
+
         y, x = (np.array(mouse_pos) // np.array(self.cell_size)).astype(np.int32)
         if x >= self.board_size[0]:
             x = self.board_size[0] - 1
         if y >= self.board_size[1]:
             y = self.board_size[1] - 1
-        # print('mouse_click :', mouse_pos, "in ", self.ox, self.oy, self.dx, self.dy, " = coords", x, y, " for cell size ", self.cell_size)
         return x, y
 
     def mouse_click(self, event):
@@ -113,13 +104,11 @@ class Board:
 
         self.win.blit(self.bg, (self.ox, self.oy))
 
-        if ss_data:
-            self.draw_hints(ss_data)
-        # try:
-        #     if ss_data:
-        #         self.draw_hints(ss_data)
-        # except Exception as e:
-        #     print("Board: Unable to draw MCTS hints correctly:\n\t", e)
+        try:
+            if ss_data:
+                self.draw_hints(ss_data)
+        except Exception as e:
+            print("Board: Unable to draw MCTS hints correctly:\n\t", e)
 
         try:
             self.draw_stones(board, player_idx)
@@ -153,8 +142,8 @@ class Board:
 
     def draw_hints(self, ss_data: dict):
 
-        if self.hint_type == 0:
-            pass                    # No hints
+        if self.hint_type == 0:                    # No hints
+            pass
 
         elif self.hint_type == 1:
             try:
@@ -187,7 +176,6 @@ class Board:
 
             pruning = pruning_arr[0] if len(pruning_arr.shape) > 2 else pruning_arr
             self.draw_mcts_hints(pruning, 0, 200, 0, show_max=False)
-
 
     def draw_stats(self, board: np.ndarray, ss_data: dict):
 

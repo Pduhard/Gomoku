@@ -1,9 +1,6 @@
 
-from __future__ import annotations
-from typing import Union, TYPE_CHECKING
 import numpy as np
 import numba as nb
-from numba import njit
 
 from numba.experimental import jitclass
 
@@ -19,21 +16,20 @@ class Gomoku:
     is_capture_active: nb.types.boolean
     is_game_ending_capture_active: nb.types.boolean
     is_no_double_threes_active: nb.types.boolean
+
+    capture: Capture
+    game_ending_capture: GameEndingCapture
+    no_double_threes: NoDoubleThrees
+    basic_rules: BasicRule
+
     board: Typing.nbBoard
     turn: nb.types.int32
     last_action: Typing.nbTuple
     _isover: nb.types.boolean
     winner: nb.types.int32
     player_idx: nb.types.int32
-    # history: nb.types.ListType(board_dtype)
     game_zone: Typing.nbGameZone
-    capture: Capture
-    game_ending_capture: GameEndingCapture
-    no_double_threes: NoDoubleThrees
-    basic_rules: BasicRule
     
-    ##########
-
     def __init__(self, is_capture_active: bool = True,
                  is_game_ending_capture_active: bool = True,
                  is_no_double_threes_active: bool = True,
@@ -56,10 +52,10 @@ class Gomoku:
         self._isover = False
         self.winner = -1
         self.player_idx = 0
-        # self.history = []
         self.game_zone = np.array(
             [0, 0, self.board_size[0] - 1, self.board_size[1] - 1],
             dtype=Typing.GameZoneDtype)
+
         self.capture = Capture(self.board)
         self.game_ending_capture = GameEndingCapture(self.board)
         self.no_double_threes = NoDoubleThrees(self.board)
@@ -87,12 +83,6 @@ class Gomoku:
 
     def apply_action(self, action: np.ndarray):
         ar, ac = action
-
-        # if not self.is_valid_action(action):
-        #     print("Not a fucking valid action:")
-            # exit(0)
-        #     breakpoint()
-        #     raise Exception
 
         self.board[self.player_idx, ar, ac] = 1
         self.update_game_zone(ar, ac)
@@ -161,7 +151,7 @@ class Gomoku:
     def isover(self):
         return self._isover
 
-    def _update_rules(self, engine: Gomoku):
+    def _update_rules(self, engine):
         self.basic_rules.update(engine.basic_rules)
         if self.is_capture_active:
             self.capture.update(engine.capture)
@@ -170,7 +160,7 @@ class Gomoku:
         if self.is_no_double_threes_active:
             self.no_double_threes.update(engine.no_double_threes)
 
-    def update(self, engine: Gomoku):
+    def update(self, engine):
         self.last_action = np.copy(engine.last_action)
         self.board = np.copy(engine.board)
         self.update_board_ptr()
@@ -182,7 +172,7 @@ class Gomoku:
 
         self._update_rules(engine)
 
-    def clone(self) -> Gomoku:
+    def clone(self):
         engine = Gomoku(
             self.is_capture_active,
             self.is_game_ending_capture_active,

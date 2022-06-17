@@ -12,8 +12,7 @@ class Snapshot:
             'isover': engine._isover,
             'winner': engine.winner,
             'turn': engine.turn,
-            'game_zone': np.copy(engine.get_game_zone()), # copy ???
-            # 'game_zone_init': engine.game_zone_init,
+            'game_zone': np.copy(engine.get_game_zone()), # copy ?
             'basic_rules_rules': engine.basic_rules.create_snapshot(),
             'capture_rules': engine.capture.create_snapshot(),
             'game_ending_capture_rules': engine.game_ending_capture.create_snapshot(),

@@ -1,33 +1,8 @@
-import torch.nn.functional
 import numpy as np
 
 from .MCTSEvalLazy import MCTSEvalLazy
-# from .MCTSAMAFLazy import MCTSAMAFLazy
-# from .MCTSLazy import MCTSLazy
-# from .MCTS import MCTS
-
-# from GomokuLib.AI.Model.ModelInterface import ModelInterface
 from GomokuLib.Game.GameEngine.Gomoku import Gomoku
 
-# from GomokuLib.Game.Rules.Capture import Capture
-# from GomokuLib.Game.Rules.BasicRule import njit_is_align
-
-#
-# def get_neighbors_mask(board):
-#
-#     neigh = np.zeros_like(board)
-#     neigh[:-1, ...] += board[1:, ...]   # Roll cols to left
-#     neigh[1:, ...] += board[:-1, ...]   # Roll cols to right
-#     neigh[..., :-1] += board[..., 1:]   # Roll rows to top
-#     neigh[..., 1:] += board[..., :-1]   # Roll rows to bottom
-#
-#     neigh[1:, 1:] += board[:-1, :-1]   # Roll cells to the right-bottom corner
-#     neigh[1:, :-1] += board[:-1, 1:]   # Roll cells to the right-upper corner
-#     neigh[:-1, 1:] += board[1:, :-1]   # Roll cells to the left-bottom corner
-#     neigh[:-1, :-1] += board[1:, 1:]   # Roll cells to the left-upper corner
-#     # breakpoint()
-#
-#     return neigh
 
 class MCTSAI(MCTSEvalLazy):
 # class MCTSAI(MCTSAMAFLazy):
@@ -50,14 +25,10 @@ class MCTSAI(MCTSEvalLazy):
         """
         super().__init__(engine=engine, *args, **kwargs)
 
-        # self.policy_idx = None
-        # self.value_idx = None
-
         self.expand = self._expand
         self.model_interface = model_interface
         self.model_confidence = model_confidence
         self.model_confidence_inv = 1 - model_confidence
-        # self.neutral_p, self.neutral_v = np.ones_like(self.engine.state.full_board), 0.5
 
     def __str__(self):
         return f"MCTSAI with: Pruning / heuristics | Action-Move As First | Progressive/Lazy valid action checking | Deep Neural Network for policy and rewards ({self.mcts_iter} iter)"

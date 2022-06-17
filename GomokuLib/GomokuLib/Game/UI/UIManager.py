@@ -1,21 +1,16 @@
-from ast import While
-from subprocess import call
-from typing import Union
-from time import sleep
-import numpy as np
 import pygame
 import time
 
-from ..GameEngine.Gomoku import Gomoku
-from ..GameEngine.Snapshot import Snapshot
+from GomokuLib.Game.UI.Board import Board
+from GomokuLib.Game.UI.Graph import Graph
+from GomokuLib.Game.UI.Button import Button
+from GomokuLib.Game.UI.Display import Display
+from GomokuLib.Game.UI.HumanHints import HumanHints
 
-from .Board import Board
-from .Button import Button
-from .Display import Display
-from .Graph import Graph
+from GomokuLib.Game.GameEngine.Gomoku import Gomoku
+from GomokuLib.Game.GameEngine.Snapshot import Snapshot
 
 from GomokuLib.Sockets.UISocketClient import UISocketClient
-from GomokuLib.Game.UI.HumanHints import HumanHints
 
 
 class UIManager:

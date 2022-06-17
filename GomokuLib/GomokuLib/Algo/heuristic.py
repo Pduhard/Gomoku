@@ -1,5 +1,4 @@
 import GomokuLib.Typing as Typing
-# from .aligns_graphs import my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph
 
 import numba as nb
 from numba import njit, prange
@@ -159,12 +158,3 @@ def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c
     # print("All rewards ->" ,rewards)
     x = np.sum(rewards) + _compute_capture_coef(c0, c1)
     return 1 / (1 + np.exp(-0.5 * x))
-
-
-"""
-
-    Param en plus:
-        ancienne rewards
-        action
-    
-"""

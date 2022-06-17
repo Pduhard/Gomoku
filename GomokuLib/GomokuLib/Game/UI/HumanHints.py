@@ -1,12 +1,10 @@
-from multiprocessing.connection import wait
 import threading
 import time
 import numpy as np
 
-from numba import njit
+from GomokuLib.Algo.MCTSNjit import MCTSNjit
 from GomokuLib.Game.GameEngine.Gomoku import Gomoku
 from GomokuLib.Game.GameEngine.Snapshot import Snapshot
-from GomokuLib.Algo.MCTSNjit import MCTSNjit
 
 
 class HumanHints:

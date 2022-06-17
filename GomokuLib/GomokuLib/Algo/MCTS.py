@@ -1,34 +1,7 @@
-from __future__ import annotations
-import copy
-import random
-from os import stat
-from time import perf_counter, sleep
-from typing import TYPE_CHECKING, Dict, Tuple, Union
-
-
 import numpy as np
-# from numba import njit
 
-# from GomokuLib.Player import Human
 from GomokuLib import Typing
-
-from ..Game.GameEngine import Gomoku
-
-# @njit(fastmath=True)
-# def njit_selection(s_n, sa_n, sa_v, amaf_n, amaf_v, c, mcts_iter, actions):
-
-#     exp_rate = c * np.sqrt(np.log(s_n) / (sa_n + 1))
-#     amaf = amaf_v / (amaf_n + 1)
-#     sa = sa_v / (sa_n + 1)
-#     beta = np.sqrt(1 / (1 + 3 * mcts_iter))
-#     quality = beta * amaf + (1 - beta) * sa
-
-#     ucbs = quality + exp_rate
-#     ucbs *= actions
-#     # return np.random.choice(np.argwhere(ucbs == np.amax(ucbs)))
-#     bestactions = np.argwhere(ucbs == np.amax(ucbs))
-#     # print(bestactions)
-#     return bestactions[np.random.randint(len(bestactions))]
+from GomokuLib.Game.GameEngine import Gomoku
 
 class MCTS:
 
@@ -54,7 +27,6 @@ class MCTS:
         self.c = np.sqrt(2)
         self.mcts_iter = iter if iter else 5000
 
-        # breakpoint()
         self.board_size = self.engine.board_size
         self.brow, self.bcol = self.engine.board_size
         self.cells_count = self.brow * self.bcol
@@ -86,10 +58,8 @@ class MCTS:
 
         state_data = self.states[game_engine.board.tobytes()]
         sa_n, sa_v = state_data['stateAction']
-        # sa_n, sa_v = state_data[2]
 
         self.mcts_policy = sa_v / (sa_n + 1)
-        # print("self.mcts_policy (rewards sum / visit count):\n", self.mcts_policy)
 
         self.engine.update(game_engine)
         self.gAction = self.selection(self.mcts_policy, state_data)
@@ -108,8 +78,6 @@ class MCTS:
             return {}
 
     def mcts(self, mcts_iter: int):
-
-        # print(f"\n[MCTS function {mcts_iter}]\n")
 
         self.depth = 0
         path = []

@@ -1,6 +1,5 @@
 import numba as nb
 import numpy as np
-from numba import njit
 from numba.core.typing import cffi_utils
 from numba.experimental import jitclass
 
