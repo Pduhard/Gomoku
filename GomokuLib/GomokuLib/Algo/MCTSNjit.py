@@ -159,14 +159,14 @@ class MCTSNjit:
 
             print(f"[MCTSNjit: Done in {i} iterations]\n")
         else:
-            print(f"\n[MCTSNjit: Start {iter} iterations]\n")
+            print(f"\n[MCTSNjit: Start {iter} iterations]")
 
             while i < iter:
                 self._do_one_iter(game_engine)
                 i += 1
 
             ti = self.get_time_cfunc()
-            print(f"\n[MCTSNjit: Done in {ti - ts} ms]\n")
+            print(f"[MCTSNjit: Done in {ti - ts} ms]\n")
 
         state_data = self.states[self.gamestatehash][0]
         state_data['max_depth'] = self.max_depth

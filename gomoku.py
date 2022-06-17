@@ -16,7 +16,7 @@ players_str = list(players_tab.keys())
 
 def init_runner(args):
 
-    if args.UI:
+    if args.GUI:
         class_ref = GomokuLib.Game.GameEngine.GomokuGUIRunner
     else:
         class_ref = GomokuLib.Game.GameEngine.GomokuRunner
@@ -72,7 +72,10 @@ def parse():
     parser.add_argument('--p1_new', action='store_true', help="Enable new MCTS version")
     parser.add_argument('--p2_new', action='store_true', help="Enable new MCTS version")
 
-    parser.add_argument('--disable-UI', action='store_false', dest='UI', help="Disable gomoku user interface")
+    parser.add_argument('--onlyUI', action='store_true', help="Only start tha User Interface")
+    parser.add_argument('--enable-UI', action='store_true', dest='UI', help="Start tha User Interface")
+
+    parser.add_argument('--disable-GUI', action='store_false', dest='GUI', help="Disable potential connection with an user interface")
     parser.add_argument('--disable-Capture', action='store_false', dest='rule1', help="Disable gomoku rule 'Capture'")
     parser.add_argument('--disable-GameEndingCapture', action='store_false', dest='rule2', help="Disable gomoku rule 'GameEndingCapture'")
     parser.add_argument('--disable-NoDoubleThrees', action='store_false', dest='rule3', help="Disable gomoku rule 'NoDoubleThrees'")
@@ -88,22 +91,26 @@ if __name__ == "__main__":
 
     ## Parse
     args = parse()
-
-    ## Init
     runner = init_runner(args)
-    p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time, args.p1_new)
-    p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time, args.p2_new)
 
-    ## Run
-    if args.UI:
-        p = Process(target=UI_program, args=(args, runner))
-        p.start()
+    if args.onlyUI:
+        UI_program(args, runner)
 
-    duel(runner, p1, p2)
+    else:
+        ## Init
+        p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time, args.p1_new)
+        p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time, args.p2_new)
 
-    ## Close
-    if args.UI:
-        print("gomoku.py: Waiting UI ending")
-        p.join()
+        ## Run
+        if args.UI:
+            p = Process(target=UI_program, args=(args, runner))
+            p.start()
+
+        duel(runner, p1, p2)
+
+        ## Close
+        if args.UI:
+            print("gomoku.py: Waiting UI ending")
+            p.join()
 
     print("gomoku.py: OVER")

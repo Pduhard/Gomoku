@@ -25,7 +25,6 @@ ffi = _fastcore.ffi
 
 """
 
-
         Probleme avec le tout dernier coup, gameEndingCapture
             Une stone peut etre reposer au meme endroit sur le 0, 0 !!
 
