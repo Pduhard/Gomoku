@@ -32,16 +32,6 @@ def _get_mc_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
     return (sa_r / (sa_v + 1)) + (c * np.sqrt(np.log(s_v) / (sa_v + 1)))
 
 
-@nb.vectorize('float32(int32, float32, float32, float32, float32, int32, float32)')
-def _get_amaf_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
-                     amaf_n: np.ndarray, amaf_v: np.ndarray, amaf_k: Typing.mcts_int_nb_dtype,
-                     c: Typing.mcts_float_nb_dtype):
-    sa = sa_r / (sa_v + 1)
-    amaf = amaf_v / (amaf_n + 1)
-    beta = np.sqrt(amaf_k / (amaf_k + 3 * s_v))
-    return (beta * amaf + (1 - beta) * sa) + (c * np.sqrt(np.log(s_v) / (sa_v + 1)))
-
-
 @nb.vectorize('float64(int8, float64)')
 def _valid_policy_action(actions, policy):
     if actions > 0:
@@ -54,15 +44,11 @@ class MCTSNjit:
 
     engine: Gomoku
     mcts_iter: Typing.mcts_int_nb_dtype
-    rollingout_turns: Typing.mcts_int_nb_dtype
-    amaf_policy: nb.boolean
-
     states: Typing.nbStateDict
     path: Typing.nbPathArray
     all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
     get_time_cfunc: gettime_ctype
-    amaf_k: Typing.mcts_int_nb_dtype
 
     depth: Typing.mcts_int_nb_dtype
     max_depth: Typing.mcts_int_nb_dtype
@@ -82,20 +68,15 @@ class MCTSNjit:
     def __init__(self, 
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 1000,
-                 rollingout_turns: Typing.MCTSIntDtype = 0,
-                 amaf_policy: nb.boolean = False,
                  new_heuristic: nb.boolean = False
                  ):
 
         print(f"MCTSNjit: __init__(): START")
         self.engine = engine.clone()
         self.mcts_iter = iter
-        self.rollingout_turns = rollingout_turns
-        self.amaf_policy = amaf_policy
         self.new_heuristic = new_heuristic
 
         self.c = np.sqrt(2)
-        self.amaf_k = np.sqrt(iter)
         self.get_time_cfunc = _algo.gettime
 
         self.init()
@@ -141,7 +122,7 @@ class MCTSNjit:
         self.do_your_fck_work(game_engine, 1, 0)
 
     def str(self):
-        return f"MCTSNjit ({self.mcts_iter} iter | newh={1 if self.new_heuristic else 0} | {self.rollingout_turns} roll turns)"
+        return f"MCTSNjit ({self.mcts_iter} iter | newh={1 if self.new_heuristic else 0})"
 
     def get_state_data(self, game_engine: Gomoku) -> Typing.nbStateDict:
 
@@ -163,7 +144,6 @@ class MCTSNjit:
             iter = self.mcts_iter
 
         self.max_depth = 0
-        self.amaf_k = np.sqrt(iter)
         self.gamestatehash = self.fast_tobytes(game_engine.board)
 
         i = 0
@@ -252,7 +232,6 @@ class MCTSNjit:
 
             self.end_game = self.engine.isover()
 
-        # Some tasks need to be done before award, because rollingout transforms self.engine
         actions = self.engine.get_lazy_actions()
         pruning_arr = self.new_state_pruning()
 
@@ -286,14 +265,10 @@ class MCTSNjit:
         """
         sa_v, sa_r = state_data['stateAction']
 
-        if self.amaf_policy:
-            amaf_n, amaf_v = state_data['amaf']
-            return _get_amaf_policy(state_data['visits'], sa_v, sa_r, amaf_n, amaf_v, self.amaf_k, self.c)
-        else:
-            return _get_mc_policy(state_data['visits'], sa_v, sa_r, self.c)
+        return _get_mc_policy(state_data['visits'], sa_v, sa_r, self.c)
 
     def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
-        best_actions = np.zeros((362, 2), dtype=Typing.TupleDtype)
+        best_actions = np.empty((362, 2), dtype=Typing.TupleDtype)
 
         # action_policy = np.where(actions > 0, policy, 0) # Replace by @nb.vectorize ?
         action_policy = _valid_policy_action(actions, policy)
@@ -319,9 +294,6 @@ class MCTSNjit:
             len = arr[-1, 0]
             if (len == 0):
                 return gAction
-            #     with nb.objmode():
-            #         print('aled lazy selection')
-            #     return gAction
 
             arr_pick = np.arange(len)
             np.random.shuffle(arr_pick) # Slow ...
@@ -342,11 +314,10 @@ class MCTSNjit:
         state[0]['max_depth'] = self.depth
         state[0]['visits'] = 1
         state[0]['rewards'] = reward       # Useless data for MCTS, usefull for UI
-        state[0]['stateAction'][...] = 0.
+        # state[0]['stateAction'][...] = 0.
         state[0]['actions'][...] = actions
         state[0]['heuristic'] = reward
         state[0]['pruning'][...] = pruning_arr
-        state[0]['amaf'][...] = 0.
 
         state[0]['h_rewards'][...] = self.tmp_h_rewards
         state[0]['h_captures'][...] = self.engine.capture.get_captures()
@@ -363,6 +334,9 @@ class MCTSNjit:
         g1 = game_zone[1]
         g2 = game_zone[2]
         g3 = game_zone[3]
+        pruning_arr = np.zeros((3, 19, 19), dtype=Typing.PruningDtype)
+        pruning_arr[...] = njit_classic_pruning(self.engine.board)
+        return pruning_arr
         return njit_dynamic_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx,
             self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph)
 
@@ -450,54 +424,18 @@ class MCTSNjit:
         return old_njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx,
             self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph, self.heuristic_pows, self.heuristic_dirs)
 
-    def rollingout(self):
-        turn = 0
-        while turn < self.rollingout_turns and not self.engine.isover():
-
-            pruning = self.classic_pruning()
-            pruning = pruning.flatten().astype(np.bool8)
-
-            # Create actions from pruning
-            if pruning.any():
-                actions = self.all_actions[pruning > 0]
-            else:
-                actions = self.all_actions
-
-            # Select randomly an action from actions/pruning
-            action_number = len(actions)
-
-            arr = np.arange(action_number)
-            np.random.shuffle(arr)
-            # i = np.random.randint(action_number)
-            i = 0
-            gAction = actions[arr[0]]
-            while (i < action_number and not self.engine.is_valid_action(gAction)):
-                gAction = actions[arr[i]]
-                i += 1
-
-            if (i == action_number):
-                return
-            self.engine.apply_action(gAction)
-            self.engine.next_turn()
-            turn += 1
-
     def backpropagation(self, statehashes, reward: Typing.heuristic_graph_nb_dtype):
 
-        # Init backprop AMAF buffer
-        amaf_masks = np.zeros((2, 2, 19, 19))    # sAMAF_v and sAMAF_n for 2 players
-        
-        p_id = 0
         for i in range(self.depth - 1, -1, -1):
             # Flip data
             reward = 1 - reward
-            p_id ^= 1
             # reward = 1 - (0.90 * reward)
 
             # print("Backprop ", i, " reward ", reward)
-            self.backprop_memory(self.path[i], reward, statehashes[i], p_id, amaf_masks)
+            self.backprop_memory(self.path[i], reward, statehashes[i])
 
     def backprop_memory(self, best_action, reward: Typing.heuristic_graph_nb_dtype,
-        statehash: string, p_id: int, amaf_masks: np.ndarray):
+        statehash: string):
         stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
         stateAction_update[1] = reward
 
@@ -508,12 +446,40 @@ class MCTSNjit:
         state_data['rewards'] += reward                     # Useless data for MCTS, usefull for UI
         state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
 
-        amaf_masks[p_id, ..., r, c] += stateAction_update  # update state-action count / value
-        state_data['amaf'] += amaf_masks[p_id]
-
     def fast_tobytes(self, arr: Typing.BoardDtype):
         byte_list = []
         for i in range(19):
             for j in range(19):
                 byte_list.append('1' if arr[0, i, j] == 1 else ('2' if arr[1, i, j] == 1 else '0'))
         return ''.join(byte_list)
+
+    # def rollingout(self):
+    #     turn = 0
+    #     while turn < self.rollingout_turns and not self.engine.isover():
+
+    #         pruning = self.classic_pruning()
+    #         pruning = pruning.flatten().astype(np.bool8)
+
+    #         # Create actions from pruning
+    #         if pruning.any():
+    #             actions = self.all_actions[pruning > 0]
+    #         else:
+    #             actions = self.all_actions
+
+    #         # Select randomly an action from actions/pruning
+    #         action_number = len(actions)
+
+    #         arr = np.arange(action_number)
+    #         np.random.shuffle(arr)
+    #         # i = np.random.randint(action_number)
+    #         i = 0
+    #         gAction = actions[arr[0]]
+    #         while (i < action_number and not self.engine.is_valid_action(gAction)):
+    #             gAction = actions[arr[i]]
+    #             i += 1
+
+    #         if (i == action_number):
+    #             return
+    #         self.engine.apply_action(gAction)
+    #         self.engine.next_turn()
+    #         turn += 1

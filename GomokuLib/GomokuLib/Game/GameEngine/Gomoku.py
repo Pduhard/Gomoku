@@ -142,7 +142,6 @@ class Gomoku:
         return
 
     def _shift_board(self):
-
         self.turn += 1
         self.player_idx ^= 1
     

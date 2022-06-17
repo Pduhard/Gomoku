@@ -31,7 +31,7 @@ class UIManager:
 
         self.engine = engine.clone()
         self.board_size = self.engine.board_size
-        self.humanHints = HumanHints(self.engine)
+        self.humanHints = None
         print(f"UIManager: __init__(): DONE")
 
     def init(self):
@@ -82,7 +82,6 @@ class UIManager:
             origin=(self.rules['x'][0], self.rules['y'][0]),
             size=(board_square_size, board_square_size),
             board_size=self.board_size,
-            humanHints=self.humanHints
         )
         self.display = Display(
             self.win,
@@ -233,14 +232,17 @@ class UIManager:
             elif code == "human-hint":
                 self.human_hints_active = input['state']
                 if self.human_hints_active:
+                    if self.humanHints is None:
+                        self.humanHints = HumanHints(self.engine)
                     self.humanHints.start()
-                else:
+                elif self.humanHints:
                     self.humanHints.stop()
 
             elif code == 'end-game':
                 self.uisock.connected = False
-                self.humanHints.stop()
-                self.humanHints.mcts.init()
+                if self.humanHints:
+                    self.humanHints.stop()
+                    self.humanHints.mcts.init()
                 print(f"UIManager: Deconnection asked by GomokuGUIRunner.")
                 time.sleep(1)   # Very important and we will never talk about why ... Please.
 
@@ -248,7 +250,8 @@ class UIManager:
                 self.uisock.add_sending_queue({
                     'code': 'new-game'
                 })
-                self.humanHints.mcts.init()
+                if self.humanHints:
+                    self.humanHints.mcts.init()
 
             elif code == 'debug-mode':
                 self.is_debug_mode = input['state']
@@ -265,7 +268,8 @@ class UIManager:
                 self.engine,
                 snapshot
             )  # Update local engine to test valid action
-            self.humanHints.update_from_snapshot(snapshot)
+            if self.humanHints:
+                self.humanHints.update_from_snapshot(snapshot)
 
             self.last_snapshot_idx_updated = self.current_snapshot_idx
 
@@ -279,7 +283,7 @@ class UIManager:
         ss_data = ss.get('ss_data', {})
         snapshot = ss.get('snapshot', None)
         tottime = round(time.time() - self.init_time, 0)
-        
+
         if self.human_hints_active:
             ss_data.update(self.humanHints.fetch_hints())
 
@@ -322,8 +326,8 @@ class UIManager:
                     else:
                         print(f"UIManager: handle_human_click(): Human can only play at its turns !")
                         return
-
-                self.humanHints.stop()
+                if self.humanHints:
+                    self.humanHints.stop()
                 self.request_player_action = False
                 self.uisock.add_sending_queue({
                     'code': 'response-player-action',
@@ -361,7 +365,8 @@ class UIManager:
             self.current_snapshot_idx += 1
 
     def UI_quit(self):
-        self.humanHints.stop()
+        if self.humanHints:
+            self.humanHints.stop()
         self.uisock.add_sending_queue({
             'code': 'shutdown',
         })

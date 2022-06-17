@@ -25,8 +25,6 @@ ffi = _fastcore.ffi
 
 """
 
-        depth graph
-        NoDoubleThrees marche plus !!!
 
         Probleme avec le tout dernier coup, gameEndingCapture
             Une stone peut etre reposer au meme endroit sur le 0, 0 !!
@@ -38,18 +36,14 @@ ffi = _fastcore.ffi
         Gerer les tours en fonction d'un temps egalement
 
         Enlever les full_board = board0 | board1 qui sont de partout
-        if pruning.any(): à enlever dans rollingout ?
 
     TODO:
 
         Clean le Typing et les truc useless dedans
-        Socket: envois un signal d'arrêt afin que l'autre puisse se reco à un autre process pa rla suite
-
 
         Faire un config file avec toute les constantes du RL
         afficher le nbr de train / epochs effectué 
 
-        Graph du winrate OMG 
         Passer le model loading dans le ModelInterface et pas dans l'Agent !
             Sinon on peut pas load un model pour le jouer avec un MCTSIA classique 
 
@@ -83,9 +77,7 @@ def getMCTSNjit(engine, amaf_policy=True):
 
     return MCTSNjit(
         engine=engine,
-        iter=10000,
-        rollingout_turns=0,
-        amaf_policy=amaf_policy
+        iter=5000,
     )
 
 def duel():
@@ -105,7 +97,6 @@ def duel():
     #     engine=runner.engine,
     #     iter=10000,
     #     hard_pruning=True,
-    #     rollingout_turns=2
     # )
     p1 = GomokuLib.Player.Bot(mcts_p1)
 
@@ -115,7 +106,6 @@ def duel():
     #     engine=runner.engine,
     #     iter=10000,
     #     hard_pruning=True,
-    #     rollingout_turns=2
     # )
     p2 = GomokuLib.Player.Bot(mcts_p2)
 
@@ -164,7 +154,6 @@ def RLmain():
         mcts_iter=2500,
         mcts_hard_pruning=True,
         mean_forward=False,
-        rollingout_turns=2,
         device=device,
     )
 
@@ -187,5 +176,5 @@ def time_test():
 
 
 if __name__ == '__main__':
-    # duel()
-    time_test()
+    duel()
+    # time_test()
