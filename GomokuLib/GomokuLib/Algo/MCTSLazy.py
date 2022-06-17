@@ -23,9 +23,6 @@ def test_selection_parallel(actions, policy):
     action_policy = valid_action(actions, policy)
     max = np.amax(action_policy)
     k = 0
-    #
-    # action_policy = policy * np.where(actions > 0, 1, 0)
-    # tmp = np.argwhere(action_policy == np.amax(action_policy))
 
     for i in range(19):
         for j in range(19):
@@ -40,15 +37,11 @@ def test_selection_parallel(actions, policy):
 @njit()
 def njit_selection_test(actions, policy, engine):
     gAction = np.zeros(2, dtype=Typing.TupleDtype)
-    # action_policy = action_policy.astype(np.float64)
-    # c_policy = ffi.cast("double *", action_policy.ctypes.data)
     while True:
-        # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
         arr = test_selection_parallel(actions, policy)
 
         len = arr[-1, 0]
         arr_pick = np.arange(len)
-        # best_actions = np.argwhere(np.amax())
         np.random.shuffle(arr_pick)
         for e in arr_pick:
             x, y = arr[e]
@@ -66,9 +59,7 @@ class MCTSLazy(MCTS):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.best_actions_buffer = np.zeros((19 * 19, 2), dtype=Typing.TupleDtype)
-        # self.random_buffer = np.zeros((19 * 19), dtype=Typing.TupleDtype)
         self.c_best_actions_buffer = ffi.cast("int *", self.best_actions_buffer.ctypes.data)
-        # self.c_random_buffer = ffi.cast("int *", self.random_buffer.ctypes.data)
 
     def __str__(self):
         return f"MCTSLazy with: Progressive/Lazy valid action checking ({self.mcts_iter} iter)"
@@ -80,26 +71,3 @@ class MCTSLazy(MCTS):
 
         actions = state_data['actions']
         return njit_selection_test(actions, policy, self.engine)
-        gAction = np.zeros(2, dtype=Typing.TupleDtype)
-        # action_policy = action_policy.astype(np.float64)
-        # c_policy = ffi.cast("double *", action_policy.ctypes.data)
-        while True:
-            # best_action_count = fastcore.mcts_lazy_selection(c_policy, self.c_best_actions_buffer)
-            arr = test_selection_parallel(actions, policy)
-
-            len = arr[-1, 0]
-            arr_pick = np.arange(len)
-            # best_actions = np.argwhere(np.amax())
-            np.random.shuffle(arr_pick)
-            for e in arr_pick:
-                x, y = arr[e]
-                gAction[:] = (x, y)
-                if actions[x, y] == 2:
-                    return gAction
-                elif self.engine.is_valid_action(gAction):
-                    actions[x, y] = 2
-                    return gAction
-                else:
-                    actions[x, y] = 0
-
-        raise Exception("No valid action to select.")

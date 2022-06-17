@@ -69,11 +69,11 @@ def duel(runner, p1, p2):
 
 def parse():
     parser = argparse.ArgumentParser(description='GomokuLib main script')
-    parser.add_argument('-p1', choices=players_str, default=players_str[-1], help="Player 1 type")
-    parser.add_argument('-p2', choices=players_str, default=players_str[0], help="Player 2 type")
+    parser.add_argument('-p1', choices=players_str, default="human", help="Player 1 type")
+    parser.add_argument('-p2', choices=players_str, default="mcts", help="Player 2 type")
 
-    parser.add_argument('-p1_iter', action='store', type=int, default=0, help="Bot 1: Number of MCTS iterations")
-    parser.add_argument('-p2_iter', action='store', type=int, default=0, help="Bot 2: Number of MCTS iterations")
+    parser.add_argument('-p1_iter', action='store', type=int, default=10000, help="Bot 1: Number of MCTS iterations")
+    parser.add_argument('-p2_iter', action='store', type=int, default=10000, help="Bot 2: Number of MCTS iterations")
 
     parser.add_argument('-p1_time', action='store', type=int, default=0, help="Bot 1: Time allowed for one turn of Monte-Carlo, in milli-seconds")
     parser.add_argument('-p2_time', action='store', type=int, default=0, help="Bot 2: Time allowed for one turn of Monte-Carlo, in milli-seconds")
