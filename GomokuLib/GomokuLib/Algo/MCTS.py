@@ -12,7 +12,6 @@ import numpy as np
 # from GomokuLib.Player import Human
 from GomokuLib import Typing
 
-from .AbstractAlgorithm import AbstractAlgorithm
 from ..Game.GameEngine import Gomoku
 
 # @njit(fastmath=True)
@@ -31,7 +30,7 @@ from ..Game.GameEngine import Gomoku
 #     # print(bestactions)
 #     return bestactions[np.random.randint(len(bestactions))]
 
-class MCTS(AbstractAlgorithm):
+class MCTS:
 
     def __init__(self,
                  engine: Gomoku,
@@ -47,7 +46,6 @@ class MCTS(AbstractAlgorithm):
                     actions (1*19*19)
 
         """
-        super().__init__()
 
         self.states: dict = {}
         if not engine:

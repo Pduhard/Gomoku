@@ -17,7 +17,6 @@ from ...Game.GameEngine.Gomoku import Gomoku
 
 from  ...Player.Bot import Bot
 from GomokuLib.Algo.MCTSAI import MCTSAI
-# from  ...Algo.AbstractAlgorithm import AbstractAlgorithm
 
 
 class GomokuAgent(Bot):
