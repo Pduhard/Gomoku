@@ -24,6 +24,7 @@ class Board:
         self.dx, self.dy = self.size
         # self.dx, self.dy = min(self.dx, self.dy), min(self.dx, self.dy)     # To square that thing
         self.board_size = board_size
+        self.text_size = int(self.dx // 50)
 
         folder_name = os.path.basename(os.path.abspath("."))
         assert folder_name == "Gomoku"
@@ -163,7 +164,8 @@ class Board:
                     sa_n, sa_v = None, None
 
             if sa_n is not None:
-                self.draw_mcts_hints(sa_n, sa_v)
+                policy = np.nan_to_num(sa_v / sa_n)
+                self.draw_mcts_hints(policy, 0, 0, 200)
 
         elif self.hint_type == 2:
             try:
@@ -188,7 +190,7 @@ class Board:
 
             try:
                 if pruning_arr is not None and len(pruning_arr.shape) == 3:
-                    self.draw_model_hints(pruning_arr[0])
+                    self.draw_mcts_hints(pruning_arr[0], 0, 200, 0, show_max=False)
                 else:
                     raise Exception()
             except:
@@ -261,20 +263,18 @@ class Board:
         )
         # print(f"hint_mouse -> {self.hint_mouse}")
 
-    def draw_mcts_hints(self, sa_n: np.ndarray, sa_v: np.ndarray):
+    def draw_mcts_hints(self, policy: np.ndarray, r, g, b, show_max: bool = True):
         """
             MCTS policy in range [0, 1)
                 Transparent black  if policy=0
                 Opaque blue        if policy=1
         """
-        policy = np.nan_to_num(sa_v / sa_n)
         if policy.max() != policy.min():
             for y in range(self.board_size[1]):
                 for x in range(self.board_size[0]):
 
-                    alpha = 30 + int(225 * policy[y, x]) if sa_n[y, x] else 0
-                    # color = pygame.Color(0, 0, int(255 * policy[y, x]), int(255 * policy[y, x]))
-                    color = pygame.Color(0, 0, 200, alpha)
+                    alpha = 30 + int(225 * policy[y, x]) if policy[y, x] else 0
+                    color = pygame.Color(r, g, b, alpha)
 
                     self.hint_surface.fill(color)
                     self.win.blit(
@@ -283,47 +283,48 @@ class Board:
                          self.oy + self.cells_coord[1, y, x] - self.csy)
                     )
 
-            args = np.argwhere(policy == policy.max())
-            for y, x in args:
-                pygame.draw.ellipse(
-                    surface=self.win,
-                    color=(100, 50, 50),
-                    rect=pygame.Rect((
-                            self.ox + self.cells_coord[0, y, x] - self.csx,
-                            self.oy + self.cells_coord[1, y, x] - self.csy
+            if show_max:
+                args = np.argwhere(policy == policy.max())
+                for y, x in args:
+                    pygame.draw.ellipse(
+                        surface=self.win,
+                        color=(100, 50, 50),
+                        rect=pygame.Rect((
+                                self.ox + self.cells_coord[0, y, x] - self.csx,
+                                self.oy + self.cells_coord[1, y, x] - self.csy
+                            ),
+                            (self.csx, self.csy)
                         ),
-                        (self.csx, self.csy)
-                    ),
-                    width=4
-            )
+                        width=4
+                )
 
-    def draw_model_hints(self, policy: np.ndarray):
-        """
-            Always almost around 0 (At least at the beginning of training)
-                -> Use normalization to spread data
+    # def draw_model_hints(self, policy: np.ndarray):
+    #     """
+    #         Always almost around 0 (At least at the beginning of training)
+    #             -> Use normalization to spread data
 
-            Transform model policy (-inf, +inf) to range (0, 1) and sigmoid
-                Opaque black green          if policy tends to big negative (= sigmoid close to 0)
-                Transparent middle green    if policy close to 0            (= sigmoid close to 0.5)
-                Opaque lime green           if policy tends to big positive (= sigmoid close to 1)
-        """
-        if policy is not None:
-            if policy.max() != policy.min():
+    #         Transform model policy (-inf, +inf) to range (0, 1) and sigmoid
+    #             Opaque black green          if policy tends to big negative (= sigmoid close to 0)
+    #             Transparent middle green    if policy close to 0            (= sigmoid close to 0.5)
+    #             Opaque lime green           if policy tends to big positive (= sigmoid close to 1)
+    #     """
+    #     if policy is not None:
+    #         if policy.max() != policy.min():
 
-                # print(f"Board: policy:\n{policy}")
-                policy = np.abs(policy)
-                policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
-                policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
+    #             # print(f"Board: policy:\n{policy}")
+    #             policy = np.abs(policy)
+    #             policyAlpha = (policy - policy.min()) / (policy.max() - policy.min())
+    #             policyGreen = torch.sigmoid(torch.Tensor(policy)).numpy()
 
-                for y in range(self.board_size[1]):
-                    for x in range(self.board_size[0]):
+    #             for y in range(self.board_size[1]):
+    #                 for x in range(self.board_size[0]):
 
-                        alpha = int(255 * policyAlpha[y, x])
-                        green = int(255 * policyGreen[y, x])
-                        color = pygame.Color(0, green, 0, alpha)
+    #                     alpha = int(255 * policyAlpha[y, x])
+    #                     green = int(255 * policyGreen[y, x])
+    #                     color = pygame.Color(0, green, 0, alpha)
 
-                        self.hint_surface.fill(color)
-                        self.win.blit(self.hint_surface, (self.ox + self.cells_coord[0, y, x] - self.csx, self.oy + self.cells_coord[1, y, x] - self.csy))
+    #                     self.hint_surface.fill(color)
+    #                     self.win.blit(self.hint_surface, (self.ox + self.cells_coord[0, y, x] - self.csx, self.oy + self.cells_coord[1, y, x] - self.csy))
 
     def draw_actions(self, actions: np.array):
 
@@ -341,8 +342,7 @@ class Board:
                             self.oy + self.cells_coord[1, y, x] - self.csy
                         ))
 
-    def blit_text(self, text, x, y, size=20):
-
-        font = pygame.font.SysFont('arial', size)
+    def blit_text(self, text, x, y):
+        font = pygame.font.SysFont('arial', self.text_size)
         txt = font.render(text, True, (0, 0, 0))
         self.win.blit(txt, (self.ox + x, self.oy + y))

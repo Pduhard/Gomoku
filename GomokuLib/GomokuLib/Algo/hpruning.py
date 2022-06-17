@@ -3,12 +3,6 @@ import GomokuLib.Typing as Typing
 import numba as nb
 import numpy as np
 from numba import njit
-from GomokuLib.Algo.aligns_graphs import (
-    init_my_heuristic_graph,
-    init_opp_heuristic_graph,
-    init_my_captures_graph,
-    init_opp_captures_graph
-)
 
 @njit()
 def _get_neighbors_mask(board):
@@ -37,7 +31,6 @@ def njit_classic_pruning(board: np.ndarray):
 
     xp = non_pruned ^ full_board
     non_pruned = xp & non_pruned  # Remove neighbors stones already placed
-    # print("Choose normal pruning")
     return non_pruned.astype(Typing.PruningDtype)
 
 
@@ -155,32 +148,3 @@ def njit_dynamic_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pla
         pruning_arr[2][...] = captures | _keep_uppers(align_rewards, rmax)
 
     return pruning_arr
-
-# @njit()
-# def njit_dynamic_hpruning(mcts_depth: int = 0):
-#     if mcts_depth == 0:        # Depth 0
-#         return 0
-#     if mcts_depth > 2:         # Depth 3 | ...
-#         return 2
-#     else:                      # Depth 1 | 2
-#         return 1
-
-
-
-# if __name__ == "__main__":
-
-    # my_h_graph = init_my_heuristic_graph()
-    # opp_h_graph = init_opp_heuristic_graph()
-    # my_cap_graph = init_my_captures_graph()
-    # opp_cap_graph = init_opp_captures_graph()
-    # while True:
-    #     board = np.random.randint(0, 10, size=(2, 19, 19), dtype=Typing.BoardDtype)
-    #     board = _keep_uppers(board.astype(Typing.PruningDtype), Typing.PruningDtype(9)).astype(Typing.BoardDtype)
-    #     print(board)
-    #     pruning_arr = njit_create_hpruning(board, 0, 0, 18, 18, 0, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph)
-        
-    #     for depth in range(6):
-    #         pruning = njit_dynamic_hpruning(pruning_arr, depth)
-    #         print(f"pruning depth {depth}:\n{pruning}\n\n")
-        
-    #     breakpoint()

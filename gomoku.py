@@ -64,7 +64,7 @@ def duel(runner, p1, p2):
 
 def parse():
     parser = argparse.ArgumentParser(description='GomokuLib main script')
-    parser.add_argument('-p1', choices=players_str, default=players_str[0], help="Player 1 type")
+    parser.add_argument('-p1', choices=players_str, default=players_str[-1], help="Player 1 type")
     parser.add_argument('-p2', choices=players_str, default=players_str[0], help="Player 2 type")
 
     parser.add_argument('-p1_iter', action='store', type=int, default=0, help="Bot 1: Number of MCTS iterations")

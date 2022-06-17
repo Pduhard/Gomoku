@@ -334,9 +334,9 @@ class MCTSNjit:
         g1 = game_zone[1]
         g2 = game_zone[2]
         g3 = game_zone[3]
-        pruning_arr = np.zeros((3, 19, 19), dtype=Typing.PruningDtype)
-        pruning_arr[...] = njit_classic_pruning(self.engine.board)
-        return pruning_arr
+        # pruning_arr = np.zeros((3, 19, 19), dtype=Typing.PruningDtype)
+        # pruning_arr[...] = njit_classic_pruning(self.engine.board)
+        # return pruning_arr
         return njit_dynamic_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx,
             self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph)
 
