@@ -406,17 +406,14 @@ class MCTSNjit:
             # print("Backprop ", i, " reward ", reward)
             self.backprop_memory(self.path[i], reward, statehashes[i])
 
-    def backprop_memory(self, best_action, reward: Typing.heuristic_graph_nb_dtype,
-        statehash: string):
-        stateAction_update = np.ones(2, dtype=Typing.MCTSFloatDtype)
-        stateAction_update[1] = reward
-
+    def backprop_memory(self, best_action, reward: Typing.heuristic_graph_nb_dtype, statehash: string):
         r, c = best_action
         state_data = self.states[statehash][0]
 
         state_data['visits'] += 1                           # update n count
         state_data['rewards'] += reward                     # Useless data for MCTS, usefull for UI
-        state_data['stateAction'][..., r, c] += stateAction_update  # update state-action count / value
+        state_data['stateAction'][0, r, c] += 1             # update count
+        state_data['stateAction'][1, r, c] += reward        # update reward
 
     def fast_tobytes(self, arr: Typing.BoardDtype):
         byte_list = []
