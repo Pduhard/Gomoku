@@ -34,12 +34,19 @@ def _get_mc_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
     return (sa_r / (sa_v + 1)) + (c * np.sqrt(np.log(s_v) / (sa_v + 1)))
 
 
-@nb.vectorize('float64(int8, float64)')
-def _valid_policy_action(actions, policy):
-    if actions > 0:
-        return policy
+@nb.vectorize('float32(int8, float32, float32)')
+def _valid_policy_action(actions, policy, pruning):
+    if pruning < 1:
+        if actions > 0:
+            return -1
+        else:
+            return -2
     else:
-        return 0
+        if actions > 0:
+            return policy
+        else:
+            return -2
+
 
 @jitclass()
 class MCTSNjit:
@@ -203,7 +210,7 @@ class MCTSNjit:
             pruning = self.dynamic_pruning(state_data['pruning'])
 
             old_best_action[:] = best_action
-            best_action = self.lazy_selection(policy * pruning, state_data['actions'])
+            best_action = self.lazy_selection(policy, state_data['actions'], pruning)
 
             statehashes.append(self.current_statehash)
             self.path[self.depth][:] = best_action
@@ -258,11 +265,10 @@ class MCTSNjit:
         sa_v, sa_r = state_data['stateAction']
         return _get_mc_policy(state_data['visits'], sa_v, sa_r, self.c)
 
-    def get_best_policy_actions(self, policy: np.ndarray, actions: Typing.ActionDtype):
+    def get_best_policy_actions(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray):
         best_actions = np.empty((362, 2), dtype=Typing.TupleDtype)
 
-        # action_policy = np.where(actions > 0, policy, 0) # Replace by @nb.vectorize ?
-        action_policy = _valid_policy_action(actions, policy)
+        action_policy = _valid_policy_action(actions, policy, pruning)
 
         pmax = np.amax(action_policy)
         k = 0
@@ -276,16 +282,13 @@ class MCTSNjit:
         best_actions[-1, 0] = k
         return best_actions
 
-    def lazy_selection(self, policy: np.ndarray, actions: Typing.ActionDtype):
+    def lazy_selection(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray):
         gAction = np.zeros(2, dtype=Typing.TupleDtype)
 
         while True:
-            arr = self.get_best_policy_actions(policy, actions)
+            arr = self.get_best_policy_actions(policy, actions, pruning)
 
             len = arr[-1, 0]
-            if (len == 0):
-                return gAction
-
             arr_pick = np.arange(len)
             np.random.shuffle(arr_pick) # Slow ...
             for e in arr_pick:
