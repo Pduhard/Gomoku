@@ -141,9 +141,9 @@ class MCTSNjit:
 
     def do_your_fck_work(self, game_engine: Gomoku, iter: int = 0, time: int = 0) -> tuple:
 
-        if iter <= 0 and time <= 0:
+        if iter <= 1 and time <= 0:
             time = self.mcts_turn_time
-            iter = self.mcts_turn_iter
+            iter = self.mcts_turn_iter if self.mcts_turn_iter > 1 else 2
 
         self.max_depth = 0
         self.gamestatehash = self.fast_tobytes(game_engine.board)
@@ -412,8 +412,8 @@ class MCTSNjit:
 
         for i in range(self.depth - 1, -1, -1):
             # Flip data
-            reward = 1 - reward
-            # reward = 1 - (0.90 * reward)
+            # reward = 1 - reward
+            reward = 1 - (0.96 * reward)
 
             # print("Backprop ", i, " reward ", reward)
             self.backprop_memory(self.path[i], reward, statehashes[i])
