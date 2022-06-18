@@ -41,12 +41,21 @@ def _fast_tobytes(n, mcts, boards):
         mcts.fast_tobytes(boards[i])
 
 @njit()
-def _expand(n, mcts, boards, actions, rewards, prunings, game_zones):
+def _expand(n, mcts, boards, actions, rewards, prunings, game_zones, statehashes):
     for i in range(n):
         mcts.engine.board = boards[i]
         mcts.engine.game_zone = game_zones[i]
-        mcts.current_statehash = mcts.fast_tobytes(mcts.engine.board)
+        mcts.current_statehash = statehashes[i]
         mcts.expand(actions[i], rewards[i], prunings[i])
+
+
+@njit()
+def _expand_gz(n, mcts, boards, actions, rewards, prunings, game_zones, statehashes):
+    for i in range(n):
+        mcts.engine.board = boards[i]
+        mcts.engine.game_zone = game_zones[i]
+        mcts.current_statehash = statehashes[i]
+        mcts.expand_gz(actions[i], rewards[i], prunings[i])
 
 @njit()
 def _backprop_memory(n, mcts, best_actions, rewards, statehashes):
@@ -163,19 +172,23 @@ def test_call(mcts, boards, engine_ref):
 
 def test_expand(mcts, boards, actions, rewards, prunings, game_zones):
 
+    statehashes = [mcts.fast_tobytes(b) for b in boards]
     mcts.init()
-    _expand(1, mcts, boards, actions, rewards, prunings, game_zones)
+    _expand(1, mcts, boards, actions, rewards, prunings, game_zones, statehashes)
+    _expand_gz(1, mcts, boards, actions, rewards, prunings, game_zones, statehashes)
 
     times = []
     ranges = test_ranges
-    nr = []
     times.append(time.perf_counter())
     for r in ranges:
         mcts.init()
-        _expand(r, mcts, boards, actions, rewards, prunings, game_zones)
+        _expand(r, mcts, boards, actions, rewards, prunings, game_zones, statehashes)
+        times.append(time.perf_counter())
+        mcts.init()
+        _expand_gz(r, mcts, boards, actions, rewards, prunings, game_zones, statehashes)
         times.append(time.perf_counter())
 
-    _log('expand', times, ranges)
+    _log('expand', times, [10, 10, 1000, 1000, 10000, 10000])
 
 
 def test_award(mcts, boards, actions):
@@ -281,7 +294,7 @@ if __name__ == "__main__":
     actions = np.random.randint(0, 2, (10000, 19, 19), dtype=Typing.ActionDtype)
     amafs = np.random.randn(10000, 2, 2, 19, 19)
     rewards = np.random.randn(10000)
-    prunings = np.random.randn(10000, 19, 19) * 2.
+    prunings = np.random.randn(10000, 3, 19, 19) * 2.
     engine = Gomoku()
     engine_ref = Gomoku()
     game_zones = np.empty((10000, 4), dtype=Typing.GameZoneDtype)
@@ -293,15 +306,25 @@ if __name__ == "__main__":
         engine=engine,
         iter=3000,
     )
-    test_tobytes(mcts, boards)
-    test_prunning(mcts, boards, game_zones)
-    test_get_neighbors_mask(mcts, boards)
-    test_call(mcts, boards, engine_ref)
-    test_expand(mcts, boards, actions, rewards, prunings, game_zones)
-    test_backprop_memory(mcts, best_actions, rewards) # do it after expand
-    test_award(mcts, boards, best_actions)
-    test_get_policy(mcts)
-    test_get_best_policy_actions(mcts, policies, actions)
-    test_lazy_selection(mcts, policies, actions, engine_ref)
-    test_heuristic(mcts, boards, game_zones)
+    # test_tobytes(mcts, boards)
+    # test_prunning(mcts, boards, game_zones)
+    # test_get_neighbors_mask(mcts, boards)
+    # test_call(mcts, boards, engine_ref)
+
+    for i in range(10):
+        boards = np.random.randint(0, 2, (10000, 2, 19, 19), dtype=Typing.BoardDtype)
+        rewards = np.random.randn(10000)
+        prunings = np.random.randn(10000, 3, 19, 19) * 2.
+        actions = np.random.randint(0, 2, (10000, 19, 19), dtype=Typing.ActionDtype)
+        game_zones = np.empty((10000, 4), dtype=Typing.GameZoneDtype)
+        gzoffset = np.random.randint(0, 9, (20000, 2), dtype=Typing.ActionDtype)
+        game_zones[:, :2] = gzoffset[:10000]
+        game_zones[:, 2:] = gzoffset[:10000] + gzoffset[10000:]
+        test_expand(mcts, boards, actions, rewards, prunings, game_zones)
+    # test_backprop_memory(mcts, best_actions, rewards) # do it after expand
+    # test_award(mcts, boards, best_actions)
+    # test_get_policy(mcts)
+    # test_get_best_policy_actions(mcts, policies, actions)
+    # test_lazy_selection(mcts, policies, actions, engine_ref)
+    # test_heuristic(mcts, boards, game_zones)
     # test_backpropagation() ??

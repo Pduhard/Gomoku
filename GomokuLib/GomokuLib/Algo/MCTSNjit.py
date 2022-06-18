@@ -304,13 +304,33 @@ class MCTSNjit:
         state[0]['visits'] = 1
         state[0]['rewards'] = reward       # Useless data for MCTS, usefull for UI
         # state[0]['stateAction'][...] = 0.
-        state[0]['actions'][...] = actions
         state[0]['heuristic'] = reward
-        state[0]['pruning'][...] = pruning_arr
 
-        state[0]['h_rewards'][...] = self.tmp_h_rewards
-        state[0]['h_captures'][...] = self.engine.capture.get_captures()
+        state[0]['heuristic'] = reward
+        
+        game_zone = self.engine.get_game_zone()
+        row_start = game_zone[0]
+        col_start = game_zone[1]
+        row_end = game_zone[2] + 1
+        col_end = game_zone[3] + 1
 
+        state_actions = state[0]['actions']
+        state_pruning = state[0]['pruning']
+
+        state_h_rewards = state[0]['h_rewards']
+        state_h_captures = state[0]['h_captures']
+
+        h_capture = self.engine.capture.get_captures()
+        for r in range(row_start, row_end):
+            for c in range(col_start, col_end):
+                state_actions[r, c] = actions[r, c]
+                for i in range(3):
+                    state_pruning[i, r, c] = pruning_arr[i, r, c]
+                state_h_rewards[r + 2, c + 2] = self.tmp_h_rewards[r + 2, c + 2]
+        
+        state_h_captures[0] = h_capture[0]
+        state_h_captures[1] = h_capture[1]
+    
         self.states[self.current_statehash] = state
 
     def new_state_pruning(self, engine: Gomoku = None):
