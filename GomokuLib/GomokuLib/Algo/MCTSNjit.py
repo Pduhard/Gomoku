@@ -299,6 +299,25 @@ class MCTSNjit:
                 else:
                     actions[x, y] = 0
 
+    def get_expanded_game_zone(self):
+        game_zone = np.copy(self.engine.get_game_zone())
+        if game_zone[0] > 0:
+            game_zone[0] -= 1
+        if game_zone[1] > 0:
+            game_zone[1] -= 1
+        
+        if game_zone[2] < 18:
+            game_zone[2] += 2
+        elif game_zone[2] < 19:
+            game_zone[2] += 1
+        
+        if game_zone[3] < 18:
+            game_zone[3] += 2
+        elif game_zone[3] < 19:
+            game_zone[3] += 1
+
+        return game_zone
+
     def expand(self, actions: np.ndarray, reward: Typing.heuristic_graph_nb_dtype, pruning_arr: np.ndarray):
         state = np.zeros(1, dtype=Typing.StateDataDtype)
 
@@ -310,23 +329,11 @@ class MCTSNjit:
 
         state[0]['heuristic'] = reward
         
-        game_zone = self.engine.get_game_zone()
-        row_start = game_zone[0] - 1
-        col_start = game_zone[1] - 1
-        row_end = game_zone[2] + 2
-        col_end = game_zone[3] + 2
-
-        if (row_start < 0): row_start = 0
-        if (col_start < 0): col_start = 0
-
-        if (row_end > 19): row_end = 19
-        if (col_end > 19): col_end = 19
-
-        # state_actions = state[0]['actions']
-        # state_pruning = state[0]['pruning']
-
-        # state_h_rewards = state[0]['h_rewards']
-        # state_h_captures = state[0]['h_captures']
+        game_zone = self.get_expanded_game_zone()
+        row_start = game_zone[0]
+        col_start = game_zone[1]
+        row_end = game_zone[2]
+        col_end = game_zone[3]
 
         h_capture = self.engine.capture.get_captures()
         for r in range(row_start, row_end):
