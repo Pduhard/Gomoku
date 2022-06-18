@@ -3,6 +3,7 @@ from numba import njit
 import numpy as np
 import time
 from cffi import FFI
+
 ffi = FFI()
 from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib import Typing
@@ -34,6 +35,12 @@ def _prunning(n, mcts, boards, game_zones):
         mcts.engine.board = boards[i]
         mcts.engine.game_zone = game_zones[i]
         mcts.new_state_pruning()        
+# @njit()
+# def _hprunning_func(n, mcts, boards, game_zones):
+#     for i in range(n):
+#         mcts.engine.board = boards[i]
+#         mcts.engine.game_zone = game_zones[i]
+#         mcts.new_state_pruning_speedtest()        
 
 @njit()
 def _fast_tobytes(n, mcts, boards):
@@ -133,16 +140,22 @@ def test_tobytes(mcts, boards):
 def test_prunning(mcts, boards, game_zones):
 
     _prunning(1, mcts, boards, game_zones)
-
     times = []
     ranges = test_ranges
-
     times.append(time.perf_counter())
     for r in ranges:
         _prunning(r, mcts, boards, game_zones)
         times.append(time.perf_counter())
-
     _log('prunning', times, ranges)
+
+    # _hprunning_func(1, mcts, boards, game_zones)
+    # times = []
+    # ranges = test_ranges
+    # times.append(time.perf_counter())
+    # for r in ranges:
+    #     _hprunning_func(r, mcts, boards, game_zones)
+    #     times.append(time.perf_counter())
+    # _log('prunning test opti', times, ranges)
 
 def test_call(mcts, boards, engine_ref):
 
@@ -260,7 +273,11 @@ def test_backprop_memory(mcts, best_actions, rewards):
     _log('backprop_memory', times, ranges)
 
 if __name__ == "__main__":
-    boards = np.random.randint(0, 2, (10000, 2, 19, 19), dtype=Typing.BoardDtype)
+
+    # boards = np.random.randint(0, 2, (10000, 2, 19, 19), dtype=Typing.BoardDtype)
+    boards = np.random.randint(0, 10, (10000, 2, 19, 19), dtype=Typing.BoardDtype)
+    boards = np.where(boards == 0, 1, 0).astype(Typing.BoardDtype)
+
     # my_h_graph = init_my_heuristic_graph()
     # opp_h_graph = init_opp_heuristic_graph()
     # my_cap_graph = init_my_captures_graph()
@@ -293,15 +310,15 @@ if __name__ == "__main__":
         engine=engine,
         iter=3000,
     )
-    test_tobytes(mcts, boards)
+    # test_tobytes(mcts, boards)
     test_prunning(mcts, boards, game_zones)
-    test_get_neighbors_mask(mcts, boards)
-    test_call(mcts, boards, engine_ref)
-    test_expand(mcts, boards, actions, rewards, prunings, game_zones)
-    test_backprop_memory(mcts, best_actions, rewards) # do it after expand
-    test_award(mcts, boards, best_actions)
-    test_get_policy(mcts)
-    test_get_best_policy_actions(mcts, policies, actions)
-    test_lazy_selection(mcts, policies, actions, engine_ref)
-    test_heuristic(mcts, boards, game_zones)
+    # test_get_neighbors_mask(mcts, boards)
+    # test_call(mcts, boards, engine_ref)
+    # test_expand(mcts, boards, actions, rewards, prunings, game_zones)
+    # test_backprop_memory(mcts, best_actions, rewards) # do it after expand
+    # test_award(mcts, boards, best_actions)
+    # test_get_policy(mcts)
+    # test_get_best_policy_actions(mcts, policies, actions)
+    # test_lazy_selection(mcts, policies, actions, engine_ref)
+    # test_heuristic(mcts, boards, game_zones)
     # test_backpropagation() ??

@@ -3,6 +3,7 @@ import string
 
 import numpy as np
 
+# from GomokuLib.Algo.hpruning import njit_dynamic_hpruning_speedtest
 from GomokuLib.Algo import njit_classic_pruning, njit_dynamic_hpruning, njit_heuristic, old_njit_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
@@ -19,6 +20,7 @@ from numba.experimental import jitclass
 from numba.core.typing import cffi_utils
 
 import fastcore._algo as _fastcore
+
 cffi_utils.register_module(_fastcore)
 _algo = _fastcore.lib
 ffi = _fastcore.ffi
@@ -323,11 +325,21 @@ class MCTSNjit:
         g1 = game_zone[1]
         g2 = game_zone[2]
         g3 = game_zone[3]
-        # pruning_arr = np.zeros((3, 19, 19), dtype=Typing.PruningDtype)
-        # pruning_arr[...] = njit_classic_pruning(self.engine.board)
-        # return pruning_arr
         return njit_dynamic_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx,
             self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph)
+
+    # def new_state_pruning_speedtest(self, engine: Gomoku = None):
+
+    #     if engine is None:
+    #         engine = self.engine
+
+    #     game_zone = engine.get_game_zone()
+    #     g0 = game_zone[0]
+    #     g1 = game_zone[1]
+    #     g2 = game_zone[2]
+    #     g3 = game_zone[3]
+    #     return njit_dynamic_hpruning_speedtest(engine.board, g0, g1, g2, g3, engine.player_idx,
+    #         self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph)
 
     def dynamic_pruning(self, pruning_arr: np.ndarray):
         if self.depth == 0:        # Depth 0
