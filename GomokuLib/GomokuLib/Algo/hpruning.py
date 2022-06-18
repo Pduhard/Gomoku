@@ -119,25 +119,19 @@ def _keep_uppers(board, num):
 @njit()
 def njit_dynamic_hpruning(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
     my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph):
-    """
-        Create 3 ndarrays:
-            - Alignments rewards
-            - Alignments rewards + Captures rewards
-            - Alignments rewards + Classic pruning
-    """
-    # return np.ones((3, 19, 19), dtype=Typing.PruningDtype)
+
+    pruning_arr = np.zeros((3, 19, 19), dtype=Typing.PruningDtype)
+
     align_rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_h_graph, opp_h_graph)
     rmax = np.amax(align_rewards)
 
-    cap_rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_cap_graph, opp_cap_graph)
-    captures = _keep_uppers(cap_rewards, 0.5)
-
-    pruning_arr = np.zeros((3, 19, 19), dtype=Typing.PruningDtype)
-    if rmax == 0:
-        # No aligns: classic pruning
+    if rmax == 0:   # No aligns: classic pruning
         pruning_arr[...] = njit_classic_pruning(board)
 
     else:
+        cap_rewards = _create_board_hrewards(board, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx, my_cap_graph, opp_cap_graph)
+        captures = _keep_uppers(cap_rewards, 0.5)
+        
         # At least 1 align: hpruning + all aligns
         pruning_arr[0][...] = captures | _keep_uppers(align_rewards, 1.)
 
