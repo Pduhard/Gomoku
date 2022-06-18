@@ -48,15 +48,6 @@ def _expand(n, mcts, boards, actions, rewards, prunings, game_zones, statehashes
         mcts.current_statehash = statehashes[i]
         mcts.expand(actions[i], rewards[i], prunings[i])
 
-
-@njit()
-def _expand_gz(n, mcts, boards, actions, rewards, prunings, game_zones, statehashes):
-    for i in range(n):
-        mcts.engine.board = boards[i]
-        mcts.engine.game_zone = game_zones[i]
-        mcts.current_statehash = statehashes[i]
-        mcts.expand_gz(actions[i], rewards[i], prunings[i])
-
 @njit()
 def _backprop_memory(n, mcts, best_actions, rewards, statehashes):
     for i in range(n):
@@ -175,7 +166,6 @@ def test_expand(mcts, boards, actions, rewards, prunings, game_zones):
     statehashes = [mcts.fast_tobytes(b) for b in boards]
     mcts.init()
     _expand(1, mcts, boards, actions, rewards, prunings, game_zones, statehashes)
-    _expand_gz(1, mcts, boards, actions, rewards, prunings, game_zones, statehashes)
 
     times = []
     ranges = test_ranges
@@ -183,9 +173,6 @@ def test_expand(mcts, boards, actions, rewards, prunings, game_zones):
     for r in ranges:
         mcts.init()
         _expand(r, mcts, boards, actions, rewards, prunings, game_zones, statehashes)
-        times.append(time.perf_counter())
-        mcts.init()
-        _expand_gz(r, mcts, boards, actions, rewards, prunings, game_zones, statehashes)
         times.append(time.perf_counter())
 
     _log('expand', times, [10, 10, 1000, 1000, 10000, 10000])

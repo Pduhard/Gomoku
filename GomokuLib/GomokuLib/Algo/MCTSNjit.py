@@ -309,27 +309,33 @@ class MCTSNjit:
         state[0]['heuristic'] = reward
         
         game_zone = self.engine.get_game_zone()
-        row_start = game_zone[0]
-        col_start = game_zone[1]
-        row_end = game_zone[2] + 1
-        col_end = game_zone[3] + 1
+        row_start = game_zone[0] - 1
+        col_start = game_zone[1] - 1
+        row_end = game_zone[2] + 2
+        col_end = game_zone[3] + 2
 
-        state_actions = state[0]['actions']
-        state_pruning = state[0]['pruning']
+        if (row_start < 0): row_start = 0
+        if (col_start < 0): col_start = 0
 
-        state_h_rewards = state[0]['h_rewards']
-        state_h_captures = state[0]['h_captures']
+        if (row_end > 19): row_end = 19
+        if (col_end > 19): col_end = 19
+
+        # state_actions = state[0]['actions']
+        # state_pruning = state[0]['pruning']
+
+        # state_h_rewards = state[0]['h_rewards']
+        # state_h_captures = state[0]['h_captures']
 
         h_capture = self.engine.capture.get_captures()
         for r in range(row_start, row_end):
             for c in range(col_start, col_end):
-                state_actions[r, c] = actions[r, c]
+                state[0]['actions'][r, c] = actions[r, c]
                 for i in range(3):
-                    state_pruning[i, r, c] = pruning_arr[i, r, c]
-                state_h_rewards[r + 2, c + 2] = self.tmp_h_rewards[r + 2, c + 2]
+                    state[0]['pruning'][i, r, c] = pruning_arr[i, r, c]
+                state[0]['h_rewards'][r + 2, c + 2] = self.tmp_h_rewards[r + 2, c + 2]
         
-        state_h_captures[0] = h_capture[0]
-        state_h_captures[1] = h_capture[1]
+        state[0]['h_captures'][0] = h_capture[0]
+        state[0]['h_captures'][1] = h_capture[1]
     
         self.states[self.current_statehash] = state
 
@@ -417,7 +423,6 @@ class MCTSNjit:
             self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph, self.heuristic_pows, self.heuristic_dirs)
 
     def backpropagation(self, statehashes, reward: Typing.heuristic_graph_nb_dtype):
-
         for i in range(self.depth - 1, -1, -1):
             # Flip data
             # reward = 1 - reward
