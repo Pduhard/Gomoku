@@ -88,7 +88,7 @@ class MCTSNjit:
         for i in range(19):
             for j in range(19):
                 self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
-        # Juste cast à la fin ..
+        # ActionDtype != int32 wtf ?
 
         # Init data for heuristic
         self.my_h_graph = init_my_heuristic_graph()
@@ -400,8 +400,8 @@ class MCTSNjit:
 
         for i in range(self.depth - 1, -1, -1):
             # Flip data
-            reward = 1 - reward
-            # reward = 1 - (0.90 * reward)
+            # reward = 1 - reward
+            reward = 1 - (0.96 * reward)
 
             # print("Backprop ", i, " reward ", reward)
             self.backprop_memory(self.path[i], reward, statehashes[i])

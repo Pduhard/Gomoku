@@ -115,7 +115,7 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
 
     # More opponent has cap, the greater the possibilities where he can cap me 
     my_cap_coef = -7 if c1 == 4 else -c1
-    opp_cap_coef = c0
+    opp_cap_coef = 7 if c0 == 4 else c0
 
     ar += 2
     ac += 2
@@ -141,7 +141,7 @@ def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c
 
     # More opponent has cap, the greater the possibilities where he can cap me 
     my_cap_coef = -7 if c1 == 4 else -c1
-    opp_cap_coef = c0
+    opp_cap_coef = 7 if c1 == 4 else c0
 
     rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
     for y in prange(2 + gz_start_r, 3 + gz_end_r):
