@@ -2,16 +2,12 @@ from setuptools import setup
 
 setup(
     name='GomokuLib',
-    version='0.1.0',
+    version='1.0.0',
     author='Pduhard - Agiordan',
     description='',
     keywords='lib',
     packages=[
         'GomokuLib',
-        'GomokuLib.AI',
-        'GomokuLib.AI.Agent',
-        'GomokuLib.AI.Model',
-        'GomokuLib.AI.Dataset',
         'GomokuLib.Algo',
         'GomokuLib.Game',
         'GomokuLib.Game.GameEngine',
@@ -26,7 +22,14 @@ setup(
         "./GomokuLib/Game/Rules/C/_build.py:ffibuilder",
         "./GomokuLib/Algo/C/_build.py:ffibuilder",
     ],
+    package_data={'GomokuLib': ['GomokuLib/Media/Images/*']},
+    include_package_data=True,
 
     install_requires=[
+        'numpy',
+        'numba',
+        'matplotlib',
+        'cffi',
+        'pygame'
     ]
 )

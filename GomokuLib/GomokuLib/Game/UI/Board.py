@@ -22,7 +22,7 @@ class Board:
         self.text_size = int(self.dx / 50)
 
         folder_name = os.path.basename(os.path.abspath("."))
-        assert folder_name == "Gomoku"
+        assert folder_name == "Gomoku", "gomoku.py needs to be run from Gomoku root folder"
 
         self.bg = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WoodBGBoard.jpg").convert()
         self.whitestone = pygame.image.load("GomokuLib/GomokuLib/Media/Image/WhiteStone.png").convert_alpha()
