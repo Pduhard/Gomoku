@@ -66,9 +66,6 @@ def _create_aligns_reward(board, graph, sr, sc, player_idx, pruning):
             r += dr
             c += dc
 
-        # print(f"Align coords=", mask_align_id)
-        # print(f"Buff=", buf)
-
         graph_id = np.int32(np.dot(buf, p))
         reward = np.abs(graph[graph_id])
         # print(f"Coord {sr} {sc}: graph[{graph_id}] = {np.int32(graph[graph_id] * 10)} / !=0? {nb.int32(graph[graph_id] * 10 != 0)}")

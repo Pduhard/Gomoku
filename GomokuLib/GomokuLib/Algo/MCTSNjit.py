@@ -361,11 +361,11 @@ class MCTSNjit:
         # state[0]['stateAction'][...] = 0.
         state[0]['heuristic'] = reward
 
-        game_zone = self.engine.get_expanded_game_zone()
-        row_start = game_zone[0]
-        col_start = game_zone[1]
-        row_end = game_zone[2]
-        col_end = game_zone[3]
+        exp_gz = self.engine.get_expanded_game_zone()
+        row_start = exp_gz[0]
+        col_start = exp_gz[1]
+        row_end = exp_gz[2]
+        col_end = exp_gz[3]
 
         for r in range(row_start, row_end):
             for c in range(col_start, col_end):
