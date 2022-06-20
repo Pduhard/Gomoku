@@ -127,8 +127,8 @@ class GomokuGUIRunner(GomokuRunner):
             self.GUI_quit(shutdown_UI=False)
             return winners
 
-        # except Exception as e:
-        #     print(f"\nGomokuGUIRunner: run(): Exception:\n\t{e}\n")
+        except Exception as e:
+            print(f"\nGomokuGUIRunner: run(): Exception:\n\t{e}\n")
 
         self.GUI_quit()
         return winners

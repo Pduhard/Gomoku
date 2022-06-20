@@ -35,13 +35,14 @@ class GomokuRunner:
         self.players = players
         winners = []
         for i in range(n_games):
+            print(f"\n\t[GomokuRunner: Start game n°{i+1}/{n_games}]\n")
 
             self.engine.init_game()
             if init_snapshot:
                 Snapshot.update_from_snapshot(self.engine, init_snapshot)
 
             self._run()
-            print(f"\n\t[Player {self.engine.winner} win this game]\n")
+            print(f"\n\t[GomokuRunner: Player {self.engine.winner} win game n°{i+1}/{n_games}]\n")
 
             for p in self.players:
                 p.init()
