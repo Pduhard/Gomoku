@@ -96,7 +96,7 @@ def _capture_update(player_idx, y, x, ar, ac, old_ar, old_ac, old_rewards, board
 
 
 @njit()
-def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
+def njit_dynamic_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
                     my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs,
                     old_rewards, ar, ac, old_ar, old_ac, last_c0, last_c1):
     """
@@ -132,7 +132,7 @@ def njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, pl
 
 
 @njit()
-def old_njit_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
+def njit_classic_heuristic(board, c0, c1, gz_start_r, gz_start_c, gz_end_r, gz_end_c, player_idx,
     my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs):
 
     # Padding: 2 on the left and top / 5 on the right and bottom

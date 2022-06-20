@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from GomokuLib.Algo import njit_heuristic, old_njit_heuristic
+from GomokuLib.Algo import njit_classic_heuristic
 from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib import Typing
 from numba import njit
@@ -36,7 +36,7 @@ def heuristic(engine: Gomoku, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_gra
     g2 = game_zone[2]
     g3 = game_zone[3]
 
-    return old_njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx,
+    return njit_classic_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx,
             my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, heuristic_pows, heuristic_dirs)
 
 

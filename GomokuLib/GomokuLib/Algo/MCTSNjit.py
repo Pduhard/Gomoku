@@ -3,8 +3,7 @@ import string
 
 import numpy as np
 
-# from GomokuLib.Algo.hpruning import njit_dynamic_hpruning_speedtest
-from GomokuLib.Algo import njit_classic_pruning, njit_dynamic_hpruning, njit_heuristic, old_njit_heuristic
+from GomokuLib.Algo import njit_classic_pruning, njit_dynamic_hpruning, njit_classic_heuristic, njit_dynamic_heuristic
 import GomokuLib.Typing as Typing
 from GomokuLib.Game.GameEngine import Gomoku
 from GomokuLib.Algo.aligns_graphs import (
@@ -36,6 +35,12 @@ def _get_mc_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
 
 @nb.vectorize('float32(int8, float32, float32)')
 def _valid_policy_action(actions, policy, pruning):
+    """
+        Priority selection:
+            Valid non prune action first
+            Valid prune action
+            Invalid action
+    """
     if pruning < 1:
         if actions > 0:
             return -1
@@ -206,51 +211,41 @@ class MCTSNjit:
 
             state_data = self.states[self.current_statehash][0]
 
+            # Prepare data for action selection
             policy = self.get_policy(state_data)
             pruning = self.dynamic_pruning(state_data['pruning'])
 
+            # Choose the best action to explore
             old_best_action[:] = best_action
             best_action = self.lazy_selection(policy, state_data['actions'], pruning)
-
-            statehashes.append(self.current_statehash)
             self.path[self.depth][:] = best_action
-            rawidx = best_action[0] * 19 + best_action[1]
-            newStone = '1' if self.engine.player_idx == 0 else '2'
-            self.current_statehash = self.current_statehash[:rawidx] + newStone + self.current_statehash[rawidx + 1:]
 
+            # Update statehash with action taken
+            statehashes.append(self.current_statehash)
+            self.update_statehash(best_action)
+
+            # Update engine with action taken
             self.engine.apply_action(best_action)
             self.engine.next_turn()
             self.depth += 1
 
-            # remove captured stone from statehash
-            if self.engine.is_capture_active:
-                captures = self.engine.capture.captured_buffer
-                for i in range(self.engine.capture.capture_count):
-                    rawidx0 = captures[i, 0, 0] * 19 + captures[i, 0, 1]
-                    rawidx1 = captures[i, 1, 0] * 19 + captures[i, 1, 1]
-                    if rawidx0 > rawidx1:
-                        rawidx1 ^= rawidx0
-                        rawidx0 ^= rawidx1
-                        rawidx1 ^= rawidx0
-                    self.current_statehash = (
-                        self.current_statehash[:rawidx0] + '0'
-                        + self.current_statehash[rawidx0 + 1:rawidx1] + '0'
-                        + self.current_statehash[rawidx1 + 1:]
-                    )
-            #####
+            # Remove potential captured stone from statehash
+            self.update_statehash_endturn()
 
             self.end_game = self.engine.isover()
 
+        # prepare data for expansion
         actions = self.engine.get_lazy_actions()
         pruning_arr = self.new_state_pruning()
-
-        # After all engine data fetching
         if self.depth > 1:
             old_statehash = statehashes[-2]
         else:
             old_statehash = None
+
+        # Compute the reward of this new state
         reward = self.award(old_statehash, best_action, old_best_action)
 
+        # Expand this new state & Backpropagate the reward
         self.expand(actions, reward, pruning_arr)
         self.backpropagation(statehashes, reward)
 
@@ -283,6 +278,10 @@ class MCTSNjit:
         return best_actions
 
     def lazy_selection(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray):
+        """
+            Start with action=0 on stones and action=1 elsewhere
+            If action=1 is select, tests its validity before returning
+        """
         gAction = np.zeros(2, dtype=Typing.TupleDtype)
 
         while True:
@@ -301,6 +300,33 @@ class MCTSNjit:
                     return gAction
                 else:
                     actions[x, y] = 0
+
+    def update_statehash(self, best_action: Typing.TupleDtype):
+        """
+            Add new stone
+        """
+        rawidx = best_action[0] * 19 + best_action[1]
+        newStone = '1' if self.engine.player_idx == 0 else '2'
+        self.current_statehash = self.current_statehash[:rawidx] + newStone + self.current_statehash[rawidx + 1:]
+
+    def update_statehash_endturn(self):
+        """
+            Remove captured stones
+        """
+        if self.engine.is_capture_active:
+            captures = self.engine.capture.captured_buffer
+            for i in range(self.engine.capture.capture_count):
+                rawidx0 = captures[i, 0, 0] * 19 + captures[i, 0, 1]
+                rawidx1 = captures[i, 1, 0] * 19 + captures[i, 1, 1]
+                if rawidx0 > rawidx1:
+                    rawidx1 ^= rawidx0
+                    rawidx0 ^= rawidx1
+                    rawidx1 ^= rawidx0
+                self.current_statehash = (
+                    self.current_statehash[:rawidx0] + '0'
+                    + self.current_statehash[rawidx0 + 1:rawidx1] + '0'
+                    + self.current_statehash[rawidx1 + 1:]
+                )
 
     def get_expanded_game_zone(self):
         game_zone = np.copy(self.engine.get_game_zone())
@@ -330,8 +356,6 @@ class MCTSNjit:
         # state[0]['stateAction'][...] = 0.
         state[0]['heuristic'] = reward
 
-        state[0]['heuristic'] = reward
-        
         game_zone = self.get_expanded_game_zone()
         row_start = game_zone[0]
         col_start = game_zone[1]
@@ -363,19 +387,6 @@ class MCTSNjit:
         g3 = game_zone[3]
         return njit_dynamic_hpruning(engine.board, g0, g1, g2, g3, engine.player_idx,
             self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph)
-
-    # def new_state_pruning_speedtest(self, engine: Gomoku = None):
-
-    #     if engine is None:
-    #         engine = self.engine
-
-    #     game_zone = engine.get_game_zone()
-    #     g0 = game_zone[0]
-    #     g1 = game_zone[1]
-    #     g2 = game_zone[2]
-    #     g3 = game_zone[3]
-    #     return njit_dynamic_hpruning_speedtest(engine.board, g0, g1, g2, g3, engine.player_idx,
-    #         self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph)
 
     def dynamic_pruning(self, pruning_arr: np.ndarray):
         if self.depth == 0:        # Depth 0
@@ -421,7 +432,7 @@ class MCTSNjit:
             old_c0 = 0
             old_c1 = 0
 
-        return njit_heuristic(board, c0, c1, g0, g1, g2, g3, self.engine.player_idx,
+        return njit_dynamic_heuristic(board, c0, c1, g0, g1, g2, g3, self.engine.player_idx,
             self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph, self.heuristic_pows, self.heuristic_dirs,
             self.tmp_h_rewards, best_action[0], best_action[1], old_best_action[0], old_best_action[1], old_c0, old_c1)
 
@@ -441,16 +452,12 @@ class MCTSNjit:
         g2 = game_zone[2]
         g3 = game_zone[3]
 
-        return old_njit_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx,
+        return njit_classic_heuristic(board, c0, c1, g0, g1, g2, g3, engine.player_idx,
             self.my_h_graph, self.opp_h_graph, self.my_cap_graph, self.opp_cap_graph, self.heuristic_pows, self.heuristic_dirs)
 
     def backpropagation(self, statehashes, reward: Typing.heuristic_graph_nb_dtype):
         for i in range(self.depth - 1, -1, -1):
-            # Flip data
-            # reward = 1 - reward
             reward = 1 - (0.96 * reward)
-
-            # print("Backprop ", i, " reward ", reward)
             self.backprop_memory(self.path[i], reward, statehashes[i])
 
     def backprop_memory(self, best_action, reward: Typing.heuristic_graph_nb_dtype, statehash: string):
@@ -468,34 +475,3 @@ class MCTSNjit:
             for j in range(19):
                 byte_list.append('1' if arr[0, i, j] == 1 else ('2' if arr[1, i, j] == 1 else '0'))
         return ''.join(byte_list)
-
-    # def rollingout(self):
-    #     turn = 0
-    #     while turn < self.rollingout_turns and not self.engine.isover():
-
-    #         pruning = self.classic_pruning()
-    #         pruning = pruning.flatten().astype(np.bool8)
-
-    #         # Create actions from pruning
-    #         if pruning.any():
-    #             actions = self.all_actions[pruning > 0]
-    #         else:
-    #             actions = self.all_actions
-
-    #         # Select randomly an action from actions/pruning
-    #         action_number = len(actions)
-
-    #         arr = np.arange(action_number)
-    #         np.random.shuffle(arr)
-    #         # i = np.random.randint(action_number)
-    #         i = 0
-    #         gAction = actions[arr[0]]
-    #         while (i < action_number and not self.engine.is_valid_action(gAction)):
-    #             gAction = actions[arr[i]]
-    #             i += 1
-
-    #         if (i == action_number):
-    #             return
-    #         self.engine.apply_action(gAction)
-    #         self.engine.next_turn()
-    #         turn += 1

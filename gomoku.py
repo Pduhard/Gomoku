@@ -16,55 +16,72 @@ players_str = list(players_tab.keys())
 
 def init_runner(args):
 
-    if args.GUI:
-        class_ref = GomokuLib.Game.GameEngine.GomokuGUIRunner
-    else:
-        class_ref = GomokuLib.Game.GameEngine.GomokuRunner
+    try:
+        if args.GUI:
+            class_ref = GomokuLib.Game.GameEngine.GomokuGUIRunner
+        else:
+            class_ref = GomokuLib.Game.GameEngine.GomokuRunner
 
-    return class_ref(
-        is_capture_active=args.rule1,
-        is_game_ending_capture_active=args.rule2,
-        is_no_double_threes_active=args.rule3,
-    )
+        return class_ref(
+            is_capture_active=args.rule1,
+            is_game_ending_capture_active=args.rule2,
+            is_no_double_threes_active=args.rule3,
+        )
+
+    except Exception as e:
+        print(f"gomoku.py: init_runner: Error:\n\t{e}")
 
 def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_iter: int, p_time: int, p_new: int):
 
-    if p_str == "human":
-        return GomokuLib.Player.Human(runner)
+    try:
+        if p_str == "human":
+            return GomokuLib.Player.Human(runner)
 
-    elif p_str == "random":
-        return GomokuLib.Player.RandomPlayer()
+        elif p_str == "random":
+            return GomokuLib.Player.RandomPlayer()
 
-    else:
-        print(f"\ngomoku.py: MCTS: __init__(): START")
-        mcts = players_tab[p_str](
-            engine=runner.engine,
-            iter=p_iter,
-            time=p_time,
-            new_heuristic=p_new
-        )
-        print(f"gomoku.py: MCTS: __init__(): DONE")
+        else:
+            print(f"\ngomoku.py: MCTS: __init__(): START")
+            mcts = players_tab[p_str](
+                engine=runner.engine,
+                iter=p_iter,
+                time=p_time,
+                new_heuristic=p_new
+            )
+            print(f"gomoku.py: MCTS: __init__(): DONE")
 
-        if hasattr(mcts, 'compile'):
-            print(f"gomoku.py: MCTSNjit: Numba compilation starting ...")
-            ts = time.time()
-            mcts.compile(runner.engine)
-            print(f"gomoku.py: MCTSNjit: Numba compilation is finished (dtime={round(time.time() - ts, 1)})\n")
-        return GomokuLib.Player.Bot(mcts)
+            if hasattr(mcts, 'compile'):
+                print(f"gomoku.py: MCTSNjit: Numba compilation starting ...")
+                ts = time.time()
+                mcts.compile(runner.engine)
+                print(f"gomoku.py: MCTSNjit: Numba compilation is finished (dtime={round(time.time() - ts, 1)})\n")
+            return GomokuLib.Player.Bot(mcts)
+
+    except Exception as e:
+        print(f"gomoku.py: init_player: Error:\n\t{e}")
 
 def UI_program(args, runner: GomokuLib.Game.GameEngine.GomokuRunner):
-    gui = GomokuLib.Game.UI.UIManager(
-        engine=runner.engine,
-        win_size=args.win_size,
-        host=args.host[0] if args.host else None,
-        port=args.port[0] if args.port else None
-    )
-    gui()
+    try:
+        gui = GomokuLib.Game.UI.UIManager(
+            engine=runner.engine,
+            win_size=args.win_size,
+            host=args.host[0] if args.host else None,
+            port=args.port[0] if args.port else None
+        )
+        gui()
+
+    except Exception as e:
+        print(f"gomoku.py: UI_program: Error:\n\t{e}")
+
 
 def duel(runner, p1, p2):
-    print(f"\ngomoku.py start with:\n\tRunner: {runner}\n\tPlayer 0: {p1}\n\tPlayer 1: {p2}\n")
-    winners = runner.run([p1, p2])
-    print(f"Winners:\t{winners}")
+    try:
+        print(f"\ngomoku.py start with:\n\tRunner: {runner}\n\tPlayer 0: {p1}\n\tPlayer 1: {p2}\n")
+        winners = runner.run([p1, p2])
+        print(f"Winners:\t{winners}")
+
+    except Exception as e:
+        print(f"gomoku.py: runner: Error:\n\t{e}")
 
 def parse():
     parser = argparse.ArgumentParser(description='GomokuLib main script')
@@ -96,28 +113,33 @@ def parse():
 
 if __name__ == "__main__":
 
-    ## Parse
-    args = parse()
-    runner = init_runner(args)
+    try:
+        ## Parse
+        args = parse()
+        runner = init_runner(args)
 
-    if args.onlyUI:
-        UI_program(args, runner)
+        if args.onlyUI:
+            UI_program(args, runner)
 
-    else:
-        ## Init
-        p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time, args.p1_new)
-        p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time, args.p2_new)
+        else:
+            ## Init
+            p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time, args.p1_new)
+            p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time, args.p2_new)
 
-        ## Run
-        if args.UI:
-            p = Process(target=UI_program, args=(args, runner))
-            p.start()
+            ## Run
+            if args.UI:
+                p = Process(target=UI_program, args=(args, runner))
+                p.start()
 
-        duel(runner, p1, p2)
+            duel(runner, p1, p2)
 
-        ## Close
-        if args.UI:
-            print("gomoku.py: Waiting UI ending")
-            p.join()
+            ## Close
+            if args.UI:
+                print("gomoku.py: Waiting UI ending")
+                p.join()
 
-    print("gomoku.py: OVER")
+    except Exception as e:
+        print(f"gomoku.py: __main__: Error:\n\t{e}")
+
+    finally:
+        print("gomoku.py: OVER")

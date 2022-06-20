@@ -9,9 +9,8 @@ from GomokuLib.Algo.aligns_graphs import (
 
 from GomokuLib.Algo.heuristic import (
     _find_align_reward as heuristic_find_align_award,
-    _compute_capture_coef,
-    njit_heuristic,
-    old_njit_heuristic,
+    njit_classic_heuristic,
+    njit_dynamic_heuristic,
 )
 
 import numpy as np
@@ -32,7 +31,7 @@ def _find_align_reward(n, boards, my_h_graph, opp_h_graph, my_cap_graph, opp_cap
 def _njit_heuristic(n, boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs,
                     old_rewards, actions):
     for i in range(n):
-        njit_heuristic(boards[i], caps[i][0], caps[i][1], 0, 0, 18, 18, i % 2,
+        njit_classic_heuristic(boards[i], caps[i][0], caps[i][1], 0, 0, 18, 18, i % 2,
             my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs,
             old_rewards, actions[i][0], actions[i][1], actions[i][2], actions[i][3], caps[i][0], caps[i][1])# Best scenario: No captures
             # old_rewards, actions[i][0], actions[i][1], actions[i][2], actions[i][3], 0, 0)                  # Worst scenario: Always a new capture
@@ -41,7 +40,7 @@ def _njit_heuristic(n, boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp_
 @njit()
 def _old_njit_heuristic(n, boards, caps, my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs):
     for i in range(n):
-        old_njit_heuristic(boards[i], caps[i][0], caps[i][1], 0, 0, 18, 18, i % 2,
+        njit_dynamic_heuristic(boards[i], caps[i][0], caps[i][1], 0, 0, 18, 18, i % 2,
             my_h_graph, opp_h_graph, my_cap_graph, opp_cap_graph, pows, dirs)
 
 

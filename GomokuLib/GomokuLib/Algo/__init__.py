@@ -1,5 +1,5 @@
-from .heuristic import njit_heuristic, old_njit_heuristic
-from .hpruning import njit_classic_pruning, njit_dynamic_hpruning, _get_neighbors_mask
+from .heuristic import njit_classic_heuristic, njit_dynamic_heuristic
+from .hpruning import njit_classic_pruning, njit_dynamic_hpruning
 
 from .MCTS import MCTS
 from .MCTSLazy import MCTSLazy
@@ -9,7 +9,6 @@ from .MCTSEval import MCTSEval
 from .MCTSEvalLazy import MCTSEvalLazy
 from .MCTSAI import MCTSAI
 from .MCTSNjit import MCTSNjit
-# from .MCTSParallel import MCTSParallel
 
 __all__ = [
     'MCTS',
@@ -20,9 +19,9 @@ __all__ = [
     'MCTSEvalLazy',
     'MCTSAI',
     'MCTSNjit',
-    # 'MCTSParallel',
 
-    'njit_heuristic',
     'njit_classic_pruning',
-    'njit_dynamic_hpruning'
+    'njit_dynamic_hpruning',
+    'njit_classic_heuristic',
+    'njit_dynamic_heuristic',
 ]
