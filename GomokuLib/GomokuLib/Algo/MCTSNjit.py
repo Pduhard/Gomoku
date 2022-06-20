@@ -34,7 +34,8 @@ def _get_mc_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
     return (sa_r / (sa_v + 1)) + (c * np.sqrt(np.log(s_v) / (sa_v + 1)))
 
 
-@nb.vectorize('float32(int8, float32, float32)')
+# @nb.vectorize('float32(int8, float32, float32)')
+@njit()
 def _valid_policy_action(actions, policy, pruning):
     if pruning < 1:
         if actions > 0:
@@ -47,6 +48,15 @@ def _valid_policy_action(actions, policy, pruning):
         else:
             return -2
 
+## game zone amax
+@njit()
+def gz_amax(arr, gz):
+    mx = 0
+    for i in range(gz[0], gz[2]):
+        for j in range(gz[1], gz[3]):
+            if (arr[i, j] > mx):
+                mx = arr[i, j]
+    return mx
 
 @jitclass()
 class MCTSNjit:
@@ -265,16 +275,21 @@ class MCTSNjit:
         sa_v, sa_r = state_data['stateAction']
         return _get_mc_policy(state_data['visits'], sa_v, sa_r, self.c)
 
-    def get_best_policy_actions(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray):
+    def get_best_policy_actions(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray, game_zone: np.ndarray):
         best_actions = np.empty((362, 2), dtype=Typing.TupleDtype)
 
-        action_policy = _valid_policy_action(actions, policy, pruning)
+        # action_policy = _valid_policy_action(actions, policy, pruning)
+        # gz_amax(action_policy, game_zone)
 
-        pmax = np.amax(action_policy)
+        pmax = -10
         k = 0
         for i in range(19):
             for j in range(19):
-                if pmax == action_policy[i, j]:
+                value = _valid_policy_action(actions[i, j], policy[i, j], pruning[i, j])
+                if pmax < value:
+                    k = 0
+                    pmax = value
+                if pmax == value:
                     best_actions[k][0] = i
                     best_actions[k][1] = j
                     k += 1
@@ -284,9 +299,9 @@ class MCTSNjit:
 
     def lazy_selection(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray):
         gAction = np.zeros(2, dtype=Typing.TupleDtype)
-
-        while True:
-            arr = self.get_best_policy_actions(policy, actions, pruning)
+        game_zone = self.get_expanded_game_zone()
+        while True: # return to while true
+            arr = self.get_best_policy_actions(policy, actions, pruning, game_zone)
 
             len = arr[-1, 0]
             arr_pick = np.arange(len)
@@ -301,11 +316,13 @@ class MCTSNjit:
                     return gAction
                 else:
                     actions[x, y] = 0
-
+            
     def get_expanded_game_zone(self):
         game_zone = np.copy(self.engine.get_game_zone())
+
         if game_zone[0] > 0:
             game_zone[0] -= 1
+
         if game_zone[1] > 0:
             game_zone[1] -= 1
         
@@ -330,8 +347,6 @@ class MCTSNjit:
         # state[0]['stateAction'][...] = 0.
         state[0]['heuristic'] = reward
 
-        state[0]['heuristic'] = reward
-        
         game_zone = self.get_expanded_game_zone()
         row_start = game_zone[0]
         col_start = game_zone[1]
