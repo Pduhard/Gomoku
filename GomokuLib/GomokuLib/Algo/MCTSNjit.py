@@ -91,6 +91,7 @@ class MCTSNjit:
     path: Typing.nbPathArray
     c: Typing.mcts_float_nb_dtype
     get_time_cfunc: gettime_ctype
+    new_selection: nb.boolean
 
     depth: Typing.mcts_int_nb_dtype
     max_depth: Typing.mcts_int_nb_dtype
@@ -109,12 +110,14 @@ class MCTSNjit:
     def __init__(self, 
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 0,
-                 time: Typing.MCTSIntDtype = 0
+                 time: Typing.MCTSIntDtype = 0,
+                 new = False
                  ):
 
         self.engine = engine.clone()
         self.mcts_turn_iter = iter
         self.mcts_turn_time = time
+        self.new_selection = new
 
         self.c = np.sqrt(2)
         self.get_time_cfunc = _algo.gettime
@@ -142,6 +145,7 @@ class MCTSNjit:
             ], dtype=Typing.MCTSIntDtype
         )
         self.tmp_h_rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
+
 
     def init(self):
         self.states = nb.typed.Dict.empty(
@@ -203,9 +207,12 @@ class MCTSNjit:
         state_data = self.states[self.gamestatehash][0]
         state_data['max_depth'] = self.max_depth
 
-        sa_v, sa_r = state_data['stateAction']
-        arg = np.argmax(sa_r / (sa_v + 1))
-        return arg // 19, arg % 19
+        if np.all(game_engine.board == 0):
+            return 9, 9
+        else:
+            sa_v, sa_r = state_data['stateAction']
+            arg = np.argmax(sa_r / (sa_v + 1))
+            return arg // 19, arg % 19
 
     def _do_one_iter(self, game_engine: Gomoku):
 
@@ -295,29 +302,6 @@ class MCTSNjit:
         best_actions[-1, 0] = k
         return best_actions
 
-    def get_best_policy_actions_speedtest_1(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray, gz: np.ndarray):
-        best_actions = np.empty((362, 2), dtype=Typing.TupleDtype)
-
-        action_policy = _valid_policy_action_vectorize(actions, policy, pruning)
-
-        pmax = -10
-        k = 0
-        for i in range(gz[0], gz[2]):
-            for j in range(gz[1], gz[3]):
-                value = action_policy[i, j]
-
-                if pmax < value:
-                    k = 0
-                    pmax = value
-
-                if pmax == value:
-                    best_actions[k][0] = i
-                    best_actions[k][1] = j
-                    k += 1
-
-        best_actions[-1, 0] = k
-        return best_actions
-
     def get_best_policy_actions_speedtest_2(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray, gz: np.ndarray):
         best_actions = np.empty((362, 2), dtype=Typing.TupleDtype)
 
@@ -347,7 +331,12 @@ class MCTSNjit:
         gAction = np.zeros(2, dtype=Typing.TupleDtype)
         game_zone = self.get_expanded_game_zone()
         while True: # return to while true
-            arr = self.get_best_policy_actions(policy, actions, pruning, game_zone)
+
+            if self.new_selection:
+                arr = self.get_best_policy_actions_speedtest_2(policy, actions, pruning, game_zone)
+            else:
+                arr = self.get_best_policy_actions(policy, actions, pruning, game_zone)
+            # arr = self.get_best_policy(policy, actions, pruning, game_zone)
 
             len = arr[-1, 0]
             arr_pick = np.arange(len)
