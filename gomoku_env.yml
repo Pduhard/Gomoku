@@ -1,0 +1,10 @@
+name: gomoku_test
+dependencies:
+  - python=3.9
+  - matplotlib
+  - numpy
+  - numba
+  - cffi
+  - pip
+  - pip:
+    - pygame

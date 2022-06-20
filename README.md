@@ -51,14 +51,14 @@ Optional flags:
 
 Main script 'gomoku.py' can start the 2 following main programs:
 
-    - Gomoku runners program (Launched automatically):
-    - User Interface program (Not launched automatically):
-        Ex: `python gomoku.py --onlyUI`
-        Ex: `python gomoku.py --enable-UI ...`
+    * Gomoku runners program (Launched automatically):
+    * User Interface program (Not launched automatically):
+        `pyton hon gomoku.py --onlyUI`
+        `pythgomoku.py --enable-UI ...`
 
 Players :
 
-    - human :   Allow Humans to play with the mouse on the User Interface (Only work with an active UI)
-    - mcts  :   Monte-Carlo Tree Search algorithm write in Python and mostly compile in C thanks to Numba library
-    - pymcts:   Monte-Carlo Tree Search algorithm write in Python
-    - random:   Random plays made each turns
+    * human :   Allow Humans to play with the mouse on the User Interface (Only work with an active UI)
+    * mcts  :   Monte-Carlo Tree Search algorithm write in Python and mostly compile in C thanks to Numba library
+    * pymcts:   Monte-Carlo Tree Search algorithm write in Python
+    * random:   Random plays made each turns
