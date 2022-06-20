@@ -13,6 +13,7 @@ class Snapshot:
             'winner': engine.winner,
             'turn': engine.turn,
             'game_zone': np.copy(engine.get_game_zone()), # copy ?
+            'game_zone_exp': np.copy(engine.get_expanded_game_zone()), # copy ?
             'basic_rules_rules': engine.basic_rules.create_snapshot(),
             'capture_rules': engine.capture.create_snapshot(),
             'game_ending_capture_rules': engine.game_ending_capture.create_snapshot(),
@@ -29,6 +30,7 @@ class Snapshot:
         engine.winner = snapshot['winner']
         engine.turn = snapshot['turn']
         engine.game_zone = np.copy(snapshot['game_zone'])
+        engine.game_zone_exp = np.copy(snapshot['game_zone_exp'])
 
         engine.update_board_ptr()
 

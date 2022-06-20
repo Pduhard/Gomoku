@@ -75,13 +75,13 @@ def UI_program(args, runner: GomokuLib.Game.GameEngine.GomokuRunner):
 
 
 def duel(runner, p1, p2):
-    try:
-        print(f"\ngomoku.py start with:\n\tRunner: {runner}\n\tPlayer 0: {p1}\n\tPlayer 1: {p2}\n")
-        winners = runner.run([p1, p2])
-        print(f"Winners:\t{winners}")
+    # try:
+    print(f"\ngomoku.py start with:\n\tRunner: {runner}\n\tPlayer 0: {p1}\n\tPlayer 1: {p2}\n")
+    winners = runner.run([p1, p2])
+    print(f"Winners:\t{winners}")
 
-    except Exception as e:
-        print(f"gomoku.py: runner: Error:\n\t{e}")
+    # except Exception as e:
+    #     print(f"gomoku.py: runner: Error:\n\t{e}")
 
 def parse():
     parser = argparse.ArgumentParser(description='GomokuLib main script')
@@ -114,33 +114,33 @@ def parse():
 if __name__ == "__main__":
     """ Add bot first play center"""
 
-    try:
-        ## Parse
-        args = parse()
-        runner = init_runner(args)
+    # try:
+    ## Parse
+    args = parse()
+    runner = init_runner(args)
 
-        if args.onlyUI:
-            UI_program(args, runner)
+    if args.onlyUI:
+        UI_program(args, runner)
 
-        else:
-            ## Init
-            p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time, args.p1_new)
-            p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time, args.p2_new)
+    else:
+        ## Init
+        p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time, args.p1_new)
+        p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time, args.p2_new)
 
-            ## Run
-            if args.UI:
-                p = Process(target=UI_program, args=(args, runner))
-                p.start()
+        ## Run
+        if args.UI:
+            p = Process(target=UI_program, args=(args, runner))
+            p.start()
 
-            duel(runner, p1, p2)
+        duel(runner, p1, p2)
 
-            ## Close
-            if args.UI:
-                print("gomoku.py: Waiting UI ending")
-                p.join()
+        ## Close
+        if args.UI:
+            print("gomoku.py: Waiting UI ending")
+            p.join()
 
-    except Exception as e:
-        print(f"gomoku.py: __main__: Error:\n\t{e}")
+    # except Exception as e:
+    #     print(f"gomoku.py: __main__: Error:\n\t{e}")
 
-    finally:
-        print("gomoku.py: OVER")
+    # finally:
+    #     print("gomoku.py: OVER")

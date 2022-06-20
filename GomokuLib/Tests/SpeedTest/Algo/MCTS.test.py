@@ -67,17 +67,9 @@ def _get_policy(n, mcts, state_data):
 
 
 @njit()
-def _get_best_policy_actions(n, mcts, policies, actions, prunings, game_zones):
+def _fetch_upper_policies(n, mcts, policies, actions, prunings, game_zones):
     for i in range(n):
-        mcts.get_best_policy_actions(policies[i], actions[i], prunings[i, 0], game_zones[i])
-@njit()
-def _get_best_policy_actions_1(n, mcts, policies, actions, prunings, game_zones):
-    for i in range(n):
-        mcts.get_best_policy_actions_speedtest_1(policies[i], actions[i], prunings[i, 0], game_zones[i])
-@njit()
-def _get_best_policy_actions_2(n, mcts, policies, actions, prunings, game_zones):
-    for i in range(n):
-        mcts.get_best_policy_actions_speedtest_2(policies[i], actions[i], prunings[i, 0], game_zones[i])
+        mcts.fetch_upper_policies(policies[i], actions[i], prunings[i, 0], game_zones[i])
 
 
 @njit()
@@ -231,7 +223,7 @@ def test_get_policy(mcts):
 
 
 
-def test_get_best_policy_actions(mcts, policies, actions, prunings, game_zones, func):
+def test_fetch_upper_policies(mcts, policies, actions, prunings, game_zones, func):
 
     func(1, mcts, policies, actions, prunings, game_zones)
     times = []
@@ -341,15 +333,10 @@ if __name__ == "__main__":
     # test_award(mcts, boards, best_actions)
     # test_get_policy(mcts)
 
-    print(str(_get_best_policy_actions))
-    print(str(_get_best_policy_actions_1))
-    print(str(_get_best_policy_actions_2))
+    print(str(_fetch_upper_policies))
 
-    test_get_best_policy_actions(mcts, policies.astype(np.float32), actions, prunings.astype(np.float32), game_zones, func=_get_best_policy_actions)
-    test_get_best_policy_actions(mcts, policies.astype(np.float32), actions, prunings.astype(np.float32), game_zones, func=_get_best_policy_actions_1)
-    test_get_best_policy_actions(mcts, policies.astype(np.float32), actions, prunings.astype(np.float32), game_zones, func=_get_best_policy_actions_2)
-    
-    
+    test_fetch_upper_policies(mcts, policies.astype(np.float32), actions, prunings.astype(np.float32), game_zones, func=_fetch_upper_policies)
+
     # test_lazy_selection(mcts, policies.astype(np.float32), actions, engine_ref, prunings.astype(np.float32), game_zones)
     # test_heuristic(mcts, boards, game_zones)
     # test_backpropagation() ??

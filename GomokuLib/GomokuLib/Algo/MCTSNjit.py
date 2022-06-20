@@ -33,54 +33,6 @@ def _get_mc_policy(s_v: np.ndarray, sa_v: np.ndarray, sa_r: np.ndarray,
     return (sa_r / (sa_v + 1)) + (c * np.sqrt(np.log(s_v) / (sa_v + 1)))
 
 
-@nb.vectorize('float32(int8, float32, float32)')
-def _valid_policy_action_vectorize(actions, policy, pruning):
-    """
-        Priority selection:
-            Valid non prune action first
-            Valid prune action
-            Invalid action
-    """
-    if pruning < 1:
-        if actions > 0:
-            return -1
-        else:
-            return -2
-    else:
-        if actions > 0:
-            return policy
-        else:
-            return -2
-
-@njit()
-def _valid_policy_action_njit(actions, policy, pruning):
-    """
-        Priority selection:
-            Valid non prune action first
-            Valid prune action
-            Invalid action
-    """
-    if pruning < 1:
-        if actions > 0:
-            return -1
-        else:
-            return -2
-    else:
-        if actions > 0:
-            return policy
-        else:
-            return -2
-
-## game zone amax
-@njit()
-def gz_amax(arr, gz):
-    mx = -2
-    for i in range(gz[0], gz[2]):
-        for j in range(gz[1], gz[3]):
-            if arr[i, j] > mx:
-                mx = arr[i, j]
-    return mx
-
 @jitclass()
 class MCTSNjit:
 
@@ -146,7 +98,6 @@ class MCTSNjit:
         )
         self.tmp_h_rewards = np.zeros((21, 21), dtype=Typing.HeuristicGraphDtype)
 
-
     def init(self):
         self.states = nb.typed.Dict.empty(
             key_type=Typing.nbStrDtype,
@@ -154,7 +105,7 @@ class MCTSNjit:
         )
 
     def compile(self, game_engine: Gomoku):
-        self.do_your_fck_work(game_engine, 1, 0)
+        self.do_your_fck_work(game_engine, 2, 0)
 
     def str(self):
         return f"MCTSNjit ({self.mcts_turn_iter} iter | {self.mcts_turn_time} ms)"
@@ -285,31 +236,35 @@ class MCTSNjit:
         sa_v, sa_r = state_data['stateAction']
         return _get_mc_policy(state_data['visits'], sa_v, sa_r, self.c)
 
-    def get_best_policy_actions(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray, gz: np.ndarray):
-        best_actions = np.empty((362, 2), dtype=Typing.TupleDtype)
+    def policy_transformation(self, actions, policy, pruning):
+        """
+            Priority selection:
+                Valid non prune action first
+                Valid prune action
+                Invalid action
+        """
+        if pruning < 1:
+            if actions > 0:
+                return -1
+            else:
+                return -2
+        else:
+            if actions > 0:
+                return policy
+            else:
+                return -2
 
-        action_policy = _valid_policy_action_vectorize(actions, policy, pruning)        
-        pmax = gz_amax(action_policy, gz)
-
-        k = 0
-        for i in range(gz[0], gz[2]):
-            for j in range(gz[1], gz[3]):
-                if pmax == action_policy[i, j]:
-                    best_actions[k][0] = i
-                    best_actions[k][1] = j
-                    k += 1
-
-        best_actions[-1, 0] = k
-        return best_actions
-
-    def get_best_policy_actions_speedtest_2(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray, gz: np.ndarray):
+    def fetch_upper_policies(self, policy: np.ndarray, actions: np.ndarray, pruning: np.ndarray, exp_gz: np.ndarray):
+        """
+            Return indexes of bests policy cells, and the number of these at index -1 
+        """
         best_actions = np.empty((362, 2), dtype=Typing.TupleDtype)
 
         pmax = -10
         k = 0
-        for i in range(gz[0], gz[2]):
-            for j in range(gz[1], gz[3]):
-                value = _valid_policy_action_njit(actions[i, j], policy[i, j], pruning[i, j])
+        for i in range(exp_gz[0], exp_gz[2]):
+            for j in range(exp_gz[1], exp_gz[3]):
+                value = self.policy_transformation(actions[i, j], policy[i, j], pruning[i, j])
 
                 if pmax < value:
                     k = 0
@@ -329,14 +284,10 @@ class MCTSNjit:
             If action=1 is select, tests its validity before returning
         """
         gAction = np.zeros(2, dtype=Typing.TupleDtype)
-        game_zone = self.get_expanded_game_zone()
+        exp_gz = self.engine.get_expanded_game_zone()
         while True: # return to while true
 
-            if self.new_selection:
-                arr = self.get_best_policy_actions_speedtest_2(policy, actions, pruning, game_zone)
-            else:
-                arr = self.get_best_policy_actions(policy, actions, pruning, game_zone)
-            # arr = self.get_best_policy(policy, actions, pruning, game_zone)
+            arr = self.fetch_upper_policies(policy, actions, pruning, exp_gz)
 
             len = arr[-1, 0]
             arr_pick = np.arange(len)
@@ -352,26 +303,26 @@ class MCTSNjit:
                 else:
                     actions[x, y] = 0
 
-    def get_expanded_game_zone(self):
-        game_zone = np.copy(self.engine.get_game_zone())
+    # def get_expanded_game_zone(self):
+    #     game_zone = np.copy(self.engine.get_game_zone())
 
-        if game_zone[0] > 0:
-            game_zone[0] -= 1
+    #     if game_zone[0] > 0:
+    #         game_zone[0] -= 1
 
-        if game_zone[1] > 0:
-            game_zone[1] -= 1
+    #     if game_zone[1] > 0:
+    #         game_zone[1] -= 1
         
-        if game_zone[2] < 18:
-            game_zone[2] += 2
-        elif game_zone[2] < 19:
-            game_zone[2] += 1
+    #     if game_zone[2] < 18:
+    #         game_zone[2] += 2
+    #     elif game_zone[2] < 19:
+    #         game_zone[2] += 1
         
-        if game_zone[3] < 18:
-            game_zone[3] += 2
-        elif game_zone[3] < 19:
-            game_zone[3] += 1
+    #     if game_zone[3] < 18:
+    #         game_zone[3] += 2
+    #     elif game_zone[3] < 19:
+    #         game_zone[3] += 1
 
-        return game_zone
+    #     return game_zone
 
     def update_statehash(self, best_action: Typing.TupleDtype):
         """
@@ -410,20 +361,21 @@ class MCTSNjit:
         # state[0]['stateAction'][...] = 0.
         state[0]['heuristic'] = reward
 
-        game_zone = self.get_expanded_game_zone()
+        game_zone = self.engine.get_expanded_game_zone()
         row_start = game_zone[0]
         col_start = game_zone[1]
         row_end = game_zone[2]
         col_end = game_zone[3]
 
-        h_capture = self.engine.capture.get_captures()
         for r in range(row_start, row_end):
             for c in range(col_start, col_end):
                 state[0]['actions'][r, c] = actions[r, c]
-                for i in range(3):
-                    state[0]['pruning'][i, r, c] = pruning_arr[i, r, c]
                 state[0]['h_rewards'][r + 2, c + 2] = self.tmp_h_rewards[r + 2, c + 2]
-        
+                state[0]['pruning'][0, r, c] = pruning_arr[0, r, c]
+                state[0]['pruning'][1, r, c] = pruning_arr[1, r, c]
+                state[0]['pruning'][2, r, c] = pruning_arr[2, r, c]
+
+        h_capture = self.engine.capture.get_captures()
         state[0]['h_captures'][0] = h_capture[0]
         state[0]['h_captures'][1] = h_capture[1]
     

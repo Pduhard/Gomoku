@@ -29,6 +29,7 @@ class Gomoku:
     winner: nb.types.int32
     player_idx: nb.types.int32
     game_zone: Typing.nbGameZone
+    game_zone_exp: Typing.nbGameZone
     
     def __init__(self, is_capture_active: bool = True,
                  is_game_ending_capture_active: bool = True,
@@ -52,9 +53,15 @@ class Gomoku:
         self._isover = False
         self.winner = -1
         self.player_idx = 0
-        self.game_zone = np.array(
+        
+        self.game_zone = np.array(  # [2:3] -> Inclusive bounds
             [0, 0, self.board_size[0] - 1, self.board_size[1] - 1],
-            dtype=Typing.GameZoneDtype)
+            dtype=Typing.GameZoneDtype
+        )
+        self.game_zone_exp = np.array(  # [2:3] -> Exclusive bounds (Game zone expanded by 1)
+            [0, 0, self.board_size[0], self.board_size[1]],
+            dtype=Typing.GameZoneDtype
+        )
 
         self.capture = Capture(self.board)
         self.game_ending_capture = GameEndingCapture(self.board)
@@ -94,21 +101,41 @@ class Gomoku:
             return self.capture.get_captures()
         return np.array([0, 0], dtype=Typing.TupleDtype)
 
-    def get_game_zone(self) -> list:
-        return self.game_zone
-
     def update_game_zone(self, ar, ac):
         if self.turn:
             if ar < self.game_zone[0]:
                 self.game_zone[0] = ar
+                self.game_zone_exp[0] = ar - 1 if ar > 0 else 0
+
             elif self.game_zone[2] < ar:
                 self.game_zone[2] = ar
+                self.game_zone_exp[2] = ar + 2 if ar < 18 else 19
+
             if ac < self.game_zone[1]:
                 self.game_zone[1] = ac
+                self.game_zone_exp[1] = ac - 1 if ac > 0 else 0
+
             elif self.game_zone[3] < ac:
                 self.game_zone[3] = ac
+                self.game_zone_exp[3] = ac + 2 if ac < 18 else 19
+
         else:
             self.game_zone = np.array((ar, ac, ar, ac), dtype=Typing.GameZoneDtype)
+            self.game_zone_exp = np.array(
+                (
+                    ar - 1 if ar > 0 else 0,
+                    ac - 1 if ac > 0 else 0,
+                    ar + 2 if ar < 18 else 19,
+                    ac + 2 if ac < 18 else 19
+                ),
+                dtype=Typing.GameZoneDtype
+            )
+
+    def get_game_zone(self) -> np.ndarray:
+        return self.game_zone
+
+    def get_expanded_game_zone(self) -> np.ndarray:
+        return self.game_zone_exp
 
     def _next_turn_rules(self):
         gz0, gz1, gz2, gz3 = self.get_game_zone()
@@ -169,6 +196,7 @@ class Gomoku:
         self.winner = engine.winner
         self.turn = engine.turn
         self.game_zone = np.copy(engine.game_zone)
+        self.game_zone_exp = np.copy(engine.game_zone_exp)
 
         self._update_rules(engine)
 
