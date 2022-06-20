@@ -43,7 +43,6 @@ class MCTSNjit:
     path: Typing.nbPathArray
     c: Typing.mcts_float_nb_dtype
     get_time_cfunc: gettime_ctype
-    new_selection: nb.boolean
 
     depth: Typing.mcts_int_nb_dtype
     max_depth: Typing.mcts_int_nb_dtype
@@ -62,14 +61,12 @@ class MCTSNjit:
     def __init__(self, 
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 0,
-                 time: Typing.MCTSIntDtype = 0,
-                 new = False
+                 time: Typing.MCTSIntDtype = 0
                  ):
 
         self.engine = engine.clone()
         self.mcts_turn_iter = iter
         self.mcts_turn_time = time
-        self.new_selection = new
 
         self.c = np.sqrt(2)
         self.get_time_cfunc = _algo.gettime
