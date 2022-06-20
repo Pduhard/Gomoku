@@ -13,7 +13,6 @@ MCTSIntDtype = np.int32
 MCTSFloatDtype = np.float32
 
 StateDataDtype = np.dtype([
-    # ('worker_id', MCTSIntDtype),
     ('max_depth', MCTSIntDtype),
     ('visits', MCTSIntDtype),
     ('rewards', MCTSFloatDtype),
@@ -21,7 +20,6 @@ StateDataDtype = np.dtype([
     ('actions', ActionDtype, (19, 19)),
     ('heuristic', HeuristicGraphDtype),
     ('pruning', PruningDtype, (3, 19, 19)),
-    ('amaf', MCTSFloatDtype, (2, 19, 19)),
     ('h_rewards', HeuristicGraphDtype, (21, 21)),
     ('h_captures', TupleDtype, (2, ))
 ], align=True)

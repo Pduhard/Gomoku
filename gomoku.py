@@ -31,7 +31,7 @@ def init_runner(args):
     except Exception as e:
         print(f"gomoku.py: init_runner: Error:\n\t{e}")
 
-def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_iter: int, p_time: int, p_new: int):
+def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_iter: int, p_time: int):
 
     try:
         if p_str == "human":
@@ -45,8 +45,7 @@ def init_player(runner: GomokuLib.Game.GameEngine.GomokuRunner, p_str: str, p_it
             mcts = players_tab[p_str](
                 engine=runner.engine,
                 iter=p_iter,
-                time=p_time,
-                new_heuristic=p_new
+                time=p_time
             )
             print(f"gomoku.py: MCTS: __init__(): DONE")
 
@@ -94,9 +93,6 @@ def parse():
     parser.add_argument('-p1_time', action='store', type=int, default=0, help="Bot 1: Time allowed for one turn of Monte-Carlo, in milli-seconds")
     parser.add_argument('-p2_time', action='store', type=int, default=0, help="Bot 2: Time allowed for one turn of Monte-Carlo, in milli-seconds")
 
-    parser.add_argument('--p1_new', action='store_true', help="Enable new MCTS version")
-    parser.add_argument('--p2_new', action='store_true', help="Enable new MCTS version")
-
     parser.add_argument('--disable-GUI', action='store_false', dest='GUI', help="Disable potential connection with an user interface")
     parser.add_argument('--disable-Capture', action='store_false', dest='rule1', help="Disable gomoku rule 'Capture'")
     parser.add_argument('--disable-GameEndingCapture', action='store_false', dest='rule2', help="Disable gomoku rule 'GameEndingCapture'")
@@ -123,8 +119,8 @@ if __name__ == "__main__":
 
         else:
             ## Init
-            p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time, args.p1_new)
-            p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time, args.p2_new)
+            p1 = init_player(runner, args.p1, args.p1_iter, args.p1_time)
+            p2 = init_player(runner, args.p2, args.p2_iter, args.p2_time)
 
             ## Run
             if args.UI:

@@ -61,7 +61,6 @@ class MCTSNjit:
     mcts_turn_time: Typing.mcts_int_nb_dtype
     states: Typing.nbStateDict
     path: Typing.nbPathArray
-    all_actions: Typing.nbAction
     c: Typing.mcts_float_nb_dtype
     get_time_cfunc: gettime_ctype
 
@@ -75,7 +74,6 @@ class MCTSNjit:
     opp_h_graph: Typing.nbHeuristicGraph
     my_cap_graph: Typing.nbHeuristicGraph
     opp_cap_graph: Typing.nbHeuristicGraph
-    new_heuristic: nb.boolean
     heuristic_pows: Typing.nbHeuristicData
     heuristic_dirs: Typing.nbHeuristicData
     tmp_h_rewards: Typing.nbHeuristicrewards
@@ -83,26 +81,18 @@ class MCTSNjit:
     def __init__(self, 
                  engine: Gomoku,
                  iter: Typing.MCTSIntDtype = 0,
-                 time: Typing.MCTSIntDtype = 0,
-                 new_heuristic: nb.boolean = False
+                 time: Typing.MCTSIntDtype = 0
                  ):
 
         self.engine = engine.clone()
         self.mcts_turn_iter = iter
         self.mcts_turn_time = time
-        self.new_heuristic = new_heuristic
 
         self.c = np.sqrt(2)
         self.get_time_cfunc = _algo.gettime
 
         self.init()
         self.path = np.zeros((361, 2), dtype=Typing.MCTSIntDtype)
-
-        self.all_actions = np.empty((361, 2), dtype=Typing.ActionDtype)
-        for i in range(19):
-            for j in range(19):
-                self.all_actions[i * 19 + j, ...] = [np.int32(i), np.int32(j)]
-        # ActionDtype != int32 wtf ?
 
         # Init data for heuristic
         self.my_h_graph = init_my_heuristic_graph()
@@ -404,10 +394,7 @@ class MCTSNjit:
         if self.engine.isover():
             return 1 if self.engine.winner == self.engine.player_idx else 0
         else:
-            if self.new_heuristic:  # Func ptr set in __init__
-                return self.dynamic_heuristic(old_statehash, best_action, old_best_action)
-            else:
-                return self.heuristic()
+            return self.dynamic_heuristic(old_statehash, best_action, old_best_action)
 
     def dynamic_heuristic(self, old_statehash, best_action, old_best_action):
         board = self.engine.board
