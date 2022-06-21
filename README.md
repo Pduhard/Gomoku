@@ -1,8 +1,10 @@
-# Gomoku
+# GOMOKU
 
-A Gomoku game, with an AI player.
+## Overview
 
-Gomoku is a strategy board game traditionally played on a Go board with black and white stones. Two players take turns placing their stones on an intersection of the 19x19 board. A player wins by aligning 5 or more stones.
+A Gomoku game, with Humans or Monte-Carlo Tree Search algorithm as players.
+
+Gomoku is a strategy board game traditionally played on a Go board with black and white stones. Two players take turns placing their stones on an intersection of the 19x19 board. A player wins by aligning at least 5 stones or by making 5 captures (10 stones removed).
 
 ## Developper setup
 
@@ -35,7 +37,7 @@ Optional arguments:
 ```
 
 Optional flags:
-```bash
+```
   --disable-GUI               Disable potential connection with an user interface
   --disable-Capture           Disable gomoku rule 'Capture'
   --disable-GameEndingCapture Disable gomoku rule 'GameEndingCapture'
@@ -54,3 +56,15 @@ Players :
     pymcts:   Monte-Carlo Tree Search algorithm write in Python
     random:   Random plays made each turns
 ```
+
+## Monte-Carlo Tree Search implementation
+(WIP)
+
+Selection:
+  Dynamic tests of valid action ...
+  Pruning depends on tree depth ...
+  Policy formula used:
+    ...
+
+Simulation:
+  Heuristic -> Paterns rewarded in a graph ...
