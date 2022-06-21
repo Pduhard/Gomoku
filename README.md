@@ -17,11 +17,16 @@ make -C GomokuLib
 
 ## gomoku.py usage
 
+Main script 'gomoku.py' can start the 2 following main programs :
+
+    * Gomoku runners program (Launched automatically):
+    * User Interface program (Not launched automatically):
+
 Optional arguments:
 ```bash
     * -h, --help                      Show this help message and exit
-    * -p1 {mcts,pymcts,random,human}  Player 1 type
-    * -p2 {mcts,pymcts,random,human}  Player 2 type
+    * -p1 {mcts,pymcts,random,human}  Player 1 type (Default as human)
+    * -p2 {mcts,pymcts,random,human}  Player 2 type (Default as mcts)
     * -p1_iter P1_ITER                Bot 1: Number of MCTS iterations
     * -p2_iter P2_ITER                Bot 2: Number of MCTS iterations
     * -p1_time P1_TIME                Bot 1: Time allowed for one turn of Monte-Carlo, in milli-seconds
@@ -42,16 +47,10 @@ Optional flags:
   --win_size WIN_SZ WIN_SZ    Set the size of the window: width & height
 ```
 
-*Main script 'gomoku.py' can start the 2 following main programs :*
-
-    * Gomoku runners program (Launched automatically):
-    * User Interface program (Not launched automatically):
-        `pyton hon gomoku.py --onlyUI`
-        `pythgomoku.py --enable-UI ...`
-
-*Players :*
-
-    * human :   Allow Humans to play with the mouse on the User Interface (Only work with an active UI)
-    * mcts  :   Monte-Carlo Tree Search algorithm write in Python and mostly compile in C thanks to Numba library
-    * pymcts:   Monte-Carlo Tree Search algorithm write in Python
-    * random:   Random plays made each turns
+Players :
+```bash
+    human :   Allow Humans to play with the mouse on the User Interface (Only work with an active UI)
+    mcts  :   Monte-Carlo Tree Search algorithm write in Python and mostly compile in C thanks to Numba library
+    pymcts:   Monte-Carlo Tree Search algorithm write in Python
+    random:   Random plays made each turns
+```
