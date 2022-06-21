@@ -18,6 +18,7 @@ make -C GomokuLib
 ## gomoku.py usage
 
 Optional arguments:
+```bash
     * -h, --help                      Show this help message and exit
     * -p1 {mcts,pymcts,random,human}  Player 1 type
     * -p2 {mcts,pymcts,random,human}  Player 2 type
@@ -26,19 +27,20 @@ Optional arguments:
     * -p1_time P1_TIME                Bot 1: Time allowed for one turn of Monte-Carlo, in milli-seconds
     * -p2_time P2_TIME                Bot 2: Time allowed for one turn of Monte-Carlo, in milli-seconds
     * -games GAMES                    Number of games requested at the Gomoku Runner
-
+```
 
 Optional flags:
-    --disable-GUI               Disable potential connection with an user interface
-    --disable-Capture           Disable gomoku rule 'Capture'
-    --disable-GameEndingCapture Disable gomoku rule 'GameEndingCapture'
-    --disable-NoDoubleThrees    Disable gomoku rule 'NoDoubleThrees'
-    --onlyUI                    Only start the User Interface
-    --enable-UI                 Start the User Interface
-    --host HOST                 Ip address of machine running GomokuGUIRunner
-    --port PORT                 An avaible port of machine running GomokuGUIRunner
-    --win_size WIN_SZ WIN_SZ    Set the size of the window: width & height
-
+```bash
+  --disable-GUI               Disable potential connection with an user interface
+  --disable-Capture           Disable gomoku rule 'Capture'
+  --disable-GameEndingCapture Disable gomoku rule 'GameEndingCapture'
+  --disable-NoDoubleThrees    Disable gomoku rule 'NoDoubleThrees'
+  --onlyUI                    Only start the User Interface
+  --enable-UI                 Start the User Interface
+  --host HOST                 Ip address of machine running GomokuGUIRunner
+  --port PORT                 An avaible port of machine running GomokuGUIRunner
+  --win_size WIN_SZ WIN_SZ    Set the size of the window: width & height
+```
 
 *Main script 'gomoku.py' can start the 2 following main programs :*
 
