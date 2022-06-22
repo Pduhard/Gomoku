@@ -33,6 +33,7 @@ class GomokuRunner:
     def run(self, players: list, init_snapshot: int = None, n_games: int = 1):
 
         self.players = players
+        winners_idx = []
         winners = []
         for i in range(n_games):
             print(f"\n\t[GomokuRunner: Start game n°{i+1}/{n_games}]\n")
@@ -47,7 +48,15 @@ class GomokuRunner:
             for p in self.players:
                 p.init()
 
-            winner = players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
+            winners_idx.append(self.engine.winner if i % 2 == 0 else self.engine.winner ^ 1)
+            winner = self.players[self.engine.winner] if self.engine.winner >= 0 else self.engine.winner
             winners.append(f"P{self.engine.winner}: {str(winner)}")
 
-        return winners
+            self.players = self.players[::-1]
+
+        return {
+            'winners': winners,
+            'id': winners_idx,
+            'p0': winners_idx.count(0) / n_games,
+            'p1': winners_idx.count(1) / n_games
+        }

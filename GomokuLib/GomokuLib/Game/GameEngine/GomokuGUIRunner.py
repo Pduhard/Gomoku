@@ -111,7 +111,7 @@ class GomokuGUIRunner(GomokuRunner):
 
                 if self.play:
                     w = super().run(init_snapshot=self.init_snapshot, *args, **kwargs)
-                    winners.extend(w)
+                    winners.append(w)
                     self.play = False
                     self.init_snapshot = None
                     print(f"GomokuGUIRunner: run(): Waiting for a new game ...\n")
