@@ -24,11 +24,11 @@ setup(
     ],
     package_data={'GomokuLib': ['GomokuLib/Media/Images/*']},
     include_package_data=True,
-
     install_requires=[
-        'numba',
-        'matplotlib',
-        'cffi',
-        'pygame'
+    #  'numpy<1.22,>=1.18',
+    #   'numba>=0.55'
+    #    'matplotlib',
+    #    'cffi',
+    #    'pygame==1.23.0'
     ]
 )
