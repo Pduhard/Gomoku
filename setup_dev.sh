@@ -1,11 +1,8 @@
 #!/bin/sh
 
-pip3 install numpy==1.18.0
-pip3 install numba==0.55
-pip3 install pygame==1.23.0
-pip3 install matplotlib
-pip3 install cffi
+# Dependencies
+pip3 uninstall numpy
+pip3 install pygame matplotlib cffi numba scipy
 
-#pip3 install pygame matplotlib cffi numba
-
+# Compile the Library
 make -C GomokuLib
