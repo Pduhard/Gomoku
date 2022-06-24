@@ -3,7 +3,7 @@
 .DEFAULT_GOAL = setup
 UNAME := $(shell uname)
 
-PYTHON=python
+PYTHON=python3
 
 help:
 	@echo ---------------HELP-----------------
@@ -14,4 +14,4 @@ setup:
 	@echo $(PYTHON)
 	@echo $(UNAME)
 	$(PYTHON) setup.py build
-	$(PYTHON) setup.py install
+	$(PYTHON) setup.py install --user
